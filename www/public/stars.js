@@ -8,7 +8,9 @@
   // Ambient: persistent, wrap at bottom — always covers the full screen.
   // Sparks:  cursor-spawned, fade and die.
   const AMBIENT_COUNT = 120;
+  const SIDE_COUNT    = 60;
   let ambient = [];
+  let sideStars = [];
   let sparks  = [];
   let width, height;
   let animFrameId = null;
@@ -25,6 +27,7 @@
     if (!colors.length) colors = ['#FFB3C6', '#C3B1E1', '#B5EAD7'];
     // Recolor existing ambient particles so palette swaps take effect instantly.
     ambient.forEach(p => { p.color = colors[Math.floor(Math.random() * colors.length)]; });
+    sideStars.forEach(p => { p.color = colors[Math.floor(Math.random() * colors.length)]; });
   }
 
   // ---------------------------------------------------------------------------
@@ -64,6 +67,30 @@
       vy:           Math.random() * 0.5 + 0.3,         // 0.3–0.8 px/frame (slow)
       color:        colors[Math.floor(Math.random() * colors.length)],
       size:         Math.random() * 4 + 3,
+      draw:         SHAPES[Math.floor(Math.random() * SHAPES.length)],
+      rotation:     Math.random() * Math.PI * 2,
+      rotSpeed:     (Math.random() - 0.5) * 0.07,
+      twinkleSpeed: Math.random() * 0.018 + 0.004,
+      twinklePhase: Math.random() * Math.PI * 2,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Side-rain particle factory
+  // ---------------------------------------------------------------------------
+  function makeSideStar(side) {
+    // side: 'left' or 'right'
+    const fromLeft = side === 'left';
+    return {
+      side,
+      x:            fromLeft ? -10 : width + 10,
+      y:            Math.random() * height,
+      vx:           fromLeft
+                      ? Math.random() * 1.2 + 0.5          // moves right
+                      : -(Math.random() * 1.2 + 0.5),      // moves left
+      vy:           Math.random() * 0.6 + 0.2,             // gentle downward drift
+      color:        colors[Math.floor(Math.random() * colors.length)],
+      size:         Math.random() * 3 + 2,
       draw:         SHAPES[Math.floor(Math.random() * SHAPES.length)],
       rotation:     Math.random() * Math.PI * 2,
       rotSpeed:     (Math.random() - 0.5) * 0.07,
@@ -114,6 +141,19 @@
   function init() {
     // Distribute ambient particles across the full viewport on load.
     ambient = Array.from({ length: AMBIENT_COUNT }, () => makeAmbient());
+    // Scatter side stars at random positions along each edge on load.
+    sideStars = [
+      ...Array.from({ length: SIDE_COUNT / 2 }, () => {
+        const p = makeSideStar('left');
+        p.x = Math.random() * (width * 0.4);  // scatter across left portion
+        return p;
+      }),
+      ...Array.from({ length: SIDE_COUNT / 2 }, () => {
+        const p = makeSideStar('right');
+        p.x = width - Math.random() * (width * 0.4);  // scatter across right portion
+        return p;
+      }),
+    ];
   }
 
   window.addEventListener('resize', resize);
@@ -140,6 +180,34 @@
       // Soft side-wrap
       if      (p.x < -p.size)          p.x = width  + p.size;
       else if (p.x > width  + p.size)  p.x = -p.size;
+
+      const twinkle = 0.6 + Math.sin(tick * p.twinkleSpeed + p.twinklePhase) * 0.4;
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, Math.min(1, twinkle));
+      ctx.fillStyle   = p.color;
+      ctx.shadowBlur  = 10;
+      ctx.shadowColor = p.color;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation);
+      p.draw(p.size);
+      ctx.restore();
+    }
+
+    // Side-rain stars — stream in from left/right, respawn at their origin edge
+    for (const p of sideStars) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rotation += p.rotSpeed;
+
+      const exitedLeft  = p.side === 'left'  && p.x > width  + p.size;
+      const exitedRight = p.side === 'right' && p.x < -p.size;
+      const exitedBot   = p.y > height + p.size;
+
+      if (exitedLeft || exitedRight || exitedBot) {
+        const fresh = makeSideStar(p.side);
+        Object.assign(p, fresh);
+      }
 
       const twinkle = 0.6 + Math.sin(tick * p.twinkleSpeed + p.twinklePhase) * 0.4;
 
