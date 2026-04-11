@@ -70,9 +70,9 @@ body {
 }
 
 @keyframes nameGlow {
-  0%   { text-shadow: 0 0 10px var(--glow-1), 1px 1px 3px var(--text-shadow); }
-  50%  { text-shadow: 0 0 22px var(--glow-2), 1px 1px 3px var(--text-shadow); }
-  100% { text-shadow: 0 0 10px var(--glow-1), 1px 1px 3px var(--text-shadow); }
+  0%   { text-shadow: 0 0 10px rgba(255,255,255,0.4); }
+  50%  { text-shadow: 0 0 22px rgba(255,255,255,0.7); }
+  100% { text-shadow: 0 0 10px rgba(255,255,255,0.4); }
 }
 
 @keyframes gradientDrift {
@@ -126,7 +126,9 @@ h1, h2, p {
   font-size: clamp(2.8rem, 8vw, 4.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;
-  animation: arrive-top 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation:
+    arrive-top 1.2s cubic-bezier(0.16, 1, 0.3, 1) both,
+    nameGlow   4s 1.2s ease-in-out infinite;
 }
 
 .info h2 {
