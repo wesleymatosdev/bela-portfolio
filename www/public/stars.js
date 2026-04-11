@@ -119,12 +119,46 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Click burst factory
+  // ---------------------------------------------------------------------------
+  const GOLD_SHADES = ['#FFD700', '#FFC200', '#FFE566', '#FFAA00', '#FFF0A0'];
+
+  function spawnClickBurst(x, y) {
+    const count = Math.floor(Math.random() * 8) + 10;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = Math.random() * 5 + 2;
+      sparks.push({
+        x:        x + (Math.random() - 0.5) * 6,
+        y:        y + (Math.random() - 0.5) * 6,
+        vx:       Math.cos(angle) * speed,
+        vy:       Math.sin(angle) * speed,
+        color:    GOLD_SHADES[Math.floor(Math.random() * GOLD_SHADES.length)],
+        size:     Math.random() * 5 + 3,
+        life:     0,
+        maxLife:  Math.floor(Math.random() * 30 + 35),
+        draw:     SHAPES[Math.floor(Math.random() * SHAPES.length)],
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.3,
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Input
   // ---------------------------------------------------------------------------
   window.addEventListener('mousemove', (e) => {
     const count = Math.floor(Math.random() * 2) + 2;
     for (let i = 0; i < count; i++) spawnSpark(e.clientX, e.clientY);
   });
+
+  window.addEventListener('click', (e) => {
+    spawnClickBurst(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('touchstart', (e) => {
+    spawnClickBurst(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
 
   window.addEventListener('touchmove', (e) => {
     spawnSpark(e.touches[0].clientX, e.touches[0].clientY);
