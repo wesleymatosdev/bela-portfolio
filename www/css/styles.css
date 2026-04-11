@@ -7,9 +7,9 @@
 :root {
   --bg-from:      #1a1030;
   --bg-to:        #0d1a2e;
-  --text:         rgb(255, 240, 250);
-  --text-dim:     rgba(255, 220, 240, 0.65);
-  --text-shadow:  rgb(210, 140, 210);
+  --text:         #ffffff;
+  --text-dim:     rgba(255, 255, 255, 0.65);
+  --text-shadow:  rgba(255, 255, 255, 0);
   --glow-1:       #ffb3c6;
   --glow-2:       #c3b1e1;
   --icon-glow:    rgba(195, 177, 225, 0.8);
@@ -126,9 +126,7 @@ h1, h2, p {
   font-size: clamp(2.8rem, 8vw, 4.5rem);
   font-weight: 700;
   letter-spacing: 0.02em;
-  animation:
-    arrive-top 1.2s cubic-bezier(0.16, 1, 0.3, 1) both,
-    nameGlow   4s 1.2s ease-in-out infinite;
+  animation: arrive-top 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .info h2 {
