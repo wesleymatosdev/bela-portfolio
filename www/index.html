@@ -325,24 +325,42 @@ body {
 .scatter-card:nth-child(3n+2) { transform: rotate(1deg); }
 .scatter-card:nth-child(3n+3) { transform: rotate(-0.5deg); }
 .scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
-/* F2 hover: thumb zooms from center, then expands outward past the card borders */
-@supports (transform: scale(1.05)) {
-  .scatter-card:has(.scatter-thumb:hover) { z-index: 20; }
-  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb {
-    transform: scale(1.22);
-    box-shadow:
-      0 0 0 3px var(--cream),
-      0 0 0 5.5px var(--ink),
-      6px 10px 24px rgba(0,0,0,0.28);
-    z-index: 5;
-  }
-  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb .scatter-thumb-inner { transform: scale(1.06); }
+/* F7: theme-flow hover — the thumb's color washes across the whole card and
+   the card flips to a contrasting theme (light text on the thumb color).
+   Implemented as a tint layer that expands from the thumb downward. */
+.scatter-card { --flow-color: var(--orange); }
+.scatter-card::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--flow-color);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  pointer-events: none;
+  z-index: 0;
 }
-.scatter-thumb-inner {
-  position: relative;
-  z-index: 1;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  will-change: transform;
+.scatter-card:hover::after { transform: scaleY(1); }
+.scatter-card > * { position: relative; z-index: 1; }
+/* theme flip: text goes cream over the flowed color */
+.scatter-card:hover .scatter-body h3,
+.scatter-card:hover .scatter-year { color: var(--cream); }
+.scatter-card:hover .scatter-body p { color: rgba(255,255,255,0.92); }
+/* category chip would blend with some flow colors — invert it on hover */
+.scatter-card:hover .scatter-cat { background: var(--cream); color: var(--ink); }
+/* keycap-style pop on the thumb letter while the theme flows */
+.scatter-thumb .scatter-thumb-inner { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: scale(1.18); }
+/* per-card flow color from the thumb palette */
+.scatter-card:has(.scatter-thumb.c1) { --flow-color: var(--orange); }
+.scatter-card:has(.scatter-thumb.c2) { --flow-color: var(--blue); }
+.scatter-card:has(.scatter-thumb.c3) { --flow-color: var(--green); }
+.scatter-card:has(.scatter-thumb.c4) { --flow-color: var(--purple); }
+.scatter-card:has(.scatter-thumb.c5) { --flow-color: var(--coral); }
+.scatter-card:has(.scatter-thumb.c6) { --flow-color: var(--violet); }
+/* tape + post-it shadow lift slightly so the flow reads as "on top" of the skin */
+.scatter-card:hover {
+  box-shadow: 5px 8px 0 rgba(0,0,0,0.2);
 }
 .scatter-thumb {
   height: 160px;
@@ -354,9 +372,6 @@ body {
   overflow: hidden;
   border-radius: 2px 2px 0 0;
   border-bottom: 2px dashed rgba(0,0,0,0.25);
-  transform-origin: center center;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
-  will-change: transform;
 }
 .scatter-thumb::after {
   content: '';
@@ -543,8 +558,12 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  /* F2: no zoom motion — just a static outline so focus is still visible */
-  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb { transform: none; box-shadow: 0 0 0 3px var(--ink); }
+  /* F7: theme-flow hover — no motion, but keep the readable flipped theme */
+  .scatter-card:hover::after { transform: none; transition: none; background: var(--flow-color); }
+  .scatter-card:hover .scatter-body h3,
+  .scatter-card:hover .scatter-year { color: var(--cream); }
+  .scatter-card:hover .scatter-body p { color: rgba(255,255,255,0.92); }
+  .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: none; }
   /* F3: post-it unfolds instantly, no motion */
   .postit.open .postit-panel { animation: none !important; max-height: none; transform: none; opacity: 1; }
   .postit.closing .postit-panel { animation: none !important; max-height: 0; }
@@ -558,8 +577,7 @@ body {
   /* QA F1: these three crowd the centered name/subtitle/social stickers at 390px */
   .doodle-pencil, .doodle-controller, .doodle-cursor { display: none; }
   .name { -webkit-text-stroke-width: 1.5px; }
-  /* F2: gentler zoom on small screens so the grown thumb stays in view */
-  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb { transform: scale(1.12); }
+  /* F7: theme-flow replaces the old zoom on mobile (no scale overrides needed) */
   /* F3: post-it fits the first mobile view */
   .postit { width: min(260px, 86vw); }
 }
