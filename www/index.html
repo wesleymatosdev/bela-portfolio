@@ -301,7 +301,7 @@ body {
 .scatter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .scatter-card {
   position: relative;
-  background: var(--yellow);
+  background: var(--cream);
   border: 2.5px solid var(--ink);
   border-radius: 4px;
   box-shadow: 4px 6px 0 rgba(0,0,0,0.14);
@@ -360,10 +360,11 @@ body {
 .scatter-thumb.c4 { background: var(--purple); }
 .scatter-thumb.c5 { background: var(--coral); }
 .scatter-thumb.c6 { background: var(--violet); }
-.scatter-body { padding: 14px 18px 18px; }
+/* Round 10 fix: card bodies are cream (page paper), never post-it yellow — yellow is hero-only */
+.scatter-body { padding: 14px 18px 18px; background: var(--cream); }
 .scatter-body h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
-/* F5: post-it body text on yellow needs the darker grays */
-.scatter-body p { font-size: 0.82rem; color: #555; line-height: 1.4; }
+/* body text sits on cream now — use the near-ink dark gray */
+.scatter-body p { font-size: 0.82rem; color: #333; line-height: 1.4; }
 .scatter-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .scatter-year { font-family: var(--font-pixel); font-size: 0.55rem; color: var(--gray-stroke); }
 .scatter-cat { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; color: var(--cream); }
