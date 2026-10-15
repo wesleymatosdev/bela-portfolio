@@ -229,15 +229,34 @@ body {
   background: var(--cream);
   border: 2.5px solid var(--ink);
   border-radius: 14px;
-  overflow: hidden;
   box-shadow: 4px 5px 0 rgba(0,0,0,0.1);
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
 }
+/* F2: no overflow clip — the hovered thumb must grow past the card borders */
 .scatter-card:nth-child(3n+1) { transform: rotate(-1.5deg); }
 .scatter-card:nth-child(3n+2) { transform: rotate(1deg); }
 .scatter-card:nth-child(3n+3) { transform: rotate(-0.5deg); }
 .scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
+/* F2 hover: thumb zooms from center, then expands outward past the card borders */
+@supports (transform: scale(1.05)) {
+  .scatter-card:has(.scatter-thumb:hover) { z-index: 20; }
+  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb {
+    transform: scale(1.22);
+    box-shadow:
+      0 0 0 3px var(--cream),
+      0 0 0 5.5px var(--ink),
+      6px 10px 24px rgba(0,0,0,0.28);
+    z-index: 5;
+  }
+  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb .scatter-thumb-inner { transform: scale(1.06); }
+}
+.scatter-thumb-inner {
+  position: relative;
+  z-index: 1;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
 .scatter-thumb {
   height: 160px;
   display: flex; align-items: center; justify-content: center;
@@ -246,6 +265,10 @@ body {
   color: var(--cream);
   position: relative;
   overflow: hidden;
+  border-radius: 11px 11px 0 0;
+  transform-origin: center center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+  will-change: transform;
 }
 .scatter-thumb::after {
   content: '';
@@ -319,8 +342,11 @@ body {
   }
 }
 
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* F2: no zoom motion — just a static outline so focus is still visible */
+  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb { transform: none; box-shadow: 0 0 0 3px var(--ink); }
 }
 
 @media (max-width: 600px) {
@@ -331,6 +357,8 @@ body {
   /* QA F1: these three crowd the centered name/subtitle/social stickers at 390px */
   .doodle-pencil, .doodle-controller, .doodle-cursor { display: none; }
   .name { -webkit-text-stroke-width: 1.5px; }
+  /* F2: gentler zoom on small screens so the grown thumb stays in view */
+  .scatter-card:has(.scatter-thumb:hover) .scatter-thumb { transform: scale(1.12); }
 }
 </style>
 </head>
@@ -400,12 +428,12 @@ body {
     <button class="filter-tab" onclick="filterWork('ui', this)">UI/UX</button>
   </div>
   <div class="scatter-grid" id="workGrid">
-    <div class="scatter-card reveal" data-cat="brand"><div class="scatter-thumb c1">AB</div><div class="scatter-body"><h3>Café Aurora — Brand Identity</h3><p>Logo, packaging, social templates for a specialty coffee shop.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c2">SM</div><div class="scatter-body"><h3>TechFlow — Social Campaign</h3><p>30-day Instagram campaign for a SaaS startup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat social">Social</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c3">ED</div><div class="scatter-body"><h3>Zine Vol.3 — Editorial</h3><p>32-page indie zine on creative processes.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="ui"><div class="scatter-thumb c4">UI</div><div class="scatter-body"><h3>Doodle Components — UI Kit</h3><p>120+ playful Figma components inspired by sticker art.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c5">PK</div><div class="scatter-body"><h3>Bloom Skincare — Packaging</h3><p>Sustainable packaging for a vegan skincare line.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c6">RA</div><div class="scatter-body"><h3>@flow.studio — Reels Art Direction</h3><p>Art direction for 50+ short-form videos.</p><div class="scatter-meta"><span class="scatter-year">2024</span><span class="scatter-cat social">Social</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="brand"><div class="scatter-thumb c1"><span class="scatter-thumb-inner">AB</span></div><div class="scatter-body"><h3>Café Aurora — Brand Identity</h3><p>Logo, packaging, social templates for a specialty coffee shop.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c2"><span class="scatter-thumb-inner">SM</span></div><div class="scatter-body"><h3>TechFlow — Social Campaign</h3><p>30-day Instagram campaign for a SaaS startup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat social">Social</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c3"><span class="scatter-thumb-inner">ED</span></div><div class="scatter-body"><h3>Zine Vol.3 — Editorial</h3><p>32-page indie zine on creative processes.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="ui"><div class="scatter-thumb c4"><span class="scatter-thumb-inner">UI</span></div><div class="scatter-body"><h3>Doodle Components — UI Kit</h3><p>120+ playful Figma components inspired by sticker art.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c5"><span class="scatter-thumb-inner">PK</span></div><div class="scatter-body"><h3>Bloom Skincare — Packaging</h3><p>Sustainable packaging for a vegan skincare line.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c6"><span class="scatter-thumb-inner">RA</span></div><div class="scatter-body"><h3>@flow.studio — Reels Art Direction</h3><p>Art direction for 50+ short-form videos.</p><div class="scatter-meta"><span class="scatter-year">2024</span><span class="scatter-cat social">Social</span></div></div></div>
   </div>
 </section>
 
