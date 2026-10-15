@@ -109,6 +109,9 @@ body {
   animation: float 6s ease-in-out infinite;
   z-index: 2;
 }
+/* F6: mouse-reactive drift uses individual translate/rotate props so they
+   compose with the float keyframe transform instead of fighting it */
+.hero .doodle, .hero .sparkle { will-change: translate, rotate; }
 .doodle-star       { top: 14%; right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
 .doodle-star-2     { top: 55%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
 .doodle-star-3     { bottom: 28%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
@@ -796,6 +799,76 @@ document.querySelectorAll('.keycap').forEach(k => {
     setTimeout(() => { k.style.transform = ''; }, 150);
   });
 });
+
+// F6: mouse-reactive floating doodles — gentle magnetic repel via individual
+// translate/rotate props (composes with the float keyframe transform).
+// rAF + lerp, transform-only, no layout reads in the loop.
+(function () {
+  const ReducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const hero = document.querySelector('.hero');
+  const items = [...document.querySelectorAll('.hero .doodle, .hero .sparkle')];
+  if (!hero || !items.length || ReducedMotionQuery.matches) return;
+  // Base transforms must survive our individual-property writes: rotate() in
+  // the transform of .doodle-pencil would be overwritten by nothing, but
+  // translate/rotate props ADD to transform, so base transforms are safe.
+  const state = items.map(el => ({ el, tx: 0, ty: 0, r: 0, gx: 0, gy: 0, gr: 0, rect: null }));
+  let rafId = null, mouseX = -1e4, mouseY = -1e4, pointerInside = false;
+  const INFLUENCE = 150;   // px radius where repel kicks in
+  const STRENGTH = 34;     // max repel distance in px
+  const TILT = 10;         // max extra rotation in deg
+  function measure() {
+    state.forEach(s => { s.rect = s.el.getBoundingClientRect(); });
+  }
+  function onMove(e) {
+    mouseX = e.clientX; mouseY = e.clientY;
+    pointerInside = true;
+    if (rafId === null) { measure(); rafId = requestAnimationFrame(tick); }
+  }
+  function onLeave() {
+    pointerInside = false;
+    // targets fall back to 0 -> spring back handled by lerp in tick
+  }
+  function tick() {
+    for (const s of state) {
+      if (pointerInside && s.rect) {
+        const cx = s.rect.left + s.rect.width / 2;
+        const cy = s.rect.top + s.rect.height / 2;
+        const dx = cx - mouseX, dy = cy - mouseY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < INFLUENCE && dist > 0.001) {
+          const push = (1 - dist / INFLUENCE);
+          s.gx = (dx / dist) * push * STRENGTH;
+          s.gy = (dy / dist) * push * STRENGTH;
+          s.gr = (dx / dist) * push * TILT;
+        } else { s.gx = 0; s.gy = 0; s.gr = 0; }
+      } else { s.gx = 0; s.gy = 0; s.gr = 0; }
+      // lerp toward goal for smooth spring-back
+      s.tx += (s.gx - s.tx) * 0.12;
+      s.ty += (s.gy - s.ty) * 0.12;
+      s.r  += (s.gr - s.r) * 0.12;
+      if (Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05) {
+        s.el.style.translate = s.tx.toFixed(2) + 'px ' + s.ty.toFixed(2) + 'px';
+        s.el.style.rotate = s.r.toFixed(2) + 'deg';
+      } else if (s.el.style.translate) {
+        s.el.style.translate = ''; s.el.style.rotate = '';
+      }
+    }
+    if (pointerInside || state.some(s => Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05)) {
+      rafId = requestAnimationFrame(tick);
+    } else { rafId = null; }
+  }
+  hero.addEventListener('pointermove', onMove, { passive: true });
+  hero.addEventListener('pointerleave', onLeave, { passive: true });
+  ReducedMotionQuery.addEventListener('change', (e) => {
+    if (e.matches) {
+      hero.removeEventListener('pointermove', onMove);
+      hero.removeEventListener('pointerleave', onLeave);
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      state.forEach(s => { s.el.style.translate = ''; s.el.style.rotate = ''; });
+    }
+  });
+})();
+
 if (!CSS.supports('animation-timeline: view()')) {
   const io = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
