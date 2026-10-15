@@ -692,27 +692,20 @@ body {
       <button class="xp-tbtn" id="xpMail">✉ Contact</button>
     </div>
     <div class="xp-body">
-      <div class="xp-thumb">AB</div>
+      <div class="xp-thumb" id="xpThumb">AB</div>
       <div class="xp-meta">
-        <span class="xp-field"><b>Client:</b> Café Aurora</span>
-        <span class="xp-field"><b>Year:</b> 2026</span>
-        <span class="xp-field"><b>Category:</b> Branding</span>
-        <span class="xp-field"><b>Role:</b> Brand Designer</span>
+        <span class="xp-field"><b>Client:</b> <span id="xpClient">—</span></span>
+        <span class="xp-field"><b>Year:</b> <span id="xpYear">—</span></span>
+        <span class="xp-field"><b>Category:</b> <span id="xpCat">—</span></span>
       </div>
-      <p><b>Café Aurora — Brand Identity.</b> Complete visual identity for a specialty coffee shop: logo, packaging system and social media templates built around a warm sunrise palette and hand-drawn doodle textures.</p>
-      <ul>
-        <li>Logo &amp; mark: sunrise motif with playful grid-paper textures</li>
-        <li>Packaging: coffee bags, cups and sleeves with hatched color covers</li>
-        <li>Social templates: 12 editable layouts for posts and stories</li>
-        <li>Brand guidelines: palette, typography and doodle usage rules</li>
-      </ul>
+      <p id="xpDesc"></p>
       <div class="xp-actions">
         <button class="xp-cmd" id="xpOk">OK</button>
         <button class="xp-cmd xp-primary" id="xpCancel">Close</button>
       </div>
     </div>
     <div class="xp-statusbar">
-      <span>Project 1 of 6</span>
+      <span id="xpIndex">Project 1 of 6</span>
       <span id="xpStatus">Ready</span>
     </div>
   </div>
@@ -749,12 +742,28 @@ body {
   });
 })();
 
-// F4: XP detail view — Café Aurora card opens a full XP-style page (not a modal)
+// F4: XP detail view — every work card opens the XP page, populated from the card
 (function () {
   const overlay = document.getElementById('xpOverlay');
   if (!overlay) return;
+  const CAT_LABEL = { brand: 'Branding', social: 'Social', print: 'Print', ui: 'UI/UX' };
   let lastFocus = null;
-  function openXp() {
+  function openXp(card) {
+    const thumb = card.querySelector('.scatter-thumb');
+    const title = card.querySelector('.scatter-body h3');
+    const desc = card.querySelector('.scatter-body p');
+    const year = card.querySelector('.scatter-year');
+    const cat = card.querySelector('.scatter-cat');
+    document.getElementById('xpTitle').textContent = (title ? title.textContent : 'Project') + ' — Project Details';
+    document.getElementById('xpThumb').textContent = thumb ? thumb.textContent.trim() : '';
+    document.getElementById('xpThumb').style.background = getComputedStyle(thumb).backgroundColor;
+    document.getElementById('xpClient').textContent = title ? title.textContent.split('—')[0].trim() : '—';
+    document.getElementById('xpYear').textContent = year ? year.textContent.trim() : '—';
+    document.getElementById('xpCat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
+    document.getElementById('xpDesc').innerHTML = '<b>' + (title ? title.textContent : '') + '.</b> ' + (desc ? desc.textContent : '');
+    const cards = [...document.querySelectorAll('.scatter-card')];
+    document.getElementById('xpIndex').textContent = 'Project ' + (cards.indexOf(card) + 1) + ' of ' + cards.length;
+    document.getElementById('xpStatus').textContent = 'Ready';
     lastFocus = document.activeElement;
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -766,8 +775,9 @@ body {
     document.body.style.overflow = '';
     if (lastFocus) lastFocus.focus();
   }
-  const auroraCard = document.querySelector('.scatter-card[data-cat="brand"]');
-  if (auroraCard) auroraCard.addEventListener('click', openXp);
+  document.querySelectorAll('.scatter-card').forEach(card => {
+    card.addEventListener('click', () => openXp(card));
+  });
   ['xpClose', 'xpBack', 'xpOk', 'xpCancel'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('click', closeXp);
