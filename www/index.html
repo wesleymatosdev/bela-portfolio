@@ -428,133 +428,140 @@ body {
   }
 }
 
-/* F4: XP-style project detail view */
-.xp-overlay {
+/* F8: kawaii stacked-window project detail view (per reference image) */
+.detail-overlay {
   position: fixed; inset: 0;
-  background: #3A6EA5;
-  display: none;
   z-index: 100;
   overflow: auto;
-  padding: clamp(10px, 4vw, 48px);
+  /* lavender grid-paper like the reference */
+  background-color: #DCC8EC;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.85) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,255,255,0.85) 2px, transparent 2px);
+  background-size: 44px 44px;
+  padding: clamp(16px, 6vh, 64px) clamp(12px, 4vw, 48px);
+  display: none;
 }
-.xp-overlay.open { display: block; }
-.xp-window {
-  max-width: 760px;
-  margin: 0 auto;
-  background: #ECE9D8;
-  border: 2px solid #0831D9;
-  border-radius: 8px 8px 0 0;
-  box-shadow: 4px 8px 24px rgba(0,0,0,0.45);
-  font-family: Tahoma, 'Segoe UI', Verdana, sans-serif;
-  color: #000;
+.detail-overlay.open { display: block; }
+.detail-deck { position: relative; max-width: 680px; margin: 0 auto; }
+/* ghost windows peeking out down-right */
+.detail-ghost {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  background: #fff;
+  pointer-events: none;
 }
-.xp-titlebar {
+.detail-ghost::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 46px;
+  background: var(--purple);
+  border-bottom: 2px solid var(--ink);
+  border-radius: 22px 22px 0 0;
+}
+.detail-ghost.g1 { transform: translate(14px, 14px); z-index: 1; }
+.detail-ghost.g2 { transform: translate(28px, 28px); z-index: 0; }
+.detail-window {
+  position: relative;
+  z-index: 2;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  overflow: hidden;
+}
+.detail-titlebar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
-  padding: 6px 8px 6px 12px;
-  background: linear-gradient(180deg, #0997FF 0%, #0053EE 8%, #0050EE 40%, #06F 88%, #06F 93%, #0050EE 100%);
-  border-radius: 6px 6px 0 0;
-  color: #fff;
+  background: var(--purple);
+  border-bottom: 2px solid var(--ink);
+  padding: 12px 18px;
+  min-height: 46px;
+}
+.detail-titlebar h2 {
+  font-family: var(--font-body);
   font-weight: 700;
-  font-size: 0.95rem;
-  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
-  user-select: none;
-}
-.xp-titlebar .xp-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.xp-titlebar .xp-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.xp-btns { display: flex; gap: 3px; flex-shrink: 0; }
-.xp-btn {
-  width: 24px; height: 22px;
-  border: 1px solid rgba(255,255,255,0.7);
-  border-radius: 3px;
-  background: linear-gradient(180deg, #FF9C8C 0%, #E3401C 45%, #B32B0B 100%);
+  font-size: 1rem;
   color: #fff;
-  font-family: Tahoma, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.xp-btn:hover { filter: brightness(1.15); }
-.xp-menubar {
-  display: flex; gap: 2px;
-  background: #ECE9D8;
-  border-bottom: 1px solid #ACA899;
-  padding: 2px 6px;
-  font-size: 0.75rem;
+.detail-dots { display: flex; gap: 7px; flex-shrink: 0; }
+.detail-dots span {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #E9D8F3;
+  display: block;
 }
-.xp-menubar span { padding: 2px 8px; cursor: default; }
-.xp-menubar span:hover { background: #316AC5; color: #fff; }
-.xp-toolbar {
-  display: flex; align-items: center; gap: 6px;
-  background: linear-gradient(180deg, #FDFDFD 0%, #EFEDE2 90%, #E3E1D4 100%);
-  border-bottom: 1px solid #ACA899;
-  padding: 5px 8px;
-}
-.xp-tbtn {
-  display: flex; align-items: center; gap: 5px;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: none;
-  font-family: inherit;
-  font-size: 0.75rem;
-  color: #000;
-  padding: 3px 8px;
-  cursor: pointer;
-}
-.xp-tbtn:hover { border-color: #B2C4D8; background: #DFE9F5; }
-.xp-statusbar {
-  display: flex; justify-content: space-between;
-  border-top: 1px solid #fff;
-  background: #ECE9D8;
-  padding: 3px 10px;
-  font-size: 0.72rem;
-  color: #444;
-}
-.xp-statusbar span:first-child { border-right: 1px solid #ACA899; padding-right: 12px; }
-.xp-body { padding: 18px 20px 22px; font-size: 0.85rem; line-height: 1.55; }
-.xp-thumb {
-  height: 180px;
-  border: 2px solid #7F9DB9;
-  background: var(--orange);
+.detail-body { padding: 22px 24px 26px; font-family: var(--font-body); color: var(--ink); }
+.detail-thumb {
+  height: 170px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-pixel);
   font-size: 2rem;
   color: var(--cream);
-  margin-bottom: 14px;
+  margin-bottom: 18px;
+  background: var(--orange);
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
 }
-.xp-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.xp-field {
-  border: 1px solid #7F9DB9;
+.detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.detail-chip {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.detail-chip.cat { background: var(--purple); color: #fff; }
+.detail-desc { font-size: 0.95rem; line-height: 1.65; color: var(--ink); }
+.detail-desc b { display: block; margin-bottom: 6px; font-size: 1.05rem; }
+/* pill badge bottom-center, like the reference's "Hello Billa" */
+.detail-pill-row { position: sticky; bottom: 14px; display: flex; justify-content: center; margin-top: 22px; }
+.detail-pill {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
   background: #fff;
-  padding: 3px 10px;
-  font-size: 0.75rem;
-}
-.xp-field b { color: #00318F; margin-right: 6px; }
-.xp-body p { margin-bottom: 12px; }
-.xp-body ul { margin: 0 0 12px 20px; }
-.xp-body li { margin-bottom: 4px; }
-.xp-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
-.xp-cmd {
-  min-width: 84px;
-  padding: 5px 16px;
-  font-family: inherit;
-  font-size: 0.8rem;
-  background: #ECE9D8;
-  border: 1px solid #003C74;
-  border-radius: 3px;
-  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #ACA899;
+  padding: 8px 22px;
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  color: var(--ink);
   cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
 }
-.xp-cmd:active { box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #ACA899; }
-.xp-cmd.xp-primary { font-weight: 700; border-color: #2C57A4; background: linear-gradient(180deg, #FFF 0%, #E4E3DC 86%, #D2D0C4 100%); }
-
-/* F4 mobile */
+.detail-pill:hover { transform: translateY(-3px); box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
+.detail-pill:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+.detail-pill:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
+/* entrance: deck fans/slides out on open */
+.detail-overlay.open .detail-window { animation: detail-window-in 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
+.detail-overlay.open .detail-ghost.g1 { animation: detail-ghost-in 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) 0.08s both; }
+.detail-overlay.open .detail-ghost.g2 { animation: detail-ghost-in 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) 0.16s both; }
+@keyframes detail-window-in {
+  0% { transform: translate(-30px, -24px) scale(0.92); opacity: 0; }
+  100% { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+@keyframes detail-ghost-in {
+  0% { transform: translate(6px, 6px); opacity: 0; }
+  100% { opacity: 1; }
+}
+/* F8 mobile */
 @media (max-width: 600px) {
-  .xp-body { padding: 14px 12px 18px; }
-  .xp-thumb { height: 140px; font-size: 1.5rem; }
-  .xp-menubar span:nth-child(n+4) { display: none; }
+  .detail-body { padding: 16px 14px 20px; }
+  .detail-thumb { height: 130px; font-size: 1.5rem; }
+  .detail-ghost.g1 { transform: translate(8px, 8px); }
+  .detail-ghost.g2 { transform: translate(16px, 16px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-overlay.open .detail-window,
+  .detail-overlay.open .detail-ghost.g1,
+  .detail-overlay.open .detail-ghost.g2 { animation: none !important; opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -688,43 +695,26 @@ body {
   </div>
 </section>
 
-<div class="xp-overlay" id="xpOverlay" role="dialog" aria-modal="true" aria-labelledby="xpTitle">
-  <div class="xp-window">
-    <div class="xp-titlebar">
-      <div class="xp-title">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2" width="6" height="6" fill="#F25022"/><rect x="9" y="2" width="6" height="6" fill="#7FBA00"/><rect x="1" y="9" width="6" height="6" fill="#00A4EF"/><rect x="9" y="9" width="6" height="6" fill="#FFB900"/></svg>
-        <span id="xpTitle">Café Aurora — Project Details</span>
+<div class="detail-overlay" id="xpOverlay" role="dialog" aria-modal="true" aria-labelledby="xpTitle">
+  <div class="detail-deck">
+    <div class="detail-ghost g2" aria-hidden="true"></div>
+    <div class="detail-ghost g1" aria-hidden="true"></div>
+    <div class="detail-window">
+      <div class="detail-titlebar">
+        <h2 id="xpTitle">Project Details</h2>
+        <div class="detail-dots" aria-hidden="true"><span></span><span></span><span></span></div>
       </div>
-      <div class="xp-btns">
-        <button class="xp-btn" aria-label="Minimize">_</button>
-        <button class="xp-btn" aria-label="Maximize">□</button>
-        <button class="xp-btn" id="xpClose" aria-label="Close project details">✕</button>
+      <div class="detail-body">
+        <div class="detail-thumb" id="xpThumb">AB</div>
+        <div class="detail-meta">
+          <span class="detail-chip cat" id="xpCat">—</span>
+          <span class="detail-chip">Year: <span id="xpYear">—</span></span>
+        </div>
+        <p class="detail-desc" id="xpDesc"></p>
+        <div class="detail-pill-row">
+          <button class="detail-pill" id="xpClose">← back to work</button>
+        </div>
       </div>
-    </div>
-    <div class="xp-menubar" aria-hidden="true">
-      <span>File</span><span>Edit</span><span>View</span><span>Project</span><span>Help</span>
-    </div>
-    <div class="xp-toolbar">
-      <button class="xp-tbtn" id="xpBack">⬅ Back</button>
-      <button class="xp-tbtn" onclick="window.print()">🖨 Print</button>
-      <button class="xp-tbtn" id="xpMail">✉ Contact</button>
-    </div>
-    <div class="xp-body">
-      <div class="xp-thumb" id="xpThumb">AB</div>
-      <div class="xp-meta">
-        <span class="xp-field"><b>Client:</b> <span id="xpClient">—</span></span>
-        <span class="xp-field"><b>Year:</b> <span id="xpYear">—</span></span>
-        <span class="xp-field"><b>Category:</b> <span id="xpCat">—</span></span>
-      </div>
-      <p id="xpDesc"></p>
-      <div class="xp-actions">
-        <button class="xp-cmd" id="xpOk">OK</button>
-        <button class="xp-cmd xp-primary" id="xpCancel">Close</button>
-      </div>
-    </div>
-    <div class="xp-statusbar">
-      <span id="xpIndex">Project 1 of 6</span>
-      <span id="xpStatus">Ready</span>
     </div>
   </div>
 </div>
@@ -760,7 +750,7 @@ body {
   });
 })();
 
-// F4: XP detail view — every work card opens the XP page, populated from the card
+// F4: detail view — every work card opens the kawaii stacked-window page, populated from the card
 (function () {
   const overlay = document.getElementById('xpOverlay');
   if (!overlay) return;
@@ -772,16 +762,12 @@ body {
     const desc = card.querySelector('.scatter-body p');
     const year = card.querySelector('.scatter-year');
     const cat = card.querySelector('.scatter-cat');
-    document.getElementById('xpTitle').textContent = (title ? title.textContent : 'Project') + ' — Project Details';
+    document.getElementById('xpTitle').textContent = title ? title.textContent : 'Project Details';
     document.getElementById('xpThumb').textContent = thumb ? thumb.textContent.trim() : '';
     document.getElementById('xpThumb').style.background = getComputedStyle(thumb).backgroundColor;
-    document.getElementById('xpClient').textContent = title ? title.textContent.split('—')[0].trim() : '—';
     document.getElementById('xpYear').textContent = year ? year.textContent.trim() : '—';
     document.getElementById('xpCat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
-    document.getElementById('xpDesc').innerHTML = '<b>' + (title ? title.textContent : '') + '.</b> ' + (desc ? desc.textContent : '');
-    const cards = [...document.querySelectorAll('.scatter-card')];
-    document.getElementById('xpIndex').textContent = 'Project ' + (cards.indexOf(card) + 1) + ' of ' + cards.length;
-    document.getElementById('xpStatus').textContent = 'Ready';
+    document.getElementById('xpDesc').innerHTML = '<b>' + (title ? title.textContent : '') + '</b>' + (desc ? desc.textContent : '');
     lastFocus = document.activeElement;
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -796,12 +782,12 @@ body {
   document.querySelectorAll('.scatter-card').forEach(card => {
     card.addEventListener('click', () => openXp(card));
   });
-  ['xpClose', 'xpBack', 'xpOk', 'xpCancel'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('click', closeXp);
+  const closeBtn = document.getElementById('xpClose');
+  if (closeBtn) closeBtn.addEventListener('click', closeXp);
+  // click anywhere outside the window (on the lavender backdrop) closes too
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeXp();
   });
-  const mailBtn = document.getElementById('xpMail');
-  if (mailBtn) mailBtn.addEventListener('click', () => { window.location.href = 'mailto:belarossi.art@gmail.com'; });
   document.addEventListener('keydown', (e) => {
     if (!overlay.classList.contains('open')) return;
     if (e.key === 'Escape') closeXp();
