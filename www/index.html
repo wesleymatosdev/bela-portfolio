@@ -428,52 +428,26 @@ body {
   }
 }
 
-/* F8: kawaii stacked-window project detail view (per reference image) */
-.detail-overlay {
-  position: fixed; inset: 0;
-  z-index: 100;
-  overflow: auto;
-  /* lavender grid-paper like the reference */
-  background-color: #DCC8EC;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.85) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(255,255,255,0.85) 2px, transparent 2px);
-  background-size: 44px 44px;
-  padding: clamp(16px, 6vh, 64px) clamp(12px, 4vw, 48px);
-  display: none;
-}
-.detail-overlay.open { display: block; }
-.detail-deck { position: relative; max-width: 680px; margin: 0 auto; }
-/* ghost windows peeking out down-right */
-.detail-ghost {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%;
-  height: 100%;
-  border: 2px solid var(--ink);
-  border-radius: 24px;
-  background: #fff;
-  pointer-events: none;
-}
-.detail-ghost::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 46px;
-  background: var(--purple);
-  border-bottom: 2px solid var(--ink);
-  border-radius: 22px 22px 0 0;
-}
-.detail-ghost.g1 { transform: translate(14px, 14px); z-index: 1; }
-.detail-ghost.g2 { transform: translate(28px, 28px); z-index: 0; }
+/* F8/F9: kawaii detail windows — draggable, unstacked, floating over the live page */
 .detail-window {
-  position: relative;
-  z-index: 2;
+  position: fixed;
+  top: 90px; left: 50%;
+  width: min(680px, calc(100vw - 24px));
+  max-height: min(78vh, 720px);
   background: #fff;
   border: 2px solid var(--ink);
   border-radius: 24px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 60;
+  box-shadow: 6px 10px 0 rgba(0,0,0,0.12);
+  animation: detail-window-in 0.45s cubic-bezier(0.34, 1.4, 0.5, 1) both;
 }
+/* multiple open windows genuinely stack: each new one offsets a touch */
+.detail-window.shift-1 { top: calc(90px + 26px); left: calc(50% + 26px); }
+.detail-window.shift-2 { top: calc(90px + 52px); left: calc(50% + 52px); }
+.detail-window.dragging { animation: none; }
 .detail-titlebar {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
@@ -481,7 +455,12 @@ body {
   border-bottom: 2px solid var(--ink);
   padding: 12px 18px;
   min-height: 46px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  flex-shrink: 0;
 }
+.detail-window.dragging .detail-titlebar { cursor: grabbing; }
 .detail-titlebar h2 {
   font-family: var(--font-body);
   font-weight: 700;
@@ -489,6 +468,7 @@ body {
   color: #fff;
   text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  pointer-events: none;
 }
 .detail-dots { display: flex; gap: 7px; flex-shrink: 0; }
 .detail-dots span {
@@ -497,7 +477,13 @@ body {
   background: #E9D8F3;
   display: block;
 }
-.detail-body { padding: 22px 24px 26px; font-family: var(--font-body); color: var(--ink); }
+.detail-dots span:hover { background: #fff; }
+.detail-body {
+  padding: 22px 24px 26px;
+  font-family: var(--font-body);
+  color: var(--ink);
+  overflow-y: auto;
+}
 .detail-thumb {
   height: 170px;
   border: 2px solid var(--ink);
@@ -522,8 +508,8 @@ body {
 .detail-chip.cat { background: var(--purple); color: #fff; }
 .detail-desc { font-size: 0.95rem; line-height: 1.65; color: var(--ink); }
 .detail-desc b { display: block; margin-bottom: 6px; font-size: 1.05rem; }
-/* pill badge bottom-center, like the reference's "Hello Billa" */
-.detail-pill-row { position: sticky; bottom: 14px; display: flex; justify-content: center; margin-top: 22px; }
+/* pill close affordance, bottom center like the reference badge */
+.detail-pill-row { display: flex; justify-content: center; margin-top: 22px; }
 .detail-pill {
   border: 2px solid var(--ink);
   border-radius: 999px;
@@ -539,29 +525,26 @@ body {
 .detail-pill:hover { transform: translateY(-3px); box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
 .detail-pill:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
 .detail-pill:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
-/* entrance: deck fans/slides out on open */
-.detail-overlay.open .detail-window { animation: detail-window-in 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
-.detail-overlay.open .detail-ghost.g1 { animation: detail-ghost-in 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) 0.08s both; }
-.detail-overlay.open .detail-ghost.g2 { animation: detail-ghost-in 0.5s cubic-bezier(0.34, 1.4, 0.5, 1) 0.16s both; }
 @keyframes detail-window-in {
-  0% { transform: translate(-30px, -24px) scale(0.92); opacity: 0; }
-  100% { transform: translate(0, 0) scale(1); opacity: 1; }
+  0% { transform: translate(-50%, -18px) scale(0.94); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
 }
-@keyframes detail-ghost-in {
-  0% { transform: translate(6px, 6px); opacity: 0; }
-  100% { opacity: 1; }
-}
-/* F8 mobile */
+.detail-window.dragging, .detail-window.positioned { animation: none; }
+/* F8 mobile: full-width sheet, no drag needed */
 @media (max-width: 600px) {
+  .detail-window,
+  .detail-window.shift-1,
+  .detail-window.shift-2 {
+    left: 12px; right: 12px; top: 74px;
+    width: auto;
+    max-height: calc(100vh - 98px);
+  }
+  .detail-titlebar { cursor: default; }
   .detail-body { padding: 16px 14px 20px; }
   .detail-thumb { height: 130px; font-size: 1.5rem; }
-  .detail-ghost.g1 { transform: translate(8px, 8px); }
-  .detail-ghost.g2 { transform: translate(16px, 16px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .detail-overlay.open .detail-window,
-  .detail-overlay.open .detail-ghost.g1,
-  .detail-overlay.open .detail-ghost.g2 { animation: none !important; opacity: 1; }
+  .detail-window { animation: none !important; opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -695,29 +678,26 @@ body {
   </div>
 </section>
 
-<div class="detail-overlay" id="xpOverlay" role="dialog" aria-modal="true" aria-labelledby="xpTitle">
-  <div class="detail-deck">
-    <div class="detail-ghost g2" aria-hidden="true"></div>
-    <div class="detail-ghost g1" aria-hidden="true"></div>
-    <div class="detail-window">
-      <div class="detail-titlebar">
-        <h2 id="xpTitle">Project Details</h2>
-        <div class="detail-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+<!-- F9: detail windows are created per-project by JS and float over the live page -->
+<template id="detailTemplate">
+  <div class="detail-window" role="dialog" aria-modal="false">
+    <div class="detail-titlebar">
+      <h2 class="detail-title"></h2>
+      <div class="detail-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-thumb"></div>
+      <div class="detail-meta">
+        <span class="detail-chip cat"></span>
+        <span class="detail-chip">Year: <span class="detail-year"></span></span>
       </div>
-      <div class="detail-body">
-        <div class="detail-thumb" id="xpThumb">AB</div>
-        <div class="detail-meta">
-          <span class="detail-chip cat" id="xpCat">—</span>
-          <span class="detail-chip">Year: <span id="xpYear">—</span></span>
-        </div>
-        <p class="detail-desc" id="xpDesc"></p>
-        <div class="detail-pill-row">
-          <button class="detail-pill" id="xpClose">← back to work</button>
-        </div>
+      <p class="detail-desc"></p>
+      <div class="detail-pill-row">
+        <button class="detail-pill">← back to work</button>
       </div>
     </div>
   </div>
-</div>
+</template>
 
 <footer class="footer">
   <p>© 2026 !SABELA R⊙SS! — Made with grid paper and good vibes</p>
@@ -750,53 +730,111 @@ body {
   });
 })();
 
-// F4: detail view — every work card opens the kawaii stacked-window page, populated from the card
+// F9: draggable unstacked detail windows over the live page.
+// One window per project; multiple opens genuinely stack; drag by title bar;
+// page behind stays scrollable (no overlay, no body overflow lock).
 (function () {
-  const overlay = document.getElementById('xpOverlay');
-  if (!overlay) return;
+  const template = document.getElementById('detailTemplate');
+  if (!template) return;
   const CAT_LABEL = { brand: 'Branding', social: 'Social', print: 'Print', ui: 'UI/UX' };
-  let lastFocus = null;
-  function openXp(card) {
+  const openWindows = new Map(); // projectTitle -> window element
+  let topZ = 60;
+  let shiftCount = 0;
+
+  function bringToFront(win) {
+    topZ += 1;
+    win.style.zIndex = topZ;
+  }
+
+  function openWindow(card) {
     const thumb = card.querySelector('.scatter-thumb');
     const title = card.querySelector('.scatter-body h3');
     const desc = card.querySelector('.scatter-body p');
     const year = card.querySelector('.scatter-year');
     const cat = card.querySelector('.scatter-cat');
-    document.getElementById('xpTitle').textContent = title ? title.textContent : 'Project Details';
-    document.getElementById('xpThumb').textContent = thumb ? thumb.textContent.trim() : '';
-    document.getElementById('xpThumb').style.background = getComputedStyle(thumb).backgroundColor;
-    document.getElementById('xpYear').textContent = year ? year.textContent.trim() : '—';
-    document.getElementById('xpCat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
-    document.getElementById('xpDesc').innerHTML = '<b>' + (title ? title.textContent : '') + '</b>' + (desc ? desc.textContent : '');
-    lastFocus = document.activeElement;
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-    const closeBtn = document.getElementById('xpClose');
-    if (closeBtn) closeBtn.focus();
+    const projectTitle = title ? title.textContent : 'Project';
+
+    // one window per project: re-open focuses the existing one
+    if (openWindows.has(projectTitle)) {
+      const existing = openWindows.get(projectTitle);
+      bringToFront(existing);
+      return;
+    }
+
+    const win = template.content.firstElementChild.cloneNode(true);
+    win.querySelector('.detail-title').textContent = projectTitle;
+    win.querySelector('.detail-thumb').textContent = thumb ? thumb.textContent.trim() : '';
+    win.querySelector('.detail-thumb').style.background = getComputedStyle(thumb).backgroundColor;
+    win.querySelector('.detail-year').textContent = year ? year.textContent.trim() : '—';
+    win.querySelector('.detail-chip.cat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
+    win.querySelector('.detail-desc').innerHTML = '<b>' + projectTitle + '</b>' + (desc ? desc.textContent : '');
+
+    // second/third window opens slightly offset so the stack reads
+    if (shiftCount > 0) win.classList.add('shift-' + Math.min(shiftCount, 2));
+    shiftCount++;
+    document.body.appendChild(win);
+    openWindows.set(projectTitle, win);
+    bringToFront(win);
+
+    const close = () => {
+      win.remove();
+      openWindows.delete(projectTitle);
+      shiftCount = Math.max(0, shiftCount - 1);
+    };
+    win.querySelector('.detail-pill').addEventListener('click', close);
+    // bring to front on any interaction with a background window
+    win.addEventListener('pointerdown', () => bringToFront(win));
+
+    // drag by title bar (pointer events; desktop only — mobile gets full-width sheets)
+    const titlebar = win.querySelector('.detail-titlebar');
+    let dragState = null;
+    const onDragMove = (e) => {
+      if (!dragState) return;
+      const w = win.offsetWidth;
+      // loose clamp: keep a graspable part of the window on screen
+      const x = Math.min(Math.max(e.clientX - dragState.dx, -w + 90), window.innerWidth - 90);
+      const y = Math.min(Math.max(e.clientY - dragState.dy, 6), window.innerHeight - 60);
+      win.style.left = x + 'px';
+      win.style.top = y + 'px';
+      win.classList.add('positioned'); // stop the entrance animation from re-centering
+    };
+    const onDragEnd = (e) => {
+      if (!dragState) return;
+      dragState = null;
+      win.classList.remove('dragging');
+      window.removeEventListener('pointermove', onDragMove);
+      window.removeEventListener('pointerup', onDragEnd);
+      window.removeEventListener('pointercancel', onDragEnd);
+    };
+    titlebar.addEventListener('pointerdown', (e) => {
+      if (window.matchMedia('(max-width: 600px)').matches) return;
+      if (e.button !== undefined && e.button !== 0) return;
+      const rect = win.getBoundingClientRect();
+      dragState = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+      win.classList.add('dragging');
+      // listeners on window: drag keeps working even if the cursor outruns the bar
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragEnd);
+      window.addEventListener('pointercancel', onDragEnd);
+      try { titlebar.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    const pill = win.querySelector('.detail-pill');
+    setTimeout(() => pill.focus(), 0);
   }
-  function closeXp() {
-    overlay.classList.remove('open');
-    document.body.style.overflow = '';
-    if (lastFocus) lastFocus.focus();
-  }
+
   document.querySelectorAll('.scatter-card').forEach(card => {
-    card.addEventListener('click', () => openXp(card));
-  });
-  const closeBtn = document.getElementById('xpClose');
-  if (closeBtn) closeBtn.addEventListener('click', closeXp);
-  // click anywhere outside the window (on the lavender backdrop) closes too
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeXp();
+    card.addEventListener('click', () => openWindow(card));
   });
   document.addEventListener('keydown', (e) => {
-    if (!overlay.classList.contains('open')) return;
-    if (e.key === 'Escape') closeXp();
-    if (e.key === 'Tab') {
-      const focusables = overlay.querySelectorAll('button');
-      const first = focusables[0], last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
+    if (e.key !== 'Escape' || !openWindows.size) return;
+    // close the topmost window
+    let topWin = null, topZi = -1;
+    openWindows.forEach(w => {
+      const zi = parseInt(w.style.zIndex || 0, 10);
+      if (zi > topZi) { topZi = zi; topWin = w; }
+    });
+    if (topWin) topWin.querySelector('.detail-pill').click();
   });
 })();
 
