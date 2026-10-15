@@ -387,7 +387,134 @@ body {
   }
 }
 
+/* F4: XP-style project detail view */
+.xp-overlay {
+  position: fixed; inset: 0;
+  background: #3A6EA5;
+  display: none;
+  z-index: 100;
+  overflow: auto;
+  padding: clamp(10px, 4vw, 48px);
+}
+.xp-overlay.open { display: block; }
+.xp-window {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #ECE9D8;
+  border: 2px solid #0831D9;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 4px 8px 24px rgba(0,0,0,0.45);
+  font-family: Tahoma, 'Segoe UI', Verdana, sans-serif;
+  color: #000;
+}
+.xp-titlebar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px 6px 12px;
+  background: linear-gradient(180deg, #0997FF 0%, #0053EE 8%, #0050EE 40%, #06F 88%, #06F 93%, #0050EE 100%);
+  border-radius: 6px 6px 0 0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+  user-select: none;
+}
+.xp-titlebar .xp-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.xp-titlebar .xp-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xp-btns { display: flex; gap: 3px; flex-shrink: 0; }
+.xp-btn {
+  width: 24px; height: 22px;
+  border: 1px solid rgba(255,255,255,0.7);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #FF9C8C 0%, #E3401C 45%, #B32B0B 100%);
+  color: #fff;
+  font-family: Tahoma, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.xp-btn:hover { filter: brightness(1.15); }
+.xp-menubar {
+  display: flex; gap: 2px;
+  background: #ECE9D8;
+  border-bottom: 1px solid #ACA899;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+}
+.xp-menubar span { padding: 2px 8px; cursor: default; }
+.xp-menubar span:hover { background: #316AC5; color: #fff; }
+.xp-toolbar {
+  display: flex; align-items: center; gap: 6px;
+  background: linear-gradient(180deg, #FDFDFD 0%, #EFEDE2 90%, #E3E1D4 100%);
+  border-bottom: 1px solid #ACA899;
+  padding: 5px 8px;
+}
+.xp-tbtn {
+  display: flex; align-items: center; gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: #000;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+.xp-tbtn:hover { border-color: #B2C4D8; background: #DFE9F5; }
+.xp-statusbar {
+  display: flex; justify-content: space-between;
+  border-top: 1px solid #fff;
+  background: #ECE9D8;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  color: #444;
+}
+.xp-statusbar span:first-child { border-right: 1px solid #ACA899; padding-right: 12px; }
+.xp-body { padding: 18px 20px 22px; font-size: 0.85rem; line-height: 1.55; }
+.xp-thumb {
+  height: 180px;
+  border: 2px solid #7F9DB9;
+  background: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 2rem;
+  color: var(--cream);
+  margin-bottom: 14px;
+}
+.xp-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.xp-field {
+  border: 1px solid #7F9DB9;
+  background: #fff;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+}
+.xp-field b { color: #00318F; margin-right: 6px; }
+.xp-body p { margin-bottom: 12px; }
+.xp-body ul { margin: 0 0 12px 20px; }
+.xp-body li { margin-bottom: 4px; }
+.xp-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+.xp-cmd {
+  min-width: 84px;
+  padding: 5px 16px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: #ECE9D8;
+  border: 1px solid #003C74;
+  border-radius: 3px;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #ACA899;
+  cursor: pointer;
+}
+.xp-cmd:active { box-shadow: inset -1px -1px 0 #fff, inset 1px 1px 0 #ACA899; }
+.xp-cmd.xp-primary { font-weight: 700; border-color: #2C57A4; background: linear-gradient(180deg, #FFF 0%, #E4E3DC 86%, #D2D0C4 100%); }
 
+/* F4 mobile */
+@media (max-width: 600px) {
+  .xp-body { padding: 14px 12px 18px; }
+  .xp-thumb { height: 140px; font-size: 1.5rem; }
+  .xp-menubar span:nth-child(n+4) { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   /* F2: no zoom motion — just a static outline so focus is still visible */
@@ -517,6 +644,54 @@ body {
   </div>
 </section>
 
+<div class="xp-overlay" id="xpOverlay" role="dialog" aria-modal="true" aria-labelledby="xpTitle">
+  <div class="xp-window">
+    <div class="xp-titlebar">
+      <div class="xp-title">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="2" width="6" height="6" fill="#F25022"/><rect x="9" y="2" width="6" height="6" fill="#7FBA00"/><rect x="1" y="9" width="6" height="6" fill="#00A4EF"/><rect x="9" y="9" width="6" height="6" fill="#FFB900"/></svg>
+        <span id="xpTitle">Café Aurora — Project Details</span>
+      </div>
+      <div class="xp-btns">
+        <button class="xp-btn" aria-label="Minimize">_</button>
+        <button class="xp-btn" aria-label="Maximize">□</button>
+        <button class="xp-btn" id="xpClose" aria-label="Close project details">✕</button>
+      </div>
+    </div>
+    <div class="xp-menubar" aria-hidden="true">
+      <span>File</span><span>Edit</span><span>View</span><span>Project</span><span>Help</span>
+    </div>
+    <div class="xp-toolbar">
+      <button class="xp-tbtn" id="xpBack">⬅ Back</button>
+      <button class="xp-tbtn" onclick="window.print()">🖨 Print</button>
+      <button class="xp-tbtn" id="xpMail">✉ Contact</button>
+    </div>
+    <div class="xp-body">
+      <div class="xp-thumb">AB</div>
+      <div class="xp-meta">
+        <span class="xp-field"><b>Client:</b> Café Aurora</span>
+        <span class="xp-field"><b>Year:</b> 2026</span>
+        <span class="xp-field"><b>Category:</b> Branding</span>
+        <span class="xp-field"><b>Role:</b> Brand Designer</span>
+      </div>
+      <p><b>Café Aurora — Brand Identity.</b> Complete visual identity for a specialty coffee shop: logo, packaging system and social media templates built around a warm sunrise palette and hand-drawn doodle textures.</p>
+      <ul>
+        <li>Logo &amp; mark: sunrise motif with playful grid-paper textures</li>
+        <li>Packaging: coffee bags, cups and sleeves with hatched color covers</li>
+        <li>Social templates: 12 editable layouts for posts and stories</li>
+        <li>Brand guidelines: palette, typography and doodle usage rules</li>
+      </ul>
+      <div class="xp-actions">
+        <button class="xp-cmd" id="xpOk">OK</button>
+        <button class="xp-cmd xp-primary" id="xpCancel">Close</button>
+      </div>
+    </div>
+    <div class="xp-statusbar">
+      <span>Project 1 of 6</span>
+      <span id="xpStatus">Ready</span>
+    </div>
+  </div>
+</div>
+
 <footer class="footer">
   <p>© 2026 !SABELA R⊙SS! — Made with grid paper and good vibes</p>
 </footer>
@@ -545,6 +720,43 @@ body {
   postit.addEventListener('click', togglePostit);
   postit.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePostit(); }
+  });
+})();
+
+// F4: XP detail view — Café Aurora card opens a full XP-style page (not a modal)
+(function () {
+  const overlay = document.getElementById('xpOverlay');
+  if (!overlay) return;
+  let lastFocus = null;
+  function openXp() {
+    lastFocus = document.activeElement;
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    const closeBtn = document.getElementById('xpClose');
+    if (closeBtn) closeBtn.focus();
+  }
+  function closeXp() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if (lastFocus) lastFocus.focus();
+  }
+  const auroraCard = document.querySelector('.scatter-card[data-cat="brand"]');
+  if (auroraCard) auroraCard.addEventListener('click', openXp);
+  ['xpClose', 'xpBack', 'xpOk', 'xpCancel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', closeXp);
+  });
+  const mailBtn = document.getElementById('xpMail');
+  if (mailBtn) mailBtn.addEventListener('click', () => { window.location.href = 'mailto:belarossi.art@gmail.com'; });
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('open')) return;
+    if (e.key === 'Escape') closeXp();
+    if (e.key === 'Tab') {
+      const focusables = overlay.querySelectorAll('button');
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
   });
 })();
 
