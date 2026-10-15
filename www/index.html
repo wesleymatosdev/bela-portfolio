@@ -324,10 +324,30 @@ body {
 .scatter-card:nth-child(3n+1) { transform: rotate(-1.5deg); }
 .scatter-card:nth-child(3n+2) { transform: rotate(1deg); }
 .scatter-card:nth-child(3n+3) { transform: rotate(-0.5deg); }
-.scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
-/* F7: theme-flow hover — the thumb's color washes across the whole card and
-   the card flips to a contrasting theme (light text on the thumb color).
-   Implemented as a tint layer that expands from the thumb downward. */
+/* F2 + F7: theme-flow hover — the thumb's color washes across the whole card and
+   the card flips to a contrasting theme (light text on the thumb color), implemented
+   as a pure hover-state overlay: on mouseleave every property reverts to the exact
+   pre-hover look (verified: colors, tint, shadow and thumb all return to base).
+   All :hover rules are gated to real pointers — on touch a tap sticks :hover and
+   left the colored theme permanently on the card (the "residual tint" bug). */
+@media (hover: hover) and (pointer: fine) {
+  .scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
+  /* the tint layer itself is invisible at rest (scaleY(0)) so it lives outside the gate */
+  .scatter-card:hover::after { transform: scaleY(1); }
+  /* theme flip: text goes cream over the flowed color */
+  .scatter-card:hover .scatter-body h3,
+  .scatter-card:hover .scatter-year { color: var(--cream); }
+  .scatter-card:hover .scatter-body p { color: rgba(255,255,255,0.92); }
+  /* category chip would blend with some flow colors — invert it on hover */
+  .scatter-card:hover .scatter-cat { background: var(--cream); color: var(--ink); }
+  /* keycap-style pop on the thumb letter while the theme flows */
+  .scatter-thumb .scatter-thumb-inner { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: scale(1.18); }
+  /* tape + post-it shadow lift slightly so the flow reads as "on top" of the skin */
+  .scatter-card:hover {
+    box-shadow: 5px 8px 0 rgba(0,0,0,0.2);
+  }
+}
 .scatter-card { --flow-color: var(--orange); }
 .scatter-card::after {
   content: '';
@@ -340,17 +360,9 @@ body {
   pointer-events: none;
   z-index: 0;
 }
-.scatter-card:hover::after { transform: scaleY(1); }
 .scatter-card > * { position: relative; z-index: 1; }
-/* theme flip: text goes cream over the flowed color */
-.scatter-card:hover .scatter-body h3,
-.scatter-card:hover .scatter-year { color: var(--cream); }
-.scatter-card:hover .scatter-body p { color: rgba(255,255,255,0.92); }
-/* category chip would blend with some flow colors — invert it on hover */
-.scatter-card:hover .scatter-cat { background: var(--cream); color: var(--ink); }
-/* keycap-style pop on the thumb letter while the theme flows */
-.scatter-thumb .scatter-thumb-inner { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: scale(1.18); }
+/* keycap-style pop on the thumb letter while the theme flows (hover rules live
+   inside the (hover: hover) gate above — this base transition is pointer-neutral) */
 /* per-card flow color from the thumb palette */
 .scatter-card:has(.scatter-thumb.c1) { --flow-color: var(--orange); }
 .scatter-card:has(.scatter-thumb.c2) { --flow-color: var(--blue); }
@@ -358,10 +370,6 @@ body {
 .scatter-card:has(.scatter-thumb.c4) { --flow-color: var(--purple); }
 .scatter-card:has(.scatter-thumb.c5) { --flow-color: var(--coral); }
 .scatter-card:has(.scatter-thumb.c6) { --flow-color: var(--violet); }
-/* tape + post-it shadow lift slightly so the flow reads as "on top" of the skin */
-.scatter-card:hover {
-  box-shadow: 5px 8px 0 rgba(0,0,0,0.2);
-}
 .scatter-thumb {
   height: 160px;
   display: flex; align-items: center; justify-content: center;
@@ -548,12 +556,15 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
-  /* F7: theme-flow hover — no motion, but keep the readable flipped theme */
-  .scatter-card:hover::after { transform: none; transition: none; background: var(--flow-color); }
-  .scatter-card:hover .scatter-body h3,
-  .scatter-card:hover .scatter-year { color: var(--cream); }
-  .scatter-card:hover .scatter-body p { color: rgba(255,255,255,0.92); }
-  .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: none; }
+  /* F7: theme-flow hover — no motion, but keep the readable flipped theme
+     (hover-gated like the main rules so touch taps can't stick the theme) */
+  @media (hover: hover) and (pointer: fine) {
+    .scatter-card:hover::after { transform: none; transition: none; background: var(--flow-color); }
+    .scatter-card:hover .scatter-body h3,
+    .scatter-card:hover .scatter-year { color: var(--cream); }
+    .scatter-card:hover .scatter-body p { color: rgba(255,255,255,0.92); }
+    .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: none; }
+  }
   /* F3: post-it unfolds instantly, no motion */
   .postit.open .postit-panel { animation: none !important; max-height: none; transform: none; opacity: 1; }
   .postit.closing .postit-panel { animation: none !important; max-height: 0; }
@@ -809,9 +820,21 @@ body {
     titlebar.addEventListener('pointerdown', (e) => {
       if (window.matchMedia('(max-width: 600px)').matches) return;
       if (e.button !== undefined && e.button !== 0) return;
+      // F1: the window is visually placed by the entrance animation's
+      // translate(-50%, 0). Freeze that visual position into explicit
+      // left/top BEFORE adding .dragging (which sets animation: none and
+      // would drop the transform — the window used to jump half its width
+      // to the right on grab). From here on the cursor offset recorded
+      // below is held constant for the whole drag.
+      const pre = win.getBoundingClientRect(); // includes the animated translate(-50%, 0)
+      win.style.left = pre.left + 'px';
+      win.style.top = pre.top + 'px';
+      win.style.right = 'auto';
+      win.style.transform = 'none';
+      win.classList.add('positioned'); // stops the entrance animation for good
+      win.classList.add('dragging');
       const rect = win.getBoundingClientRect();
       dragState = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
-      win.classList.add('dragging');
       // listeners on window: drag keeps working even if the cursor outruns the bar
       window.addEventListener('pointermove', onDragMove);
       window.addEventListener('pointerup', onDragEnd);
