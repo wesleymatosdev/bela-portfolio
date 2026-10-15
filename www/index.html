@@ -490,6 +490,7 @@ body {
   padding: 22px 24px 26px;
   font-family: var(--font-body);
   color: var(--ink);
+  background: #fff; /* G1: body always starts white, for every card */
   overflow-y: auto;
 }
 .detail-thumb {
@@ -499,10 +500,10 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-pixel);
   font-size: 2rem;
-  color: var(--cream);
+  color: var(--ink);
   margin-bottom: 18px;
-  background: var(--orange);
-  text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  background: #fff; /* G1: no card theme color here — white tile like the reference */
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.08);
 }
 .detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .detail-chip {
@@ -514,8 +515,7 @@ body {
   font-weight: 700;
 }
 .detail-chip.cat { background: var(--purple); color: #fff; }
-.detail-desc { font-size: 0.95rem; line-height: 1.65; color: var(--ink); }
-.detail-desc b { display: block; margin-bottom: 6px; font-size: 1.05rem; }
+/* G2: description paragraph removed from detail view — content is title + year + category */
 /* pill close affordance, bottom center like the reference badge */
 .detail-pill-row { display: flex; justify-content: center; margin-top: 22px; }
 .detail-pill {
@@ -702,7 +702,6 @@ body {
         <span class="detail-chip cat"></span>
         <span class="detail-chip">Year: <span class="detail-year"></span></span>
       </div>
-      <p class="detail-desc"></p>
       <div class="detail-pill-row">
         <button class="detail-pill">← back to work</button>
       </div>
@@ -760,7 +759,6 @@ body {
   function openWindow(card) {
     const thumb = card.querySelector('.scatter-thumb');
     const title = card.querySelector('.scatter-body h3');
-    const desc = card.querySelector('.scatter-body p');
     const year = card.querySelector('.scatter-year');
     const cat = card.querySelector('.scatter-cat');
     const projectTitle = title ? title.textContent : 'Project';
@@ -775,10 +773,13 @@ body {
     const win = template.content.firstElementChild.cloneNode(true);
     win.querySelector('.detail-title').textContent = projectTitle;
     win.querySelector('.detail-thumb').textContent = thumb ? thumb.textContent.trim() : '';
-    win.querySelector('.detail-thumb').style.background = getComputedStyle(thumb).backgroundColor;
+    // G1: keep the window body white for ALL cards — never copy the card's
+    // thumb color here (getComputedStyle bleed); theme color lives only in
+    // the category chip accent.
+    win.querySelector('.detail-thumb').style.background = '#fff';
     win.querySelector('.detail-year').textContent = year ? year.textContent.trim() : '—';
     win.querySelector('.detail-chip.cat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
-    win.querySelector('.detail-desc').innerHTML = '<b>' + projectTitle + '</b>' + (desc ? desc.textContent : '');
+    // G2: detail content is title + year + category only — no description paragraph.
 
     // second/third window opens slightly offset so the stack reads
     if (shiftCount > 0) win.classList.add('shift-' + Math.min(shiftCount, 2));
