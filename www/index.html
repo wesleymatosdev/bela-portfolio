@@ -866,6 +866,12 @@ body {
   if (!template) return;
   const CAT_LABEL = { brand: 'Branding', social: 'Social', print: 'Print', ui: 'UI/UX' };
   const openWindows = new Map(); // projectTitle -> window element
+  // R16.1: per-project minimized state, keyed by project id. Every minimize
+  // APPENDS an entry (and a new dock icon); restore/close/maximize deletes
+  // exactly its own entry. Nothing here is a singleton — three minimized
+  // projects are three independent entries that coexist.
+  const minimizedState = new Map(); // projectId -> { win, icon }
+  const GENIE_SLOT_W = 62; // ~60px horizontal offset between icons
   let topZ = 60;
   let shiftCount = 0;
 
@@ -932,7 +938,11 @@ body {
     const genieTo = (restore) => {
       const reduce = REDUCED.matches;
       const r = win.getBoundingClientRect();
-      if (!restore) genieRect = { left: r.left + 'px', top: r.top + 'px' };
+      if (!restore) {
+        // register FIRST: slot = position in this map, assigned at click time
+        minimizedState.set(projectTitle, { win });
+        genieRect = { left: r.left + 'px', top: r.top + 'px' };
+      }
       // freeze the visual position so the animation starts from where it is
       win.style.left = genieRect.left;
       win.style.top = genieRect.top;
@@ -998,21 +1008,19 @@ body {
     };
 
     let genieIcon = null;
-    // R16: per-project desktop icons. Minimized windows no longer stack on
-    // one shared spot — each icon gets a slot counted from the OTHER
-    // currently-minimized windows, so they coexist side by side and each
-    // restores only its own project.
-    const GENIE_SLOT_W = 62; // ~60px horizontal offset between icons
-    const slotIndex = () => {
-      let i = 0;
-      openWindows.forEach(w => { if (w !== win && w.classList.contains('minimized')) i++; });
-      return i;
-    };
+    // R16.1: slot = this project's index inside minimizedState (Map keeps
+    // insertion order), so two minimizes can never compute the same slot
+    // even when the second animation finishes before the first window gets
+    // its .minimized class.
+    const slotIndex = () => [...minimizedState.keys()].indexOf(projectTitle);
     const spawnGenieIcon = (instant) => {
+      // one icon per project, ever: keyed by data-project-id
+      genieIcon = document.querySelector('.detail-genie-icon[data-project-id="' + CSS.escape(projectTitle) + '"]');
       if (genieIcon) return;
       genieIcon = document.createElement('button');
       genieIcon.type = 'button';
       genieIcon.className = 'detail-genie-icon';
+      genieIcon.dataset.projectId = projectTitle;
       genieIcon.setAttribute('aria-label', 'Restore window: ' + projectTitle);
       genieIcon.title = 'Restore: ' + projectTitle;
       // desktop-shortcut look: thumb color + initials on the tile, title label under
@@ -1025,6 +1033,7 @@ body {
       genieIcon.addEventListener('click', () => {
         if (genieAnimating) return;
         removeGenieIcon();
+        minimizedState.delete(projectTitle);
         win.classList.remove('minimized');
         dotMin.setAttribute('aria-label', 'Minimize window');
         dotMin.title = 'Minimize';
@@ -1040,8 +1049,12 @@ body {
         icon.style.right = (22 + i * GENIE_SLOT_W) + 'px';
       });
     };
+    // map + DOM icon + per-window closure flag must all leave together, or a
+    // stale entry desyncs slot assignment from what's on screen
     const removeGenieIcon = () => {
-      if (genieIcon) { genieIcon.remove(); genieIcon = null; reflowGenieSlots(); }
+      if (genieIcon) { genieIcon.remove(); genieIcon = null; }
+      minimizedState.delete(projectTitle);
+      reflowGenieSlots();
     };
 
     dotMin.addEventListener('click', () => {
