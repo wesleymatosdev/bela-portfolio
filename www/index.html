@@ -53,6 +53,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
+  /* round 15: anchor for the full-page .doodle-field absolute layer */
+  position: relative;
 }
 
 .hero {
@@ -103,6 +105,17 @@ body {
 .keycap:hover { transform: translateY(-5px) scale(1.06); }
 .keycap.blue { background: linear-gradient(145deg, var(--blue-light), var(--blue), var(--blue-dark)); }
 
+/* round 15 [I1]: full-page doodle background layer — spans the whole document
+   behind every section; hero keeps its own inline sparkles-free field */
+.doodle-field {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  /* full document height so doodles reach footer, not just the first viewport */
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none; /* mouse reactivity is document-level mousemove, not hit-testing */
+  z-index: 0;
+}
 .doodle {
   position: absolute;
   pointer-events: none;
@@ -110,22 +123,24 @@ body {
   z-index: 2;
 }
 /* F6: mouse-reactive drift uses individual translate/rotate props so they
-   compose with the float keyframe transform instead of fighting it */
-.hero .doodle, .hero .sparkle { will-change: translate, rotate; }
-.doodle-star       { top: 14%; right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
-.doodle-star-2     { top: 55%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
-.doodle-star-3     { bottom: 28%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
-.doodle-planet     { bottom: 16%; left: 9%; width: 68px; height: 68px; animation-delay: 1s; }
-.doodle-green      { top: 22%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
-.doodle-coral      { top: 68%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
-.doodle-blue-ring  { top: 9%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
-.doodle-pencil     { top: 38%; left: 5%; width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
-.doodle-compass    { top: 72%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
-.doodle-palette    { top: 30%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
-.doodle-cursor     { bottom: 40%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
-.doodle-controller { top: 48%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
-.doodle-arrow      { bottom: 8%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
-.doodle-zigzag     { top: 18%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
+   compose with the float keyframe transform instead of fighting it.
+   Round 15: applies to the whole-page field, not just the hero. */
+.doodle-field .doodle, .doodle-field .sparkle { will-change: translate, rotate; }
+/* positions are % of the FULL page height now, so they scatter down the page */
+.doodle-star       { top: 3%;  right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
+.doodle-star-2     { top: 12%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
+.doodle-star-3     { top: 21%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
+.doodle-planet     { top: 30%; left: 9%;  width: 68px; height: 68px; animation-delay: 1s; }
+.doodle-green      { top: 38%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
+.doodle-coral      { top: 46%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
+.doodle-blue-ring  { top: 54%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
+.doodle-pencil     { top: 62%; left: 5%;  width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
+.doodle-compass    { top: 70%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
+.doodle-palette    { top: 78%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
+.doodle-cursor     { top: 86%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
+.doodle-controller { top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
+.doodle-arrow      { top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
+.doodle-zigzag     { top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
 
 .sparkle {
   position: absolute;
@@ -274,6 +289,8 @@ body {
 }
 
 .scroll-zone { position: relative; height: 80px; overflow: hidden; }
+/* round 15 [I1]: sections stack above the full-page doodle field (z-index 0) */
+.hero, .work-section, .contact-section, .footer { position: relative; z-index: 1; }
 .scroll-arrow-track { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
 .scroll-arrow-track svg { animation: scroll-arrow-down 1.8s ease-in-out infinite; }
 
@@ -652,11 +669,9 @@ body {
 </head>
 <body>
 
-<section class="hero">
-  <div class="keycap-group over">
-    <div class="keycap">O</div><div class="keycap">V</div><div class="keycap">E</div><div class="keycap">R</div>
-  </div>
-
+<!-- round 15 [I1]: full-page doodle field — one absolute layer behind ALL
+     sections (hero, work, contact, footer), scattered across document height -->
+<div class="doodle-field" aria-hidden="true">
   <svg class="doodle doodle-star" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 2L30 18L48 20L34 32L38 48L25 39L12 48L16 32L2 20L20 18Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
   <svg class="doodle doodle-star-2" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 2L30 18L48 20L34 32L38 48L25 39L12 48L16 32L2 20L20 18Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
   <svg class="doodle doodle-star-3" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 2L30 18L48 20L34 32L38 48L25 39L12 48L16 32L2 20L20 18Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -671,12 +686,17 @@ body {
   <svg class="doodle doodle-controller" viewBox="0 0 62 42" fill="none" aria-hidden="true"><rect x="4" y="8" width="54" height="28" rx="14" fill="#5DB06C" stroke="#080705" stroke-width="2.5"/><circle cx="20" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><circle cx="42" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><rect x="18" y="20" width="4" height="4" fill="#080705"/><rect x="40" y="20" width="4" height="4" fill="#080705"/></svg>
   <svg class="doodle doodle-arrow" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 4L25 40M12 28L25 42L38 28" stroke="#F1670E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
   <svg class="doodle doodle-zigzag" viewBox="0 0 60 24" fill="none" aria-hidden="true"><path d="M2 12L10 4L18 12L26 4L34 12L42 4L50 12L58 4" stroke="#A985B2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+  <div class="sparkle" style="top: 4%; left: 50%;"></div>
+  <div class="sparkle" style="top: 26%; right: 25%; animation-delay: 0.5s;"></div>
+  <div class="sparkle" style="top: 48%; left: 20%; animation-delay: 1s;"></div>
+  <div class="sparkle" style="top: 64%; right: 40%; animation-delay: 1.5s;"></div>
+  <div class="sparkle" style="top: 84%; left: 45%; animation-delay: 0.8s;"></div>
+</div>
 
-  <div class="sparkle" style="top: 30%; left: 50%;"></div>
-  <div class="sparkle" style="top: 60%; right: 25%; animation-delay: 0.5s;"></div>
-  <div class="sparkle" style="top: 40%; left: 20%; animation-delay: 1s;"></div>
-  <div class="sparkle" style="bottom: 25%; right: 40%; animation-delay: 1.5s;"></div>
-  <div class="sparkle" style="top: 75%; left: 45%; animation-delay: 0.8s;"></div>
+<section class="hero">
+  <div class="keycap-group over">
+    <div class="keycap">O</div><div class="keycap">V</div><div class="keycap">E</div><div class="keycap">R</div>
+  </div>
 
   <div class="name-container">
     <h1 class="name">!SABELA R⊙SS!</h1>
@@ -1154,14 +1174,15 @@ document.querySelectorAll('.keycap').forEach(k => {
   });
 });
 
-// F6: mouse-reactive floating doodles — gentle magnetic repel via individual
-// translate/rotate props (composes with the float keyframe transform).
-// rAF + lerp, transform-only, no layout reads in the loop.
+// F6 → round 15 [I1]: mouse-reactive floating doodles across the WHOLE page —
+// gentle magnetic repel via individual translate/rotate props (composes with
+// the float keyframe transform). Document-level mousemove (the field layer is
+// pointer-events:none, so reactivity must come from the document), rAF + lerp,
+// transform-only, no layout reads in the loop.
 (function () {
   const ReducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const hero = document.querySelector('.hero');
-  const items = [...document.querySelectorAll('.hero .doodle, .hero .sparkle')];
-  if (!hero || !items.length || ReducedMotionQuery.matches) return;
+  const items = [...document.querySelectorAll('.doodle-field .doodle, .doodle-field .sparkle')];
+  if (!items.length || ReducedMotionQuery.matches) return;
   // Base transforms must survive our individual-property writes: rotate() in
   // the transform of .doodle-pencil would be overwritten by nothing, but
   // translate/rotate props ADD to transform, so base transforms are safe.
@@ -1211,12 +1232,12 @@ document.querySelectorAll('.keycap').forEach(k => {
       rafId = requestAnimationFrame(tick);
     } else { rafId = null; }
   }
-  hero.addEventListener('pointermove', onMove, { passive: true });
-  hero.addEventListener('pointerleave', onLeave, { passive: true });
+  document.addEventListener('mousemove', onMove, { passive: true });
+  document.addEventListener('mouseleave', onLeave, { passive: true });
   ReducedMotionQuery.addEventListener('change', (e) => {
     if (e.matches) {
-      hero.removeEventListener('pointermove', onMove);
-      hero.removeEventListener('pointerleave', onLeave);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
       if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
       state.forEach(s => { s.el.style.translate = ''; s.el.style.rotate = ''; });
     }
