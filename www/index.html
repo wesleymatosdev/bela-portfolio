@@ -6,6 +6,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Isabela Rossi — Creative Designer</title>
 <meta name="description" content="Isabela Rossi — Creative Designer & Social Media. Helping people & brands communicate beautifully.">
+<meta name="theme-color" content="#F1670E">
+
+<!-- SOCIAL / OG -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Isabela Rossi — Creative Designer">
+<meta property="og:description" content="Creative Designer & Social Media. Helping people & brands communicate beautifully.">
+<meta property="og:url" content="https://wesleymatosdev.github.io/bela-portfolio/">
+<meta property="og:image" content="https://wesleymatosdev.github.io/bela-portfolio/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Isabela Rossi — Creative Designer">
+<meta name="twitter:description" content="Creative Designer & Social Media. Helping people & brands communicate beautifully.">
+<meta name="twitter:image" content="https://wesleymatosdev.github.io/bela-portfolio/og-image.png">
+
+<!-- FAVICON -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 
 <!-- FONTS -->
 <!-- AD-FONT-TODO: Replace the placeholder name font below with Wesley's Adobe Font when he sends the kit/link.
@@ -53,6 +68,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
+  /* round 15: anchor for the full-page .doodle-field absolute layer */
+  position: relative;
 }
 
 .hero {
@@ -103,26 +120,45 @@ body {
 .keycap:hover { transform: translateY(-5px) scale(1.06); }
 .keycap.blue { background: linear-gradient(145deg, var(--blue-light), var(--blue), var(--blue-dark)); }
 
+/* round 15 [I1]: full-page doodle background layer — spans the whole document
+   behind every section; hero keeps its own inline sparkles-free field */
+.doodle-field {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  /* full document height so doodles reach footer, not just the first viewport */
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none; /* mouse reactivity is document-level mousemove, not hit-testing */
+  z-index: 0;
+}
 .doodle {
   position: absolute;
   pointer-events: none;
   animation: float 6s ease-in-out infinite;
   z-index: 2;
 }
-.doodle-star       { top: 14%; right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
-.doodle-star-2     { top: 55%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
-.doodle-star-3     { bottom: 28%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
-.doodle-planet     { bottom: 16%; left: 9%; width: 68px; height: 68px; animation-delay: 1s; }
-.doodle-green      { top: 22%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
-.doodle-coral      { top: 68%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
-.doodle-blue-ring  { top: 9%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
-.doodle-pencil     { top: 38%; left: 5%; width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
-.doodle-compass    { top: 72%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
-.doodle-palette    { top: 30%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
-.doodle-cursor     { bottom: 40%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
-.doodle-controller { top: 48%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
-.doodle-arrow      { bottom: 8%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
-.doodle-zigzag     { top: 18%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
+/* F6: mouse-reactive drift uses individual translate/rotate props so they
+   compose with the float keyframe transform instead of fighting it.
+   Round 15: applies to the whole-page field, not just the hero. */
+.doodle-field .doodle, .doodle-field .sparkle { will-change: translate, rotate; }
+/* positions are % of the FULL page height now, so they scatter down the page */
+/* round 15 [I2]: --doodle-depth = parallax scroll factor (0 = scrolls with
+   content, smaller = lags behind). Set per doodle below. */
+.doodle-field .doodle, .doodle-field .sparkle { --doodle-depth: 0.75; }
+.doodle-star       { --doodle-depth: 0.55; top: 3%;  right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
+.doodle-star-2     { --doodle-depth: 0.8;  top: 12%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
+.doodle-star-3     { --doodle-depth: 0.4;  top: 21%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
+.doodle-planet     { --doodle-depth: 0.85; top: 30%; left: 9%;  width: 68px; height: 68px; animation-delay: 1s; }
+.doodle-green      { --doodle-depth: 0.5;  top: 38%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
+.doodle-coral      { --doodle-depth: 0.7;  top: 46%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
+.doodle-blue-ring  { --doodle-depth: 0.45; top: 54%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
+.doodle-pencil     { --doodle-depth: 0.9;  top: 62%; left: 5%;  width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
+.doodle-compass    { --doodle-depth: 0.6;  top: 70%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
+.doodle-palette    { --doodle-depth: 0.5;  top: 78%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
+.doodle-cursor     { --doodle-depth: 0.75; top: 86%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
+.doodle-controller { --doodle-depth: 0.85; top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
+.doodle-arrow      { --doodle-depth: 0.65; top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
+.doodle-zigzag     { --doodle-depth: 0.4;  top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
 
 .sparkle {
   position: absolute;
@@ -167,15 +203,86 @@ body {
   font-weight: 400;
 }
 
-.social-stickers { display: flex; gap: 16px; margin-top: 28px; justify-content: center; z-index: 10; }
-.social-sticker {
-  width: 54px; height: 54px;
-  background: var(--cream);
+/* F3: hero post-it About — click to unfold */
+.postit-wrap { position: relative; z-index: 10; margin-top: 26px; perspective: 900px; }
+.postit {
+  position: relative;
+  width: min(300px, 82vw);
+  background: var(--yellow);
   border: 2.5px solid var(--ink);
-  border-radius: 16px;
+  border-radius: 4px;
+  box-shadow: 4px 6px 0 rgba(0,0,0,0.14);
+  transform: rotate(-2deg);
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+  padding: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.postit::before {
+  content: '';
+  position: absolute;
+  top: -12px; left: 50%;
+  width: 74px; height: 20px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+.postit:hover { transform: rotate(0deg) translateY(-4px); box-shadow: 5px 10px 0 rgba(0,0,0,0.18); }
+.postit-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px 10px;
+  border-bottom: 2px dashed rgba(0,0,0,0.25);
+}
+.postit-head h2 { font-family: var(--font-pixel); font-size: 0.72rem; }
+.postit-hint { font-size: 0.68rem; font-weight: 600; color: #555; white-space: nowrap; }
+.postit-hint::after { content: " ▾"; }
+.postit.open .postit-hint::after { content: " ▴"; }
+.postit-panel {
+  overflow: hidden;
+  max-height: 0;
+  transform-origin: top center;
+}
+.postit-panel-inner { padding: 14px 16px 18px; }
+.postit.open .postit-panel { animation: postit-unfold 0.55s cubic-bezier(0.34, 1.3, 0.5, 1) forwards; }
+.postit.closing .postit-panel { animation: postit-fold 0.35s ease-in forwards; }
+.postit p { font-size: 0.9rem; line-height: 1.55; }
+.postit-skills { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.postit .skill-chip { padding: 3px 10px; background: var(--cream); border: 2px solid var(--ink); border-radius: 14px; font-size: 0.68rem; font-weight: 600; }
+@keyframes postit-unfold {
+  0%   { max-height: 0; transform: rotateX(-88deg); opacity: 0.2; }
+  55%  { max-height: 420px; transform: rotateX(8deg); opacity: 1; }
+  100% { max-height: 600px; transform: rotateX(0deg); opacity: 1; }
+}
+@keyframes postit-fold {
+  from { max-height: 600px; transform: rotateX(0deg); opacity: 1; }
+  to   { max-height: 0; transform: rotateX(-88deg); opacity: 0.2; }
+}
+
+/* F5: post-it skin for social + contact stickers */
+.social-stickers { display: flex; gap: 22px; margin-top: 28px; justify-content: center; z-index: 10; }
+.social-sticker, .contact-sticker {
+  position: relative;
+  background: var(--yellow);
+  border: 2.5px solid var(--ink);
+  border-radius: 4px;
   display: flex; align-items: center; justify-content: center;
   text-decoration: none;
   box-shadow: 3px 4px 0 rgba(0,0,0,0.15);
+}
+.social-sticker::before, .contact-sticker::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: 50%;
+  width: 34px; height: 12px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.12);
+  pointer-events: none;
+}
+.social-sticker {
+  width: 54px; height: 54px;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   animation: sticker-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -200,6 +307,8 @@ body {
 }
 
 .scroll-zone { position: relative; height: 80px; overflow: hidden; }
+/* round 15 [I1]: sections stack above the full-page doodle field (z-index 0) */
+.hero, .work-section, .contact-section, .footer { position: relative; z-index: 1; }
 .scroll-arrow-track { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
 .scroll-arrow-track svg { animation: scroll-arrow-down 1.8s ease-in-out infinite; }
 
@@ -226,18 +335,44 @@ body {
 
 .scatter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .scatter-card {
+  position: relative;
   background: var(--cream);
   border: 2.5px solid var(--ink);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 4px 5px 0 rgba(0,0,0,0.1);
+  border-radius: 4px;
+  box-shadow: 4px 6px 0 rgba(0,0,0,0.14);
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
+}
+/* F2: no overflow clip — the hovered thumb must grow past the card borders */
+/* F5: post-it skin — tape accent, consistent with the hero about post-it */
+.scatter-card::before {
+  content: '';
+  position: absolute;
+  top: -10px; left: 50%;
+  width: 64px; height: 18px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.12);
+  z-index: 6;
+  pointer-events: none;
 }
 .scatter-card:nth-child(3n+1) { transform: rotate(-1.5deg); }
 .scatter-card:nth-child(3n+2) { transform: rotate(1deg); }
 .scatter-card:nth-child(3n+3) { transform: rotate(-0.5deg); }
-.scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
+/* F2 + F7 → round 9 revert: theme-flow on the TEXT BODY is gone. The card body
+   keeps its pre-theme-flow post-it look at all times — yellow skin, dark ink text,
+   no color wash, no theme flip. The theme colors live only on the thumb block.
+   All :hover rules stay gated to real pointers (the old "residual tint" fix). */
+@media (hover: hover) and (pointer: fine) {
+  .scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
+  /* keycap-style pop on the thumb letter while the card lifts */
+  .scatter-thumb .scatter-thumb-inner { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: scale(1.18); }
+  /* tape + post-it shadow lift slightly on hover */
+  .scatter-card:hover {
+    box-shadow: 5px 8px 0 rgba(0,0,0,0.2);
+  }
+}
 .scatter-thumb {
   height: 160px;
   display: flex; align-items: center; justify-content: center;
@@ -246,6 +381,8 @@ body {
   color: var(--cream);
   position: relative;
   overflow: hidden;
+  border-radius: 2px 2px 0 0;
+  border-bottom: 2px dashed rgba(0,0,0,0.25);
 }
 .scatter-thumb::after {
   content: '';
@@ -258,9 +395,11 @@ body {
 .scatter-thumb.c4 { background: var(--purple); }
 .scatter-thumb.c5 { background: var(--coral); }
 .scatter-thumb.c6 { background: var(--violet); }
-.scatter-body { padding: 14px 18px 18px; }
+/* Round 10 fix: card bodies are cream (page paper), never post-it yellow — yellow is hero-only */
+.scatter-body { padding: 14px 18px 18px; background: var(--cream); }
 .scatter-body h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
-.scatter-body p { font-size: 0.82rem; color: #666; line-height: 1.4; }
+/* body text sits on cream now — use the near-ink dark gray */
+.scatter-body p { font-size: 0.82rem; color: #333; line-height: 1.4; }
 .scatter-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .scatter-year { font-family: var(--font-pixel); font-size: 0.55rem; color: var(--gray-stroke); }
 .scatter-cat { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; color: var(--cream); }
@@ -269,30 +408,12 @@ body {
 .scatter-cat.print { background: var(--green); }
 .scatter-cat.ui { background: var(--purple); }
 
-.about-section { padding: 60px 5%; max-width: 800px; margin: 0 auto; }
-.about-card {
-  background: var(--yellow);
-  border: 2.5px solid var(--ink);
-  border-radius: 16px;
-  padding: 30px 36px;
-  box-shadow: 4px 6px 0 rgba(0,0,0,0.12);
-  transform: rotate(-1deg);
-}
-.about-card h2 { font-family: var(--font-pixel); font-size: 0.9rem; margin-bottom: 14px; }
-.about-card p { font-size: 1rem; line-height: 1.6; }
-.about-skills { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-.skill-chip { padding: 4px 12px; background: var(--cream); border: 2px solid var(--ink); border-radius: 16px; font-size: 0.75rem; font-weight: 600; }
+/* F3: old .about-section/.about-card styles removed — About now lives in the hero post-it */
 
 .contact-section { padding: 60px 5%; max-width: 800px; margin: 0 auto; text-align: center; }
-.contact-stickers { display: flex; gap: 20px; justify-content: center; margin-top: 24px; }
+.contact-stickers { display: flex; gap: 26px; justify-content: center; margin-top: 24px; }
 .contact-sticker {
   width: 60px; height: 60px;
-  background: var(--cream);
-  border: 2.5px solid var(--ink);
-  border-radius: 16px;
-  display: flex; align-items: center; justify-content: center;
-  text-decoration: none;
-  box-shadow: 3px 4px 0 rgba(0,0,0,0.15);
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .contact-sticker:nth-child(1) { transform: rotate(-5deg); }
@@ -319,8 +440,259 @@ body {
   }
 }
 
+/* F8/F9: kawaii detail windows — draggable, unstacked, floating over the live page */
+.detail-window {
+  position: fixed;
+  top: 90px; left: 50%;
+  width: min(680px, calc(100vw - 24px));
+  max-height: min(78vh, 720px);
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 60;
+  box-shadow: 6px 10px 0 rgba(0,0,0,0.12);
+  animation: detail-window-in 0.45s cubic-bezier(0.34, 1.4, 0.5, 1) both;
+}
+/* multiple open windows genuinely stack: each new one offsets a touch */
+.detail-window.shift-1 { top: calc(90px + 26px); left: calc(50% + 26px); }
+.detail-window.shift-2 { top: calc(90px + 52px); left: calc(50% + 52px); }
+.detail-window.dragging { animation: none; }
+.detail-titlebar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  background: var(--purple);
+  border-bottom: 2px solid var(--ink);
+  padding: 12px 18px;
+  min-height: 46px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  flex-shrink: 0;
+}
+.detail-window.dragging .detail-titlebar { cursor: grabbing; }
+.detail-titlebar h2 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  pointer-events: none;
+}
+/* R12: Apple traffic-light window buttons — close (red, left) / minimize
+   (yellow, middle) / maximize (green, right), pastel site palette, white glyphs.
+   Behaviors (R11) are unchanged; the JS hooks the same dot-min/max/close classes. */
+.detail-dots { display: flex; gap: 8px; flex-shrink: 0; }
+.detail-dots .detail-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.15s ease, box-shadow 0.15s ease;
+}
+/* soft-pastel traffic lights; hover steps the color up a notch */
+.detail-dots .detail-dot.dot-close { background: var(--coral); }
+.detail-dots .detail-dot.dot-min   { background: var(--yellow); }
+.detail-dots .detail-dot.dot-max   { background: var(--green); }
+.detail-dots .detail-dot.dot-close:hover { background: var(--coral-dark); }
+.detail-dots .detail-dot.dot-min:hover   { background: #E8B90E; }
+.detail-dots .detail-dot.dot-max:hover   { background: var(--green-dark); }
+/* black glyph appears on hover only; dot is solid color at rest */
+.detail-dots .detail-dot svg {
+  width: 8px; height: 8px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.detail-dots .detail-dot:hover svg { opacity: 1; }
+.detail-dots .detail-dot:hover { transform: scale(1.15); box-shadow: 0 0 0 3px rgba(255,255,255,0.22); }
+.detail-dots .detail-dot:active { transform: scale(0.85); }
+.detail-dots .detail-dot:focus-visible { outline: 2px dashed #fff; outline-offset: 2px; }
+/* H2: minimize is now the mac-style genie effect (JS-driven WAAPI):
+   the window collapses toward the bottom-right screen corner with
+   scale+skew+translate over ~400ms and ends as a small square icon.
+   Clicking that icon pops the window back open with the reverse animation.
+   The old collapse-to-titlebar (.minimized hiding the body) is gone —
+   the class now only marks the genie state. */
+.detail-window.minimized {
+  pointer-events: none;
+  opacity: 0;
+}
+/* R16: minimized windows no longer collapse into one shared icon — each
+   project gets its OWN desktop-shortcut-style icon, offset side by side
+   along the bottom edge (right offset = 22px + slot * 62px, assigned in JS).
+   The button is a column: colored tile (project thumb color + initials)
+   with the project title as a small label underneath. */
+.detail-genie-icon {
+  position: fixed;
+  right: 22px; bottom: 22px; /* per-project offset applied inline by JS */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer;
+  z-index: 60;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: genie-icon-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+/* the tile: reads like a desktop icon — project thumb color + initials */
+.detail-genie-icon .detail-genie-tile {
+  width: 44px; height: 44px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 3px 4px 0 rgba(0,0,0,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 0.72rem;
+  color: #fff;
+  text-shadow: 1px 2px 0 rgba(0,0,0,0.35);
+  transition: box-shadow 0.15s ease;
+}
+/* the shortcut label under the tile — capped below the 62px slot pitch so
+   side-by-side labels never overlap each other */
+.detail-genie-icon .detail-genie-label {
+  max-width: 58px;
+  padding: 1px 6px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  line-height: 1.3;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-genie-icon:hover { transform: translateY(-4px) scale(1.08); }
+.detail-genie-icon:hover .detail-genie-tile { box-shadow: 3px 8px 0 rgba(0,0,0,0.2); }
+.detail-genie-icon:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
+@keyframes genie-icon-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+/* maximize: window fills most of the viewport; !important so it wins over
+   any inline left/top left behind by dragging (state is restored on unmaximize) */
+.detail-window.maximized {
+  top: 3vh !important;
+  left: 3vw !important;
+  width: 94vw;
+  max-height: 94vh;
+  transform: none !important;
+  animation: none !important;
+}
+.detail-body {
+  flex: 1 1 auto; /* H1: when resizing sets an explicit height, the body fills and scrolls */
+  min-height: 0;
+  padding: 22px 24px 26px;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: #fff; /* G1: body always starts white, for every card */
+  overflow-y: auto;
+}
+.detail-thumb {
+  height: 170px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 2rem;
+  color: var(--ink);
+  margin-bottom: 18px;
+  background: #fff; /* G1: no card theme color here — white tile like the reference */
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.08);
+}
+.detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.detail-chip {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.detail-chip.cat { background: var(--purple); color: #fff; }
+/* G2: description paragraph removed from detail view — content is title + year + category */
+/* pill close affordance, bottom center like the reference badge */
+.detail-pill-row { display: flex; justify-content: center; margin-top: 22px; }
+.detail-pill {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  padding: 8px 22px;
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+}
+.detail-pill:hover { transform: translateY(-3px); box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
+.detail-pill:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+.detail-pill:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
+@keyframes detail-window-in {
+  0% { transform: translate(-50%, -18px) scale(0.94); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+.detail-window.dragging, .detail-window.positioned { animation: none; }
+/* H1: resizable detail window — classic diagonal grip lines in the bottom-right
+   corner (clipped to a triangle); drag it to resize. Min 320x220, max = viewport,
+   clamped in JS. Content reflows live: body is flex and scrolls when filled. */
+.detail-grip {
+  position: absolute;
+  right: 3px; bottom: 3px;
+  width: 20px; height: 20px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 7;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    var(--gray-stroke) 3px 5px
+  );
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+.detail-grip:hover { opacity: 1; }
+.detail-window.resizing { user-select: none; }
+.detail-window.resizing .detail-grip { opacity: 1; }
+/* F8 mobile: full-width sheet, no drag needed */
+@media (max-width: 600px) {
+  .detail-window,
+  .detail-window.shift-1,
+  .detail-window.shift-2 {
+    left: 12px; right: 12px; top: 74px;
+    width: auto;
+    max-height: calc(100vh - 98px);
+  }
+  .detail-titlebar { cursor: default; }
+  .detail-body { padding: 16px 14px 20px; }
+  .detail-thumb { height: 130px; font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-window { animation: none !important; opacity: 1; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* F7 → round 9 revert: no motion on hover; the body never flips theme anymore */
+  @media (hover: hover) and (pointer: fine) {
+    .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: none; }
+  }
+  /* F3: post-it unfolds instantly, no motion */
+  .postit.open .postit-panel { animation: none !important; max-height: none; transform: none; opacity: 1; }
+  .postit.closing .postit-panel { animation: none !important; max-height: 0; }
 }
 
 @media (max-width: 600px) {
@@ -331,16 +703,17 @@ body {
   /* QA F1: these three crowd the centered name/subtitle/social stickers at 390px */
   .doodle-pencil, .doodle-controller, .doodle-cursor { display: none; }
   .name { -webkit-text-stroke-width: 1.5px; }
+  /* F7 → round 9 revert: no flow wash on mobile either; thumb stays as the color block */
+  /* F3: post-it fits the first mobile view */
+  .postit { width: min(260px, 86vw); }
 }
 </style>
 </head>
 <body>
 
-<section class="hero">
-  <div class="keycap-group over">
-    <div class="keycap">O</div><div class="keycap">V</div><div class="keycap">E</div><div class="keycap">R</div>
-  </div>
-
+<!-- round 15 [I1]: full-page doodle field — one absolute layer behind ALL
+     sections (hero, work, contact, footer), scattered across document height -->
+<div class="doodle-field" aria-hidden="true">
   <svg class="doodle doodle-star" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 2L30 18L48 20L34 32L38 48L25 39L12 48L16 32L2 20L20 18Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
   <svg class="doodle doodle-star-2" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 2L30 18L48 20L34 32L38 48L25 39L12 48L16 32L2 20L20 18Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
   <svg class="doodle doodle-star-3" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 2L30 18L48 20L34 32L38 48L25 39L12 48L16 32L2 20L20 18Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -355,17 +728,39 @@ body {
   <svg class="doodle doodle-controller" viewBox="0 0 62 42" fill="none" aria-hidden="true"><rect x="4" y="8" width="54" height="28" rx="14" fill="#5DB06C" stroke="#080705" stroke-width="2.5"/><circle cx="20" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><circle cx="42" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><rect x="18" y="20" width="4" height="4" fill="#080705"/><rect x="40" y="20" width="4" height="4" fill="#080705"/></svg>
   <svg class="doodle doodle-arrow" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 4L25 40M12 28L25 42L38 28" stroke="#F1670E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
   <svg class="doodle doodle-zigzag" viewBox="0 0 60 24" fill="none" aria-hidden="true"><path d="M2 12L10 4L18 12L26 4L34 12L42 4L50 12L58 4" stroke="#A985B2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+  <div class="sparkle" style="top: 4%; left: 50%;"></div>
+  <div class="sparkle" style="top: 26%; right: 25%; animation-delay: 0.5s;"></div>
+  <div class="sparkle" style="top: 48%; left: 20%; animation-delay: 1s;"></div>
+  <div class="sparkle" style="top: 64%; right: 40%; animation-delay: 1.5s;"></div>
+  <div class="sparkle" style="top: 84%; left: 45%; animation-delay: 0.8s;"></div>
+</div>
 
-  <div class="sparkle" style="top: 30%; left: 50%;"></div>
-  <div class="sparkle" style="top: 60%; right: 25%; animation-delay: 0.5s;"></div>
-  <div class="sparkle" style="top: 40%; left: 20%; animation-delay: 1s;"></div>
-  <div class="sparkle" style="bottom: 25%; right: 40%; animation-delay: 1.5s;"></div>
-  <div class="sparkle" style="top: 75%; left: 45%; animation-delay: 0.8s;"></div>
+<section class="hero">
+  <div class="keycap-group over">
+    <div class="keycap">O</div><div class="keycap">V</div><div class="keycap">E</div><div class="keycap">R</div>
+  </div>
 
   <div class="name-container">
     <h1 class="name">!SABELA R⊙SS!</h1>
     <p class="subtitle">Creative Designer · Social Media</p>
     <p class="tagline">Helping people &amp; brands communicate beautifully.</p>
+  </div>
+
+  <div class="postit-wrap">
+    <div class="postit" id="aboutPostit" role="button" tabindex="0" aria-expanded="false" aria-controls="aboutPanel">
+      <div class="postit-head">
+        <h2>ABOUT ME</h2>
+        <span class="postit-hint">click to unfold</span>
+      </div>
+      <div class="postit-panel" id="aboutPanel">
+        <div class="postit-panel-inner">
+          <p>I'm Isabela — a creative designer based in Brazil, specializing in brand identity and social media content. I love mixing playful visuals with strategic thinking to help brands stand out. When I'm not designing, you'll find me sketching on grid paper and collecting cool keycaps.</p>
+          <div class="postit-skills">
+            <span class="skill-chip">Branding</span><span class="skill-chip">Social Media</span><span class="skill-chip">Illustration</span><span class="skill-chip">Packaging</span><span class="skill-chip">Editorial</span><span class="skill-chip">Figma</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="social-stickers">
@@ -400,22 +795,12 @@ body {
     <button class="filter-tab" onclick="filterWork('ui', this)">UI/UX</button>
   </div>
   <div class="scatter-grid" id="workGrid">
-    <div class="scatter-card reveal" data-cat="brand"><div class="scatter-thumb c1">AB</div><div class="scatter-body"><h3>Café Aurora — Brand Identity</h3><p>Logo, packaging, social templates for a specialty coffee shop.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c2">SM</div><div class="scatter-body"><h3>TechFlow — Social Campaign</h3><p>30-day Instagram campaign for a SaaS startup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat social">Social</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c3">ED</div><div class="scatter-body"><h3>Zine Vol.3 — Editorial</h3><p>32-page indie zine on creative processes.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="ui"><div class="scatter-thumb c4">UI</div><div class="scatter-body"><h3>Doodle Components — UI Kit</h3><p>120+ playful Figma components inspired by sticker art.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c5">PK</div><div class="scatter-body"><h3>Bloom Skincare — Packaging</h3><p>Sustainable packaging for a vegan skincare line.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c6">RA</div><div class="scatter-body"><h3>@flow.studio — Reels Art Direction</h3><p>Art direction for 50+ short-form videos.</p><div class="scatter-meta"><span class="scatter-year">2024</span><span class="scatter-cat social">Social</span></div></div></div>
-  </div>
-</section>
-
-<section class="about-section reveal" id="about">
-  <div class="about-card">
-    <h2>ABOUT ME</h2>
-    <p>I'm Isabela — a creative designer based in Brazil, specializing in brand identity and social media content. I love mixing playful visuals with strategic thinking to help brands stand out. When I'm not designing, you'll find me sketching on grid paper and collecting cool keycaps.</p>
-    <div class="about-skills">
-      <span class="skill-chip">Branding</span><span class="skill-chip">Social Media</span><span class="skill-chip">Illustration</span><span class="skill-chip">Packaging</span><span class="skill-chip">Editorial</span><span class="skill-chip">Figma</span>
-    </div>
+    <div class="scatter-card reveal" data-cat="brand"><div class="scatter-thumb c1"><span class="scatter-thumb-inner">AB</span></div><div class="scatter-body"><h3>Café Aurora — Brand Identity</h3><p>Logo, packaging, social templates for a specialty coffee shop.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c2"><span class="scatter-thumb-inner">SM</span></div><div class="scatter-body"><h3>TechFlow — Social Campaign</h3><p>30-day Instagram campaign for a SaaS startup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat social">Social</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c3"><span class="scatter-thumb-inner">ED</span></div><div class="scatter-body"><h3>Zine Vol.3 — Editorial</h3><p>32-page indie zine on creative processes.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="ui"><div class="scatter-thumb c4"><span class="scatter-thumb-inner">UI</span></div><div class="scatter-body"><h3>Doodle Components — UI Kit</h3><p>120+ playful Figma components inspired by sticker art.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c5"><span class="scatter-thumb-inner">PK</span></div><div class="scatter-body"><h3>Bloom Skincare — Packaging</h3><p>Sustainable packaging for a vegan skincare line.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c6"><span class="scatter-thumb-inner">RA</span></div><div class="scatter-body"><h3>@flow.studio — Reels Art Direction</h3><p>Art direction for 50+ short-form videos.</p><div class="scatter-meta"><span class="scatter-year">2024</span><span class="scatter-cat social">Social</span></div></div></div>
   </div>
 </section>
 
@@ -432,11 +817,427 @@ body {
   </div>
 </section>
 
+<!-- F9: detail windows are created per-project by JS and float over the live page -->
+<template id="detailTemplate">
+  <div class="detail-window" role="dialog" aria-modal="false">
+    <div class="detail-titlebar">
+      <h2 class="detail-title"></h2>
+      <div class="detail-dots">
+        <button type="button" class="detail-dot dot-close" aria-label="Close window" title="Close"><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M1.6 1.6 L6.4 6.4 M6.4 1.6 L1.6 6.4"/></svg></button>
+        <button type="button" class="detail-dot dot-min" aria-label="Minimize window" title="Minimize"><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M1.6 4 H6.4"/></svg></button>
+        <button type="button" class="detail-dot dot-max" aria-label="Maximize window" title="Maximize"><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M4.6 3.4 L6.5 1.5 M6.5 1.5 H5 M6.5 1.5 V3 M3.4 4.6 L1.5 6.5 M1.5 6.5 H3 M1.5 6.5 V5"/></svg></button>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-thumb"></div>
+      <div class="detail-meta">
+        <span class="detail-chip cat"></span>
+        <span class="detail-chip">Year: <span class="detail-year"></span></span>
+      </div>
+      <div class="detail-pill-row">
+        <button class="detail-pill">← back to work</button>
+      </div>
+    </div>
+    <div class="detail-grip" aria-hidden="true" title="Resize"></div>
+  </div>
+</template>
+
 <footer class="footer">
   <p>© 2026 !SABELA R⊙SS! — Made with grid paper and good vibes</p>
 </footer>
 
 <script>
+// F3: post-it About — click to unfold/fold
+(function () {
+  const postit = document.getElementById('aboutPostit');
+  if (!postit) return;
+  function togglePostit() {
+    if (postit.classList.contains('open')) {
+      postit.classList.remove('open');
+      postit.classList.add('closing');
+      postit.setAttribute('aria-expanded', 'false');
+      postit.addEventListener('animationend', function onEnd(e) {
+        if (e.animationName !== 'postit-fold') return;
+        postit.classList.remove('closing');
+        postit.removeEventListener('animationend', onEnd);
+      });
+    } else {
+      postit.classList.remove('closing');
+      postit.classList.add('open');
+      postit.setAttribute('aria-expanded', 'true');
+    }
+  }
+  postit.addEventListener('click', togglePostit);
+  postit.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePostit(); }
+  });
+})();
+
+// F9: draggable unstacked detail windows over the live page.
+// One window per project; multiple opens genuinely stack; drag by title bar;
+// page behind stays scrollable (no overlay, no body overflow lock).
+(function () {
+  const template = document.getElementById('detailTemplate');
+  if (!template) return;
+  const CAT_LABEL = { brand: 'Branding', social: 'Social', print: 'Print', ui: 'UI/UX' };
+  const openWindows = new Map(); // projectTitle -> window element
+  // R16.1: per-project minimized state, keyed by project id. Every minimize
+  // APPENDS an entry (and a new dock icon); restore/close/maximize deletes
+  // exactly its own entry. Nothing here is a singleton — three minimized
+  // projects are three independent entries that coexist.
+  const minimizedState = new Map(); // projectId -> { win, icon }
+  const GENIE_SLOT_W = 62; // ~60px horizontal offset between icons
+  let topZ = 60;
+  let shiftCount = 0;
+
+  function bringToFront(win) {
+    topZ += 1;
+    win.style.zIndex = topZ;
+  }
+
+  function openWindow(card) {
+    const thumb = card.querySelector('.scatter-thumb');
+    const title = card.querySelector('.scatter-body h3');
+    const year = card.querySelector('.scatter-year');
+    const cat = card.querySelector('.scatter-cat');
+    const projectTitle = title ? title.textContent : 'Project';
+
+    // one window per project: re-open focuses the existing one
+    if (openWindows.has(projectTitle)) {
+      const existing = openWindows.get(projectTitle);
+      bringToFront(existing);
+      return;
+    }
+
+    const win = template.content.firstElementChild.cloneNode(true);
+    win.querySelector('.detail-title').textContent = projectTitle;
+    win.querySelector('.detail-thumb').textContent = thumb ? thumb.textContent.trim() : '';
+    // G1: keep the window body white for ALL cards — never copy the card's
+    // thumb color here (getComputedStyle bleed); theme color lives only in
+    // the category chip accent.
+    win.querySelector('.detail-thumb').style.background = '#fff';
+    win.querySelector('.detail-year').textContent = year ? year.textContent.trim() : '—';
+    win.querySelector('.detail-chip.cat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
+    // G2: detail content is title + year + category only — no description paragraph.
+
+    // second/third window opens slightly offset so the stack reads
+    if (shiftCount > 0) win.classList.add('shift-' + Math.min(shiftCount, 2));
+    shiftCount++;
+    document.body.appendChild(win);
+    openWindows.set(projectTitle, win);
+    bringToFront(win);
+
+    const close = () => {
+      win.remove();
+      openWindows.delete(projectTitle);
+      shiftCount = Math.max(0, shiftCount - 1);
+      removeGenieIcon(); // H2: no orphaned genie icon when a minimized window closes
+    };
+    win.querySelector('.detail-pill').addEventListener('click', close);
+    // bring to front on any interaction with a background window
+    win.addEventListener('pointerdown', () => bringToFront(win));
+
+    // R11: functional window dots — minimize / maximize / close (left to right).
+    const dotMin = win.querySelector('.detail-dot.dot-min');
+    const dotMax = win.querySelector('.detail-dot.dot-max');
+    const dotClose = win.querySelector('.detail-dot.dot-close');
+
+    // H2: mac-style genie minimize. The window scales+skews+translates toward
+    // the bottom-right screen corner over ~400ms (WAAPI), ends as a small
+    // square icon; clicking the icon runs the reverse animation and pops the
+    // window back exactly where it was. Close/maximize behavior unchanged.
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let genieRect = null;   // window's rect before minimizing — restore target
+    let genieAnimating = false;
+
+    const genieTo = (restore) => {
+      const reduce = REDUCED.matches;
+      const r = win.getBoundingClientRect();
+      if (!restore) {
+        // register FIRST: slot = position in this map, assigned at click time
+        minimizedState.set(projectTitle, { win });
+        genieRect = { left: r.left + 'px', top: r.top + 'px' };
+      }
+      // freeze the visual position so the animation starts from where it is
+      win.style.left = genieRect.left;
+      win.style.top = genieRect.top;
+      win.style.transform = 'none';
+      win.classList.add('positioned');
+      win.classList.remove('maximized'); // genie always comes back to its own size
+
+      if (reduce) {
+        // prefers-reduced-motion: instant snap, no animation at all
+        win.classList.toggle('minimized', !restore);
+        if (!restore) spawnGenieIcon(true);
+        else removeGenieIcon();
+        return;
+      }
+      if (genieAnimating) return;
+      genieAnimating = true;
+
+      // window center -> bottom-right screen corner target
+      const startX = r.left, startY = r.top;
+      const w = r.width, h = r.height;
+      const targetSize = 44;
+      const targetX = window.innerWidth - targetSize - 22;
+      const targetY = window.innerHeight - targetSize - 22;
+      const tx = targetX - startX;
+      const ty = targetY - startY;
+      const sx = targetSize / w, sy = targetSize / h;
+      // squash toward the direction of travel as it accelerates (genie feel)
+      const skewMid = 14 * Math.sign(tx || 1);
+
+      const anim = win.animate([
+        { transform: 'translate(0px, 0px) scale(1, 1) skewX(0deg)', opacity: 1, offset: 0 },
+        { transform: `translate(${tx * 0.45}px, ${ty * 0.35}px) scale(${1 - (1 - sx) * 0.45}, ${1 + (sy - 1) * 0.2}) skewX(${skewMid}deg)`, opacity: 0.9, offset: 0.55 },
+        { transform: `translate(${tx}px, ${ty}px) scale(${sx}, ${sy}) skewX(0deg)`, opacity: 0.25, offset: 1 }
+      ], {
+        duration: 400,
+        easing: 'cubic-bezier(0.4, 0, 0.6, 1)',
+        fill: 'forwards',
+        direction: restore ? 'reverse' : 'normal'
+      });
+      // idempotent end-state, reachable from onfinish OR the watchdog below —
+      // finish events can be delayed/withheld on throttled or heavily
+      // painted pages, and a wedged genieAnimating flag would strand the
+      // window in mid-flight forever.
+      let done = false;
+      const completeGenie = () => {
+        if (done) return;
+        done = true;
+        genieAnimating = false;
+        if (!restore) {
+          win.classList.add('minimized'); // pointer-events: none + opacity 0
+          spawnGenieIcon(false);
+        } else {
+          // hand the size back to normal layout, position stays committed
+          win.style.transform = '';
+          win.style.maxHeight = '';
+          dotMin.setAttribute('aria-label', 'Minimize window');
+          dotMin.title = 'Minimize';
+        }
+        anim.cancel(); // drop the forwards fill; class/inline styles hold state
+      };
+      anim.onfinish = completeGenie;
+      setTimeout(completeGenie, 500); // watchdog: 400ms anim + slack
+    };
+
+    let genieIcon = null;
+    // R16.1: slot = this project's index inside minimizedState (Map keeps
+    // insertion order), so two minimizes can never compute the same slot
+    // even when the second animation finishes before the first window gets
+    // its .minimized class.
+    const slotIndex = () => [...minimizedState.keys()].indexOf(projectTitle);
+    const spawnGenieIcon = (instant) => {
+      // one icon per project, ever: keyed by data-project-id
+      genieIcon = document.querySelector('.detail-genie-icon[data-project-id="' + CSS.escape(projectTitle) + '"]');
+      if (genieIcon) return;
+      genieIcon = document.createElement('button');
+      genieIcon.type = 'button';
+      genieIcon.className = 'detail-genie-icon';
+      genieIcon.dataset.projectId = projectTitle;
+      genieIcon.setAttribute('aria-label', 'Restore window: ' + projectTitle);
+      genieIcon.title = 'Restore: ' + projectTitle;
+      // desktop-shortcut look: thumb color + initials on the tile, title label under
+      const initials = thumb ? thumb.textContent.trim() : '';
+      genieIcon.innerHTML =
+        '<span class="detail-genie-tile ' + (thumb ? [...thumb.classList].filter(c => /^c\d$/.test(c)).join(' ') : '') + '" aria-hidden="true">' + initials + '</span>' +
+        '<span class="detail-genie-label" aria-hidden="true">' + projectTitle + '</span>';
+      genieIcon.style.right = (22 + slotIndex() * GENIE_SLOT_W) + 'px';
+      if (instant) genieIcon.style.animation = 'none';
+      genieIcon.addEventListener('click', () => {
+        if (genieAnimating) return;
+        removeGenieIcon();
+        minimizedState.delete(projectTitle);
+        win.classList.remove('minimized');
+        dotMin.setAttribute('aria-label', 'Minimize window');
+        dotMin.title = 'Minimize';
+        genieTo(true);
+      });
+      document.body.appendChild(genieIcon);
+    };
+    // when an icon leaves the row (restore/close/maximize), the icons to its
+    // right would keep a gap — re-close the row by reassigning slots over
+    // every icon still in the document, in DOM (creation) order.
+    const reflowGenieSlots = () => {
+      document.querySelectorAll('.detail-genie-icon').forEach((icon, i) => {
+        icon.style.right = (22 + i * GENIE_SLOT_W) + 'px';
+      });
+    };
+    // map + DOM icon + per-window closure flag must all leave together, or a
+    // stale entry desyncs slot assignment from what's on screen
+    const removeGenieIcon = () => {
+      if (genieIcon) { genieIcon.remove(); genieIcon = null; }
+      minimizedState.delete(projectTitle);
+      reflowGenieSlots();
+    };
+
+    dotMin.addEventListener('click', () => {
+      if (win.classList.contains('minimized')) {
+        // icon click path handles restore; a direct dot click while minimized
+        // (e.g. keyboard focus) restores too
+        removeGenieIcon();
+        win.classList.remove('minimized');
+        dotMin.setAttribute('aria-label', 'Minimize window');
+        dotMin.title = 'Minimize';
+        genieTo(true);
+      } else {
+        dotMin.setAttribute('aria-label', 'Restore window');
+        dotMin.title = 'Restore';
+        genieTo(false);
+      }
+    });
+
+    // Maximize freezes the current visual rect first (same trick the drag
+    // handler uses), so restoring puts the window exactly back where it was.
+    let savedRect = null; // {left, top} captured at maximize time
+    dotMax.addEventListener('click', () => {
+      if (win.classList.contains('maximized')) {
+        win.classList.remove('maximized');
+        if (savedRect) {
+          win.style.left = savedRect.left;
+          win.style.top = savedRect.top;
+          savedRect = null;
+        }
+        dotMax.setAttribute('aria-label', 'Maximize window');
+        dotMax.title = 'Maximize';
+        return;
+      }
+      const r = win.getBoundingClientRect();
+      savedRect = { left: r.left + 'px', top: r.top + 'px' };
+      // commit the current visual position into inline styles so nothing is
+      // lost by the class's !important overrides; restore puts it back below
+      win.style.left = savedRect.left;
+      win.style.top = savedRect.top;
+      win.classList.add('positioned');
+      win.classList.remove('minimized'); // maximize restores a minimized body
+      removeGenieIcon(); // H2: maximize cancels the genie state entirely
+      dotMin.setAttribute('aria-label', 'Minimize window');
+      dotMin.title = 'Minimize';
+      win.classList.add('maximized');
+      dotMax.setAttribute('aria-label', 'Restore window size');
+      dotMax.title = 'Restore size';
+    });
+
+    dotClose.addEventListener('click', close);
+    // a dot click must never start a title-bar drag
+    [dotMin, dotMax, dotClose].forEach(d => {
+      d.addEventListener('pointerdown', (e) => e.stopPropagation());
+    });
+
+    // drag by title bar (pointer events; desktop only — mobile gets full-width sheets)
+    const titlebar = win.querySelector('.detail-titlebar');
+    let dragState = null;
+    const onDragMove = (e) => {
+      if (!dragState) return;
+      const w = win.offsetWidth;
+      // loose clamp: keep a graspable part of the window on screen
+      const x = Math.min(Math.max(e.clientX - dragState.dx, -w + 90), window.innerWidth - 90);
+      const y = Math.min(Math.max(e.clientY - dragState.dy, 6), window.innerHeight - 60);
+      win.style.left = x + 'px';
+      win.style.top = y + 'px';
+      win.classList.add('positioned'); // stop the entrance animation from re-centering
+    };
+    const onDragEnd = (e) => {
+      if (!dragState) return;
+      dragState = null;
+      win.classList.remove('dragging');
+      window.removeEventListener('pointermove', onDragMove);
+      window.removeEventListener('pointerup', onDragEnd);
+      window.removeEventListener('pointercancel', onDragEnd);
+    };
+    titlebar.addEventListener('pointerdown', (e) => {
+      if (window.matchMedia('(max-width: 600px)').matches) return;
+      if (e.button !== undefined && e.button !== 0) return;
+      // F1: the window is visually placed by the entrance animation's
+      // translate(-50%, 0). Freeze that visual position into explicit
+      // left/top BEFORE adding .dragging (which sets animation: none and
+      // would drop the transform — the window used to jump half its width
+      // to the right on grab). From here on the cursor offset recorded
+      // below is held constant for the whole drag.
+      const pre = win.getBoundingClientRect(); // includes the animated translate(-50%, 0)
+      win.style.left = pre.left + 'px';
+      win.style.top = pre.top + 'px';
+      win.style.right = 'auto';
+      win.style.transform = 'none';
+      win.classList.add('positioned'); // stops the entrance animation for good
+      win.classList.add('dragging');
+      const rect = win.getBoundingClientRect();
+      dragState = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+      // listeners on window: drag keeps working even if the cursor outruns the bar
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragEnd);
+      window.addEventListener('pointercancel', onDragEnd);
+      try { titlebar.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    // H1: resize by the bottom-right grip. Anchors top-left, scales width AND
+    // height live (body reflows + scrolls), clamped to 320x220 … viewport.
+    const grip = win.querySelector('.detail-grip');
+    let resizeState = null;
+    const onResizeMove = (e) => {
+      if (!resizeState) return;
+      const startRect = resizeState.rect;
+      const maxW = window.innerWidth - 16;
+      const maxH = window.innerHeight - 16;
+      const w = Math.min(Math.max(e.clientX - startRect.left, 320), maxW);
+      const h = Math.min(Math.max(e.clientY - startRect.top, 220), maxH);
+      win.style.width = w + 'px';
+      win.style.height = h + 'px';
+    };
+    const onResizeEnd = () => {
+      if (!resizeState) return;
+      resizeState = null;
+      win.classList.remove('resizing');
+      window.removeEventListener('pointermove', onResizeMove);
+      window.removeEventListener('pointerup', onResizeEnd);
+      window.removeEventListener('pointercancel', onResizeEnd);
+    };
+    grip.addEventListener('pointerdown', (e) => {
+      // resize is a desktop affordance; mobile sheets stay fixed-width
+      if (window.matchMedia('(max-width: 600px)').matches) return;
+      if (e.button !== undefined && e.button !== 0) return;
+      if (win.classList.contains('maximized')) return; // fullscreen size is the max already
+      e.preventDefault();
+      e.stopPropagation(); // never start a drag or a bring-to-front side effect
+      // freeze the entrance animation's translate(-50%, 0) into explicit
+      // left/top, same trick the title-bar drag uses, so the resize anchors
+      // the top-left corner exactly where the window visually is.
+      const pre = win.getBoundingClientRect();
+      win.style.left = pre.left + 'px';
+      win.style.top = pre.top + 'px';
+      win.style.transform = 'none';
+      win.classList.add('positioned');
+      // drop a lingering minimized/max-height state: resizing restores the body
+      win.classList.remove('minimized');
+      win.style.maxHeight = 'none';
+      win.classList.add('resizing');
+      resizeState = { rect: pre, startW: pre.width, startH: pre.height };
+      window.addEventListener('pointermove', onResizeMove);
+      window.addEventListener('pointerup', onResizeEnd);
+      window.addEventListener('pointercancel', onResizeEnd);
+      try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    const pill = win.querySelector('.detail-pill');
+    setTimeout(() => pill.focus(), 0);
+  }
+
+  document.querySelectorAll('.scatter-card').forEach(card => {
+    card.addEventListener('click', () => openWindow(card));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !openWindows.size) return;
+    // close the topmost window
+    let topWin = null, topZi = -1;
+    openWindows.forEach(w => {
+      const zi = parseInt(w.style.zIndex || 0, 10);
+      if (zi > topZi) { topZi = zi; topWin = w; }
+    });
+    if (topWin) topWin.querySelector('.detail-pill').click();
+  });
+})();
+
 function filterWork(cat, btn) {
   document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
   if (btn) btn.classList.add('active');
@@ -450,6 +1251,108 @@ document.querySelectorAll('.keycap').forEach(k => {
     setTimeout(() => { k.style.transform = ''; }, 150);
   });
 });
+
+// F6 → round 15 [I1]: mouse-reactive floating doodles across the WHOLE page —
+// gentle magnetic repel via individual translate/rotate props (composes with
+// the float keyframe transform). Document-level mousemove (the field layer is
+// pointer-events:none, so reactivity must come from the document), rAF + lerp,
+// transform-only, no layout reads in the loop.
+// Round 15 [I2]: scroll parallax — each doodle carries a --doodle-depth factor
+// (0..1); it translates at that rate of scrollY so doodles drift behind the
+// scrolling content. Same rAF loop, same translate property (mouse offset +
+// parallax offset are summed), passive scroll listener, no layout thrash.
+// prefers-reduced-motion: no listeners at all, doodles stay at static placement.
+(function () {
+  const ReducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const items = [...document.querySelectorAll('.doodle-field .doodle, .doodle-field .sparkle')];
+  if (!items.length || ReducedMotionQuery.matches) return;
+  // Base transforms must survive our individual-property writes: rotate() in
+  // the transform of .doodle-pencil would be overwritten by nothing, but
+  // translate/rotate props ADD to transform, so base transforms are safe.
+  const state = items.map(el => ({ el, tx: 0, ty: 0, r: 0, gx: 0, gy: 0, gr: 0, rect: null, depth: 0 }));
+  let rafId = null, mouseX = -1e4, mouseY = -1e4, pointerInside = false;
+  let scrollY = window.scrollY, scrollDirty = true, maxScroll = 1;
+  const INFLUENCE = 150;   // px radius where repel kicks in
+  const STRENGTH = 34;     // max repel distance in px
+  const TILT = 10;         // max extra rotation in deg
+  const PARALLAX_RANGE = 160; // max px a doodle can lag behind content
+  function measure() {
+    // cache each doodle's parallax depth once per measurement pass (style read,
+    // not layout) — cheap and only on demand
+    state.forEach(s => {
+      s.rect = s.el.getBoundingClientRect();
+      if (!s.depth) {
+        const d = parseFloat(getComputedStyle(s.el).getPropertyValue('--doodle-depth'));
+        s.depth = Number.isFinite(d) ? d : 0.75;
+      }
+    });
+  }
+  function onScroll() {
+    // transform-only handling: stash the value, apply it in the rAF tick;
+    // scrollHeight read happens at most once per scroll event, in the handler
+    scrollY = window.scrollY;
+    maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+    scrollDirty = true;
+    if (rafId === null) { rafId = requestAnimationFrame(tick); }
+  }
+  function onMove(e) {
+    mouseX = e.clientX; mouseY = e.clientY;
+    pointerInside = true;
+    if (rafId === null) { measure(); rafId = requestAnimationFrame(tick); }
+  }
+  function onLeave() {
+    pointerInside = false;
+    // targets fall back to 0 -> spring back handled by lerp in tick
+  }
+  function tick() {
+    for (const s of state) {
+      if (pointerInside && s.rect) {
+        const cx = s.rect.left + s.rect.width / 2;
+        const cy = s.rect.top + s.rect.height / 2;
+        const dx = cx - mouseX, dy = cy - mouseY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < INFLUENCE && dist > 0.001) {
+          const push = (1 - dist / INFLUENCE);
+          s.gx = (dx / dist) * push * STRENGTH;
+          s.gy = (dy / dist) * push * STRENGTH;
+          s.gr = (dx / dist) * push * TILT;
+        } else { s.gx = 0; s.gy = 0; s.gr = 0; }
+      } else { s.gx = 0; s.gy = 0; s.gr = 0; }
+      // lerp toward goal for smooth spring-back
+      s.tx += (s.gx - s.tx) * 0.12;
+      s.ty += (s.gy - s.ty) * 0.12;
+      s.r  += (s.gr - s.r) * 0.12;
+      // [I2] parallax offset: negative = doodle moves UP slower than the page
+      // scrolls, so it lags behind (appears deeper). Direct assignment, no
+      // lerp — scroll should track the scrollbar 1:1 in rate.
+      const py = -scrollY * s.depth * (PARALLAX_RANGE / maxScroll);
+      const px = 0;
+      if (Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05 || scrollDirty) {
+        s.el.style.translate = (s.tx + px).toFixed(2) + 'px ' + (s.ty + py).toFixed(2) + 'px';
+        s.el.style.rotate = s.r.toFixed(2) + 'deg';
+      } else if (s.el.style.translate) {
+        s.el.style.translate = ''; s.el.style.rotate = '';
+      }
+    }
+    scrollDirty = false;
+    if (pointerInside || state.some(s => Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05)) {
+      rafId = requestAnimationFrame(tick);
+    } else { rafId = null; }
+  }
+  document.addEventListener('mousemove', onMove, { passive: true });
+  document.addEventListener('mouseleave', onLeave, { passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
+  ReducedMotionQuery.addEventListener('change', (e) => {
+    if (e.matches) {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('scroll', onScroll);
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      state.forEach(s => { s.el.style.translate = ''; s.el.style.rotate = ''; });
+    }
+  });
+})();
+
 if (!CSS.supports('animation-timeline: view()')) {
   const io = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
