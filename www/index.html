@@ -497,6 +497,8 @@ body {
   animation: none !important;
 }
 .detail-body {
+  flex: 1 1 auto; /* H1: when resizing sets an explicit height, the body fills and scrolls */
+  min-height: 0;
   padding: 22px 24px 26px;
   font-family: var(--font-body);
   color: var(--ink);
@@ -548,6 +550,28 @@ body {
   100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
 }
 .detail-window.dragging, .detail-window.positioned { animation: none; }
+/* H1: resizable detail window — classic diagonal grip lines in the bottom-right
+   corner (clipped to a triangle); drag it to resize. Min 320x220, max = viewport,
+   clamped in JS. Content reflows live: body is flex and scrolls when filled. */
+.detail-grip {
+  position: absolute;
+  right: 3px; bottom: 3px;
+  width: 20px; height: 20px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 7;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    var(--gray-stroke) 3px 5px
+  );
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+.detail-grip:hover { opacity: 1; }
+.detail-window.resizing { user-select: none; }
+.detail-window.resizing .detail-grip { opacity: 1; }
 /* F8 mobile: full-width sheet, no drag needed */
 @media (max-width: 600px) {
   .detail-window,
@@ -715,6 +739,7 @@ body {
         <button class="detail-pill">← back to work</button>
       </div>
     </div>
+    <div class="detail-grip" aria-hidden="true" title="Resize"></div>
   </div>
 </template>
 
@@ -898,6 +923,54 @@ body {
       window.addEventListener('pointerup', onDragEnd);
       window.addEventListener('pointercancel', onDragEnd);
       try { titlebar.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    // H1: resize by the bottom-right grip. Anchors top-left, scales width AND
+    // height live (body reflows + scrolls), clamped to 320x220 … viewport.
+    const grip = win.querySelector('.detail-grip');
+    let resizeState = null;
+    const onResizeMove = (e) => {
+      if (!resizeState) return;
+      const startRect = resizeState.rect;
+      const maxW = window.innerWidth - 16;
+      const maxH = window.innerHeight - 16;
+      const w = Math.min(Math.max(e.clientX - startRect.left, 320), maxW);
+      const h = Math.min(Math.max(e.clientY - startRect.top, 220), maxH);
+      win.style.width = w + 'px';
+      win.style.height = h + 'px';
+    };
+    const onResizeEnd = () => {
+      if (!resizeState) return;
+      resizeState = null;
+      win.classList.remove('resizing');
+      window.removeEventListener('pointermove', onResizeMove);
+      window.removeEventListener('pointerup', onResizeEnd);
+      window.removeEventListener('pointercancel', onResizeEnd);
+    };
+    grip.addEventListener('pointerdown', (e) => {
+      // resize is a desktop affordance; mobile sheets stay fixed-width
+      if (window.matchMedia('(max-width: 600px)').matches) return;
+      if (e.button !== undefined && e.button !== 0) return;
+      if (win.classList.contains('maximized')) return; // fullscreen size is the max already
+      e.preventDefault();
+      e.stopPropagation(); // never start a drag or a bring-to-front side effect
+      // freeze the entrance animation's translate(-50%, 0) into explicit
+      // left/top, same trick the title-bar drag uses, so the resize anchors
+      // the top-left corner exactly where the window visually is.
+      const pre = win.getBoundingClientRect();
+      win.style.left = pre.left + 'px';
+      win.style.top = pre.top + 'px';
+      win.style.transform = 'none';
+      win.classList.add('positioned');
+      // drop a lingering minimized/max-height state: resizing restores the body
+      win.classList.remove('minimized');
+      win.style.maxHeight = 'none';
+      win.classList.add('resizing');
+      resizeState = { rect: pre, startW: pre.width, startH: pre.height };
+      window.addEventListener('pointermove', onResizeMove);
+      window.addEventListener('pointerup', onResizeEnd);
+      window.addEventListener('pointercancel', onResizeEnd);
+      try { grip.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
     const pill = win.querySelector('.detail-pill');
