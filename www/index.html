@@ -127,20 +127,23 @@ body {
    Round 15: applies to the whole-page field, not just the hero. */
 .doodle-field .doodle, .doodle-field .sparkle { will-change: translate, rotate; }
 /* positions are % of the FULL page height now, so they scatter down the page */
-.doodle-star       { top: 3%;  right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
-.doodle-star-2     { top: 12%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
-.doodle-star-3     { top: 21%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
-.doodle-planet     { top: 30%; left: 9%;  width: 68px; height: 68px; animation-delay: 1s; }
-.doodle-green      { top: 38%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
-.doodle-coral      { top: 46%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
-.doodle-blue-ring  { top: 54%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
-.doodle-pencil     { top: 62%; left: 5%;  width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
-.doodle-compass    { top: 70%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
-.doodle-palette    { top: 78%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
-.doodle-cursor     { top: 86%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
-.doodle-controller { top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
-.doodle-arrow      { top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
-.doodle-zigzag     { top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
+/* round 15 [I2]: --doodle-depth = parallax scroll factor (0 = scrolls with
+   content, smaller = lags behind). Set per doodle below. */
+.doodle-field .doodle, .doodle-field .sparkle { --doodle-depth: 0.75; }
+.doodle-star       { --doodle-depth: 0.55; top: 3%;  right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
+.doodle-star-2     { --doodle-depth: 0.8;  top: 12%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
+.doodle-star-3     { --doodle-depth: 0.4;  top: 21%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
+.doodle-planet     { --doodle-depth: 0.85; top: 30%; left: 9%;  width: 68px; height: 68px; animation-delay: 1s; }
+.doodle-green      { --doodle-depth: 0.5;  top: 38%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
+.doodle-coral      { --doodle-depth: 0.7;  top: 46%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
+.doodle-blue-ring  { --doodle-depth: 0.45; top: 54%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
+.doodle-pencil     { --doodle-depth: 0.9;  top: 62%; left: 5%;  width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
+.doodle-compass    { --doodle-depth: 0.6;  top: 70%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
+.doodle-palette    { --doodle-depth: 0.5;  top: 78%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
+.doodle-cursor     { --doodle-depth: 0.75; top: 86%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
+.doodle-controller { --doodle-depth: 0.85; top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
+.doodle-arrow      { --doodle-depth: 0.65; top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
+.doodle-zigzag     { --doodle-depth: 0.4;  top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
 
 .sparkle {
   position: absolute;
@@ -1179,6 +1182,11 @@ document.querySelectorAll('.keycap').forEach(k => {
 // the float keyframe transform). Document-level mousemove (the field layer is
 // pointer-events:none, so reactivity must come from the document), rAF + lerp,
 // transform-only, no layout reads in the loop.
+// Round 15 [I2]: scroll parallax — each doodle carries a --doodle-depth factor
+// (0..1); it translates at that rate of scrollY so doodles drift behind the
+// scrolling content. Same rAF loop, same translate property (mouse offset +
+// parallax offset are summed), passive scroll listener, no layout thrash.
+// prefers-reduced-motion: no listeners at all, doodles stay at static placement.
 (function () {
   const ReducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
   const items = [...document.querySelectorAll('.doodle-field .doodle, .doodle-field .sparkle')];
@@ -1186,13 +1194,31 @@ document.querySelectorAll('.keycap').forEach(k => {
   // Base transforms must survive our individual-property writes: rotate() in
   // the transform of .doodle-pencil would be overwritten by nothing, but
   // translate/rotate props ADD to transform, so base transforms are safe.
-  const state = items.map(el => ({ el, tx: 0, ty: 0, r: 0, gx: 0, gy: 0, gr: 0, rect: null }));
+  const state = items.map(el => ({ el, tx: 0, ty: 0, r: 0, gx: 0, gy: 0, gr: 0, rect: null, depth: 0 }));
   let rafId = null, mouseX = -1e4, mouseY = -1e4, pointerInside = false;
+  let scrollY = window.scrollY, scrollDirty = true, maxScroll = 1;
   const INFLUENCE = 150;   // px radius where repel kicks in
   const STRENGTH = 34;     // max repel distance in px
   const TILT = 10;         // max extra rotation in deg
+  const PARALLAX_RANGE = 160; // max px a doodle can lag behind content
   function measure() {
-    state.forEach(s => { s.rect = s.el.getBoundingClientRect(); });
+    // cache each doodle's parallax depth once per measurement pass (style read,
+    // not layout) — cheap and only on demand
+    state.forEach(s => {
+      s.rect = s.el.getBoundingClientRect();
+      if (!s.depth) {
+        const d = parseFloat(getComputedStyle(s.el).getPropertyValue('--doodle-depth'));
+        s.depth = Number.isFinite(d) ? d : 0.75;
+      }
+    });
+  }
+  function onScroll() {
+    // transform-only handling: stash the value, apply it in the rAF tick;
+    // scrollHeight read happens at most once per scroll event, in the handler
+    scrollY = window.scrollY;
+    maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+    scrollDirty = true;
+    if (rafId === null) { rafId = requestAnimationFrame(tick); }
   }
   function onMove(e) {
     mouseX = e.clientX; mouseY = e.clientY;
@@ -1221,23 +1247,31 @@ document.querySelectorAll('.keycap').forEach(k => {
       s.tx += (s.gx - s.tx) * 0.12;
       s.ty += (s.gy - s.ty) * 0.12;
       s.r  += (s.gr - s.r) * 0.12;
-      if (Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05) {
-        s.el.style.translate = s.tx.toFixed(2) + 'px ' + s.ty.toFixed(2) + 'px';
+      // [I2] parallax offset: negative = doodle moves UP slower than the page
+      // scrolls, so it lags behind (appears deeper). Direct assignment, no
+      // lerp — scroll should track the scrollbar 1:1 in rate.
+      const py = -scrollY * s.depth * (PARALLAX_RANGE / maxScroll);
+      const px = 0;
+      if (Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05 || scrollDirty) {
+        s.el.style.translate = (s.tx + px).toFixed(2) + 'px ' + (s.ty + py).toFixed(2) + 'px';
         s.el.style.rotate = s.r.toFixed(2) + 'deg';
       } else if (s.el.style.translate) {
         s.el.style.translate = ''; s.el.style.rotate = '';
       }
     }
+    scrollDirty = false;
     if (pointerInside || state.some(s => Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05)) {
       rafId = requestAnimationFrame(tick);
     } else { rafId = null; }
   }
   document.addEventListener('mousemove', onMove, { passive: true });
   document.addEventListener('mouseleave', onLeave, { passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
   ReducedMotionQuery.addEventListener('change', (e) => {
     if (e.matches) {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('scroll', onScroll);
       if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
       state.forEach(s => { s.el.style.translate = ''; s.el.style.rotate = ''; });
     }
