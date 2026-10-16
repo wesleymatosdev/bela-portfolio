@@ -1355,7 +1355,12 @@ document.querySelectorAll('.keycap').forEach(k => {
       // lerp — scroll should track the scrollbar 1:1 in rate.
       const py = -scrollY * s.depth * (PARALLAX_RANGE / maxScroll);
       const px = 0;
-      if (Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05 || scrollDirty) {
+      // flicker fix (round 17): the old clear-branch wiped translate when the
+      // repel spring decayed — erasing the standing parallax offset, so doodles
+      // snapped back and jumped on the next scroll tick. Keep writing whenever
+      // the parallax offset itself is non-zero; only clear when truly at rest.
+      const active = Math.abs(s.tx) > 0.05 || Math.abs(s.ty) > 0.05 || Math.abs(s.r) > 0.05;
+      if (active || scrollDirty || Math.abs(py) > 0.1) {
         s.el.style.translate = (s.tx + px).toFixed(2) + 'px ' + (s.ty + py).toFixed(2) + 'px';
         s.el.style.rotate = s.r.toFixed(2) + 'deg';
       } else if (s.el.style.translate) {
@@ -1464,19 +1469,44 @@ if (!CSS.supports('animation-timeline: view()')) {
     undock();
     if (p <= 0 || !baseO) { over.style.transform = ''; flow.style.transform = ''; return; }
 
-    const e = 1 - Math.pow(1 - p, 3); // easeOutCubic
+    // Round 17 (feedback): NO diagonal flight. Two sequential phases driven by
+    // scroll progress — phase A (0..0.5): each group moves VERTICALLY only,
+    // sticking to the top edge (y target = strip top) while keeping its x.
+    // phase B (0.5..1): both groups slide HORIZONTALLY (slowly — linear-ish
+    // ease) to their joined center positions. Scroll up reverses the same path.
     const t = targets();
     // natural viewport position = document position - scrollY (x is scroll-invariant)
     const oNatTop = baseO.top - window.scrollY;
     const fNatTop = baseF.top - window.scrollY;
+    // vertical targets: top strip; horizontal targets: joined center row
+    const oTy = t.o.top, fTy = t.f.top;
+    const oTx = t.o.left, fTx = t.f.left;
+
+    let ox, oy, fx, fy, rotE;
+    if (p <= 0.5) {
+      // phase A: vertical only, x frozen at base; rotation settles
+      const a = p / 0.5;                       // 0..1 within phase A
+      const ae = 1 - Math.pow(1 - a, 3);       // easeOutCubic
+      ox = 0; fx = 0;
+      oy = (oTy - oNatTop) * ae;
+      fy = (fTy - fNatTop) * ae;
+      rotE = ae;
+    } else {
+      // phase B: y pinned at strip top; x slides to center slowly (linear-ish)
+      const b = (p - 0.5) / 0.5;               // 0..1 within phase B
+      const be = b * b * (3 - 2 * b);          // smoothstep — gentle, slow feel
+      oy = oTy - oNatTop;                      // full vertical offset
+      fy = fTy - fNatTop;
+      ox = (oTx - baseO.left) * be;
+      fx = (fTx - baseF.left) * be;
+      rotE = 1;
+    }
     over.style.transform =
-      'translate(' + ((t.o.left - baseO.left) * e).toFixed(1) + 'px,' +
-      ' ' + ((t.o.top - oNatTop) * e).toFixed(1) + 'px)' +
-      ' rotate(' + (-4 * (1 - e)).toFixed(2) + 'deg)';
+      'translate(' + ox.toFixed(1) + 'px,' + oy.toFixed(1) + 'px)' +
+      ' rotate(' + (-4 * (1 - rotE)).toFixed(2) + 'deg)';
     flow.style.transform =
-      'translate(' + ((t.f.left - baseF.left) * e).toFixed(1) + 'px,' +
-      ' ' + ((t.f.top - fNatTop) * e).toFixed(1) + 'px)' +
-      ' rotate(' + (3 * (1 - e)).toFixed(2) + 'deg)';
+      'translate(' + fx.toFixed(1) + 'px,' + fy.toFixed(1) + 'px)' +
+      ' rotate(' + (3 * (1 - rotE)).toFixed(2) + 'deg)';
   }
 
   function onScroll() {
