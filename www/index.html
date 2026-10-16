@@ -483,9 +483,46 @@ body {
 .detail-dots .detail-dot:hover { transform: scale(1.15); box-shadow: 0 0 0 3px rgba(255,255,255,0.22); }
 .detail-dots .detail-dot:active { transform: scale(0.85); }
 .detail-dots .detail-dot:focus-visible { outline: 2px dashed #fff; outline-offset: 2px; }
-/* minimize: window collapses to just its title bar (click the dot again to restore) */
-.detail-window.minimized .detail-body { display: none; }
-.detail-window.minimized { max-height: none; }
+/* H2: minimize is now the mac-style genie effect (JS-driven WAAPI):
+   the window collapses toward the bottom-right screen corner with
+   scale+skew+translate over ~400ms and ends as a small square icon.
+   Clicking that icon pops the window back open with the reverse animation.
+   The old collapse-to-titlebar (.minimized hiding the body) is gone —
+   the class now only marks the genie state. */
+.detail-window.minimized {
+  pointer-events: none;
+  opacity: 0;
+}
+/* the dock-style icon left behind at the bottom-right corner */
+.detail-genie-icon {
+  position: fixed;
+  right: 22px; bottom: 22px;
+  width: 44px; height: 44px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 3px 4px 0 rgba(0,0,0,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  color: var(--ink);
+  cursor: pointer;
+  z-index: 60;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+  animation: genie-icon-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.detail-genie-icon:hover { transform: translateY(-4px) scale(1.08); box-shadow: 3px 8px 0 rgba(0,0,0,0.2); }
+.detail-genie-icon:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
+.detail-genie-icon .detail-genie-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+@keyframes genie-icon-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
 /* maximize: window fills most of the viewport; !important so it wins over
    any inline left/top left behind by dragging (state is restored on unmaximize) */
 .detail-window.maximized {
@@ -826,6 +863,7 @@ body {
       win.remove();
       openWindows.delete(projectTitle);
       shiftCount = Math.max(0, shiftCount - 1);
+      removeGenieIcon(); // H2: no orphaned genie icon when a minimized window closes
     };
     win.querySelector('.detail-pill').addEventListener('click', close);
     // bring to front on any interaction with a background window
@@ -836,11 +874,120 @@ body {
     const dotMax = win.querySelector('.detail-dot.dot-max');
     const dotClose = win.querySelector('.detail-dot.dot-close');
 
+    // H2: mac-style genie minimize. The window scales+skews+translates toward
+    // the bottom-right screen corner over ~400ms (WAAPI), ends as a small
+    // square icon; clicking the icon runs the reverse animation and pops the
+    // window back exactly where it was. Close/maximize behavior unchanged.
+    const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let genieRect = null;   // window's rect before minimizing — restore target
+    let genieAnimating = false;
+
+    const genieTo = (restore) => {
+      const reduce = REDUCED.matches;
+      const r = win.getBoundingClientRect();
+      if (!restore) genieRect = { left: r.left + 'px', top: r.top + 'px' };
+      // freeze the visual position so the animation starts from where it is
+      win.style.left = genieRect.left;
+      win.style.top = genieRect.top;
+      win.style.transform = 'none';
+      win.classList.add('positioned');
+      win.classList.remove('maximized'); // genie always comes back to its own size
+
+      if (reduce) {
+        // prefers-reduced-motion: instant snap, no animation at all
+        win.classList.toggle('minimized', !restore);
+        if (!restore) spawnGenieIcon(true);
+        else removeGenieIcon();
+        return;
+      }
+      if (genieAnimating) return;
+      genieAnimating = true;
+
+      // window center -> bottom-right screen corner target
+      const startX = r.left, startY = r.top;
+      const w = r.width, h = r.height;
+      const targetSize = 44;
+      const targetX = window.innerWidth - targetSize - 22;
+      const targetY = window.innerHeight - targetSize - 22;
+      const tx = targetX - startX;
+      const ty = targetY - startY;
+      const sx = targetSize / w, sy = targetSize / h;
+      // squash toward the direction of travel as it accelerates (genie feel)
+      const skewMid = 14 * Math.sign(tx || 1);
+
+      const anim = win.animate([
+        { transform: 'translate(0px, 0px) scale(1, 1) skewX(0deg)', opacity: 1, offset: 0 },
+        { transform: `translate(${tx * 0.45}px, ${ty * 0.35}px) scale(${1 - (1 - sx) * 0.45}, ${1 + (sy - 1) * 0.2}) skewX(${skewMid}deg)`, opacity: 0.9, offset: 0.55 },
+        { transform: `translate(${tx}px, ${ty}px) scale(${sx}, ${sy}) skewX(0deg)`, opacity: 0.25, offset: 1 }
+      ], {
+        duration: 400,
+        easing: 'cubic-bezier(0.4, 0, 0.6, 1)',
+        fill: 'forwards',
+        direction: restore ? 'reverse' : 'normal'
+      });
+      // idempotent end-state, reachable from onfinish OR the watchdog below —
+      // finish events can be delayed/withheld on throttled or heavily
+      // painted pages, and a wedged genieAnimating flag would strand the
+      // window in mid-flight forever.
+      let done = false;
+      const completeGenie = () => {
+        if (done) return;
+        done = true;
+        genieAnimating = false;
+        if (!restore) {
+          win.classList.add('minimized'); // pointer-events: none + opacity 0
+          spawnGenieIcon(false);
+        } else {
+          // hand the size back to normal layout, position stays committed
+          win.style.transform = '';
+          win.style.maxHeight = '';
+          dotMin.setAttribute('aria-label', 'Minimize window');
+          dotMin.title = 'Minimize';
+        }
+        anim.cancel(); // drop the forwards fill; class/inline styles hold state
+      };
+      anim.onfinish = completeGenie;
+      setTimeout(completeGenie, 500); // watchdog: 400ms anim + slack
+    };
+
+    let genieIcon = null;
+    const spawnGenieIcon = (instant) => {
+      if (genieIcon) return;
+      genieIcon = document.createElement('button');
+      genieIcon.type = 'button';
+      genieIcon.className = 'detail-genie-icon';
+      genieIcon.setAttribute('aria-label', 'Restore window: ' + projectTitle);
+      genieIcon.title = 'Restore';
+      genieIcon.innerHTML = '<span class="detail-genie-dot" aria-hidden="true"></span>';
+      if (instant) genieIcon.style.animation = 'none';
+      genieIcon.addEventListener('click', () => {
+        if (genieAnimating) return;
+        removeGenieIcon();
+        win.classList.remove('minimized');
+        dotMin.setAttribute('aria-label', 'Minimize window');
+        dotMin.title = 'Minimize';
+        genieTo(true);
+      });
+      document.body.appendChild(genieIcon);
+    };
+    const removeGenieIcon = () => {
+      if (genieIcon) { genieIcon.remove(); genieIcon = null; }
+    };
+
     dotMin.addEventListener('click', () => {
-      win.classList.toggle('minimized');
-      const min = win.classList.contains('minimized');
-      dotMin.setAttribute('aria-label', min ? 'Restore window' : 'Minimize window');
-      dotMin.title = min ? 'Restore' : 'Minimize';
+      if (win.classList.contains('minimized')) {
+        // icon click path handles restore; a direct dot click while minimized
+        // (e.g. keyboard focus) restores too
+        removeGenieIcon();
+        win.classList.remove('minimized');
+        dotMin.setAttribute('aria-label', 'Minimize window');
+        dotMin.title = 'Minimize';
+        genieTo(true);
+      } else {
+        dotMin.setAttribute('aria-label', 'Restore window');
+        dotMin.title = 'Restore';
+        genieTo(false);
+      }
     });
 
     // Maximize freezes the current visual rect first (same trick the drag
@@ -866,6 +1013,7 @@ body {
       win.style.top = savedRect.top;
       win.classList.add('positioned');
       win.classList.remove('minimized'); // maximize restores a minimized body
+      removeGenieIcon(); // H2: maximize cancels the genie state entirely
       dotMin.setAttribute('aria-label', 'Minimize window');
       dotMin.title = 'Minimize';
       win.classList.add('maximized');
