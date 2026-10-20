@@ -178,13 +178,14 @@ body {
 }
 .name {
   font-family: var(--font-name);
-  font-size: clamp(1.8rem, 6.5vw, 4.5rem);
-  color: var(--ink);
-  -webkit-text-stroke: 2.5px var(--gray-stroke);
-  paint-order: stroke fill;
-  letter-spacing: 0.04em;
   line-height: 1.4;
-  text-shadow: 4px 6px 0 rgba(0,0,0,0.08);
+}
+.name-wordmark {
+  display: block;
+  width: min(82vw, 620px);
+  height: auto;
+  margin: 0 auto;
+  filter: drop-shadow(4px 6px 0 rgba(0,0,0,0.08));
 }
 .subtitle {
   font-family: var(--font-body);
@@ -702,7 +703,7 @@ body {
   .doodle { transform: scale(0.7); }
   /* QA F1: these three crowd the centered name/subtitle/social stickers at 390px */
   .doodle-pencil, .doodle-controller, .doodle-cursor { display: none; }
-  .name { -webkit-text-stroke-width: 1.5px; }
+  .name-wordmark { width: 88vw; }
   /* F7 → round 9 revert: no flow wash on mobile either; thumb stays as the color block */
   /* F3: post-it fits the first mobile view */
   .postit { width: min(260px, 86vw); }
@@ -741,7 +742,7 @@ body {
   </div>
 
   <div class="name-container">
-    <h1 class="name">!SABELA R⊙SS!</h1>
+    <h1 class="name"><img class="name-wordmark" src="assets/name-wordmark.svg" alt="Isabela Rossi" width="1093" height="100" decoding="async"></h1>
     <p class="subtitle">Creative Designer · Social Media</p>
     <p class="tagline">Helping people &amp; brands communicate beautifully.</p>
   </div>
