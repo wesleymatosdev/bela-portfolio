@@ -451,6 +451,8 @@ body {
 
 .footer { text-align: center; padding: 30px 5%; font-size: 0.8rem; color: var(--gray-stroke); border-top: 2px dashed var(--grid-line); margin-top: 20px; }
 .footer-wordmark { height: 0.95em; width: auto; aspect-ratio: 120.56 / 11.03; vertical-align: -0.12em; }
+/* easter egg: hero letters are clickable — pointer is the only hint */
+.name-wordmark path[class^="wm-"] { cursor: pointer; }
 
 @keyframes drop-in { 0% { transform: translateY(-100px) rotate(-10deg); opacity: 0; } 100% { transform: translateY(0) rotate(-4deg); opacity: 1; } }
 @keyframes name-arrive { 0% { transform: scale(0.5) rotate(-5deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
@@ -1571,6 +1573,98 @@ if (!CSS.supports('animation-timeline: view()')) {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', () => { if (entranceCleared) { const d = docked; undock(); clearEntrance(); baseO = baseF = null; clearEntrance(); docked = d; if (d) dock(); apply(); } });
   apply();
+})();
+
+/* ============================================================
+   Wordmark easter egg — click any letter of the hero name and
+   it performs its own little move. Footer copy stays static.
+   ============================================================ */
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg = document.querySelector('h1.name svg.name-wordmark');
+  if (!svg) return;
+
+  const ORIGIN = {
+    'wm-A1': '50% 5%',  'wm-A2': '50% 5%',   // pivot at the apex
+    'wm-E':  '0% 50%',                      // hinge at the spine
+    'wm-L':  '0% 100%',                     // pivot at the foot
+    'wm-R':  '30% 100%'                     // pivot at the leg base
+  };
+  const SPRING = 'cubic-bezier(.34,1.56,.64,1)';
+
+  // helper: alternate frames from a list of transform states
+  const alt = (states, first, last) => {
+    const f = states.map(t => ({ transform: t }));
+    if (first) f[0] = { transform: first, offset: 0 };
+    if (last)  f.push({ transform: last, offset: 1 });
+    return f;
+  };
+
+  const MOVES = {
+    /* I₁ — snake shimmy: skew + tiny rotation, quick cycles */
+    'wm-I1': { frames: alt(['skewX(0deg) rotate(0deg)',
+      'skewX(14deg) rotate(6deg)', 'skewX(-14deg) rotate(-6deg)',
+      'skewX(14deg) rotate(6deg)', 'skewX(-14deg) rotate(-6deg)',
+      'skewX(14deg) rotate(6deg)', 'skewX(0deg) rotate(0deg)']), dur: 850 },
+
+    /* S₁ — slither: side-to-side drift with a ripple */
+    'wm-S1': { frames: alt(['translateX(0px) rotate(0deg)',
+      'translateX(2.2px) rotate(8deg)', 'translateX(-2.2px) rotate(-8deg)',
+      'translateX(2.2px) rotate(8deg)', 'translateX(-2.2px) rotate(-8deg)',
+      'translateX(0px) rotate(0deg)']), dur: 950 },
+
+    /* A₁ / A₂ — peak nod, like tipping a hat (opposite phases) */
+    'wm-A1': { frames: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(-10deg)', offset: .3 },
+      { transform: 'rotate(7deg)', offset: .6 }, { transform: 'rotate(0deg)' }], dur: 700 },
+    'wm-A2': { frames: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(10deg)', offset: .3 },
+      { transform: 'rotate(-7deg)', offset: .6 }, { transform: 'rotate(0deg)' }], dur: 700 },
+
+    /* B — jelly wobble: squash and stretch around its center */
+    'wm-B': { frames: [{ transform: 'scale(1,1)' }, { transform: 'scale(1.18,.84)', offset: .25 },
+      { transform: 'scale(.88,1.12)', offset: .5 }, { transform: 'scale(1.1,.92)', offset: .75 },
+      { transform: 'scale(1,1)' }], dur: 750 },
+
+    /* E — hinge swing on its spine, like a door */
+    'wm-E': { frames: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(18deg)', offset: .35 },
+      { transform: 'rotate(-8deg)', offset: .65 }, { transform: 'rotate(0deg)' }], dur: 800 },
+
+    /* L — kick its foot out */
+    'wm-L': { frames: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(-22deg)', offset: .4 },
+      { transform: 'rotate(6deg)', offset: .7 }, { transform: 'rotate(0deg)' }], dur: 550, easing: SPRING },
+
+    /* R — flick its diagonal leg */
+    'wm-R': { frames: [{ transform: 'rotate(0deg)' }, { transform: 'rotate(-14deg)', offset: .4 },
+      { transform: 'rotate(5deg)', offset: .7 }, { transform: 'rotate(0deg)' }], dur: 600, easing: SPRING },
+
+    /* O — the showpiece: double spin + hop + landing squash */
+    'wm-O': { frames: [
+      { transform: 'translateY(0px) rotate(0deg) scale(1,1)' },
+      { transform: 'translateY(-4.6px) rotate(360deg) scale(1,1)', offset: .45 },
+      { transform: 'translateY(0.4px) rotate(720deg) scale(1.18,.78)', offset: .8 },
+      { transform: 'translateY(0px) rotate(720deg) scale(1,1)' }], dur: 1200, easing: 'cubic-bezier(.3,.6,.4,1)' },
+
+    /* S₂ / S₃ — bobbing wave pair, offset phases */
+    'wm-S2': { frames: alt(['translateY(0px)', 'translateY(-2.6px)', 'translateY(2.6px)',
+      'translateY(-2.6px)', 'translateY(2.6px)', 'translateY(0px)']), dur: 900 },
+    'wm-S3': { frames: alt(['translateY(0px)', 'translateY(2.6px)', 'translateY(-2.6px)',
+      'translateY(2.6px)', 'translateY(-2.6px)', 'translateY(0px)']), dur: 900 },
+
+    /* I₂ — yoyo: drops, springs past rest, settles */
+    'wm-I2': { frames: [{ transform: 'translateY(0px)' }, { transform: 'translateY(3.6px)', offset: .35 },
+      { transform: 'translateY(-1.6px)', offset: .65 }, { transform: 'translateY(0px)' }], dur: 800, easing: SPRING }
+  };
+
+  svg.addEventListener('click', e => {
+    const p = e.target.closest && e.target.closest('path[class^="wm-"]');
+    if (!p) return;
+    const cls = [...p.classList].find(c => c.startsWith('wm-'));
+    const move = MOVES[cls];
+    if (!move) return;
+    p.style.transformBox = 'fill-box';
+    p.style.transformOrigin = ORIGIN[cls] || '50% 50%';
+    p.animate(move.frames, { duration: move.dur, easing: move.easing || 'ease-in-out' })
+      .finished.catch(() => {});
+  });
 })();
 </script>
 
