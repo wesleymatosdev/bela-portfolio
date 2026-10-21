@@ -1,0 +1,50 @@
+backend:
+  name: github
+  repo: wesleymatosdev/bela-portfolio
+  branch: main
+
+site_url: https://wesleymatosdev.github.io/bela-portfolio/
+locale: en
+
+media_folder: www/assets/media
+public_folder: /bela-portfolio/assets/media
+
+collections:
+  - name: projects
+    label: Projects
+    label_singular: Project
+    files:
+      - name: projects
+        label: All projects
+        file: www/content/projects.json
+        format: json
+        fields:
+          - label: Projects (drag to reorder)
+            label_singular: Project
+            name: projects
+            widget: list
+            summary: "{{fields.title}} · {{fields.year}}"
+            fields:
+              - { label: Title, name: title, widget: string }
+              - { label: Short description, name: blurb, widget: text, hint: One sentence shown on the project card }
+              - { label: Year, name: year, widget: number, min: 1990, max: 2100, value_type: int }
+              - label: Category
+                name: cat
+                widget: select
+                options:
+                  - { label: Branding, value: brand }
+                  - { label: Social, value: social }
+                  - { label: Print, value: print }
+                  - { label: UI/UX, value: ui }
+              - label: Card color
+                name: color
+                widget: select
+                options:
+                  - { label: Orange, value: c1 }
+                  - { label: Blue, value: c2 }
+                  - { label: Green, value: c3 }
+                  - { label: Purple, value: c4 }
+                  - { label: Coral, value: c5 }
+                  - { label: Violet, value: c6 }
+              - { label: Card initials, name: initials, widget: string, hint: 1–3 letters shown on the card thumbnail, e.g. AB }
+              - { label: ID, name: id, widget: string, required: false, hint: Leave empty — filled automatically from the title }

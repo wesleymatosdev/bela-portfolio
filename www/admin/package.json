@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@sveltia/cms": "0.250.1"
+  }
+}

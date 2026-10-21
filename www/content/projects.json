@@ -1,0 +1,58 @@
+{
+  "projects": [
+    {
+      "id": "caf-aurora-brand-identit",
+      "title": "Café Aurora — Brand Identity",
+      "blurb": "Logo, packaging, social templates for a specialty coffee shop.",
+      "year": 2026,
+      "cat": "brand",
+      "color": "c1",
+      "initials": "AB"
+    },
+    {
+      "id": "techflow-social-campaign",
+      "title": "TechFlow — Social Campaign",
+      "blurb": "30-day Instagram campaign for a SaaS startup.",
+      "year": 2026,
+      "cat": "social",
+      "color": "c2",
+      "initials": "SM"
+    },
+    {
+      "id": "zine-vol-3-editorial",
+      "title": "Zine Vol.3 — Editorial",
+      "blurb": "32-page indie zine on creative processes.",
+      "year": 2025,
+      "cat": "print",
+      "color": "c3",
+      "initials": "ED"
+    },
+    {
+      "id": "doodle-components-ui-kit",
+      "title": "Doodle Components — UI Kit",
+      "blurb": "120+ playful Figma components inspired by sticker art.",
+      "year": 2025,
+      "cat": "ui",
+      "color": "c4",
+      "initials": "UI"
+    },
+    {
+      "id": "bloom-skincare-packaging",
+      "title": "Bloom Skincare — Packaging",
+      "blurb": "Sustainable packaging for a vegan skincare line.",
+      "year": 2025,
+      "cat": "print",
+      "color": "c5",
+      "initials": "PK"
+    },
+    {
+      "id": "flow-studio-reels-art-di",
+      "title": "@flow.studio — Reels Art Direction",
+      "blurb": "Art direction for 50+ short-form videos.",
+      "year": 2024,
+      "cat": "social",
+      "color": "c6",
+      "initials": "RA"
+    }
+  ]
+}
