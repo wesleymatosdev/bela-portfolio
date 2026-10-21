@@ -7,7 +7,8 @@
       "year": 2026,
       "cat": "brand",
       "color": "c1",
-      "initials": "AB"
+      "initials": "AB",
+      "images": []
     },
     {
       "id": "techflow-social-campaign",
@@ -16,7 +17,8 @@
       "year": 2026,
       "cat": "social",
       "color": "c2",
-      "initials": "SM"
+      "initials": "SM",
+      "images": []
     },
     {
       "id": "zine-vol-3-editorial",
@@ -25,7 +27,8 @@
       "year": 2025,
       "cat": "print",
       "color": "c3",
-      "initials": "ED"
+      "initials": "ED",
+      "images": []
     },
     {
       "id": "doodle-components-ui-kit",
@@ -34,7 +37,8 @@
       "year": 2025,
       "cat": "ui",
       "color": "c4",
-      "initials": "UI"
+      "initials": "UI",
+      "images": []
     },
     {
       "id": "bloom-skincare-packaging",
@@ -43,7 +47,8 @@
       "year": 2025,
       "cat": "print",
       "color": "c5",
-      "initials": "PK"
+      "initials": "PK",
+      "images": []
     },
     {
       "id": "flow-studio-reels-art-di",
@@ -52,7 +57,8 @@
       "year": 2024,
       "cat": "social",
       "color": "c6",
-      "initials": "RA"
+      "initials": "RA",
+      "images": []
     }
   ]
 }

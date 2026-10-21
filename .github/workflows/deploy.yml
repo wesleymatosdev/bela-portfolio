@@ -29,6 +29,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
+      - name: Install Pillow (palette extraction)
+        run: pip install --quiet "pillow~=11.3"
       - name: Regenerate project cards from projects.json
         run: python tools/build_projects.py
       - name: Commit regenerated cards (repo self-heal, no retrigger)

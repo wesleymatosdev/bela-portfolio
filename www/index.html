@@ -711,6 +711,13 @@ body {
   .detail-titlebar { cursor: default; }
   .detail-body { padding: 16px 14px 20px; }
   .detail-thumb { height: 130px; font-size: 1.5rem; }
+  .detail-cover { border-radius: 10px; overflow: hidden; margin: 0 16px; background: #f3f1e8; }
+  .detail-cover img { display: block; width: 100%; max-height: 300px; object-fit: cover; }
+  .detail-thumbs { display: flex; gap: 6px; margin: 8px 16px 0; overflow-x: auto; padding-bottom: 4px; }
+  .detail-thumbs button { flex: 0 0 auto; width: 56px; height: 42px; border-radius: 6px; overflow: hidden;
+    border: 2px solid transparent; padding: 0; cursor: pointer; background: #f3f1e8; }
+  .detail-thumbs button img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .detail-thumbs button.sel { border-color: var(--orange); }
 }
 @media (prefers-reduced-motion: reduce) {
   .detail-window { animation: none !important; opacity: 1; }
@@ -854,12 +861,12 @@ body {
   </div>
   <div class="scatter-grid" id="workGrid">
     <!-- @projects:start -->
-    <div class="scatter-card reveal" data-cat="brand"><div class="scatter-thumb c1"><span class="scatter-thumb-inner">AB</span></div><div class="scatter-body"><h3>Café Aurora — Brand Identity</h3><p>Logo, packaging, social templates for a specialty coffee shop.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c2"><span class="scatter-thumb-inner">SM</span></div><div class="scatter-body"><h3>TechFlow — Social Campaign</h3><p>30-day Instagram campaign for a SaaS startup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat social">Social</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c3"><span class="scatter-thumb-inner">ED</span></div><div class="scatter-body"><h3>Zine Vol.3 — Editorial</h3><p>32-page indie zine on creative processes.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="ui"><div class="scatter-thumb c4"><span class="scatter-thumb-inner">UI</span></div><div class="scatter-body"><h3>Doodle Components — UI Kit</h3><p>120+ playful Figma components inspired by sticker art.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print"><div class="scatter-thumb c5"><span class="scatter-thumb-inner">PK</span></div><div class="scatter-body"><h3>Bloom Skincare — Packaging</h3><p>Sustainable packaging for a vegan skincare line.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="social"><div class="scatter-thumb c6"><span class="scatter-thumb-inner">RA</span></div><div class="scatter-body"><h3>@flow.studio — Reels Art Direction</h3><p>Art direction for 50+ short-form videos.</p><div class="scatter-meta"><span class="scatter-year">2024</span><span class="scatter-cat social">Social</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="brand" data-images="[]"><div class="scatter-thumb c1"><span class="scatter-thumb-inner">AB</span></div><div class="scatter-body"><h3>Café Aurora — Brand Identity</h3><p>Logo, packaging, social templates for a specialty coffee shop.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="social" data-images="[]"><div class="scatter-thumb c2"><span class="scatter-thumb-inner">SM</span></div><div class="scatter-body"><h3>TechFlow — Social Campaign</h3><p>30-day Instagram campaign for a SaaS startup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat social">Social</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[]"><div class="scatter-thumb c3"><span class="scatter-thumb-inner">ED</span></div><div class="scatter-body"><h3>Zine Vol.3 — Editorial</h3><p>32-page indie zine on creative processes.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="ui" data-images="[]"><div class="scatter-thumb c4"><span class="scatter-thumb-inner">UI</span></div><div class="scatter-body"><h3>Doodle Components — UI Kit</h3><p>120+ playful Figma components inspired by sticker art.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[]"><div class="scatter-thumb c5"><span class="scatter-thumb-inner">PK</span></div><div class="scatter-body"><h3>Bloom Skincare — Packaging</h3><p>Sustainable packaging for a vegan skincare line.</p><div class="scatter-meta"><span class="scatter-year">2025</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="social" data-images="[]"><div class="scatter-thumb c6"><span class="scatter-thumb-inner">RA</span></div><div class="scatter-body"><h3>@flow.studio — Reels Art Direction</h3><p>Art direction for 50+ short-form videos.</p><div class="scatter-meta"><span class="scatter-year">2024</span><span class="scatter-cat social">Social</span></div></div></div>
   <!-- @projects:end -->
   
   </div>
@@ -891,6 +898,10 @@ body {
     </div>
     <div class="detail-body">
       <div class="detail-thumb"></div>
+      <div class="detail-gallery" hidden>
+        <div class="detail-cover"><img alt=""></div>
+        <div class="detail-thumbs"></div>
+      </div>
       <div class="detail-meta">
         <span class="detail-chip cat"></span>
         <span class="detail-chip">Year: <span class="detail-year"></span></span>
@@ -997,6 +1008,35 @@ body {
     const win = template.content.firstElementChild.cloneNode(true);
     win.querySelector('.detail-title').textContent = projectTitle;
     win.querySelector('.detail-thumb').textContent = thumb ? thumb.textContent.trim() : '';
+    // project gallery: cover = first image, order = CMS order
+    const gallery = win.querySelector('.detail-gallery');
+    const MEDIA_URL = 'assets/media/';
+    try {
+      const imgs = JSON.parse(card.dataset.images || '[]');
+      if (imgs.length) {
+        gallery.hidden = false;
+        win.querySelector('.detail-thumb').hidden = true;
+        const coverImg = gallery.querySelector('.detail-cover img');
+        const strip = gallery.querySelector('.detail-thumbs');
+        const show = (src) => { coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle; };
+        show(imgs[0]);
+        imgs.forEach((src, idx) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          if (idx === 0) b.classList.add('sel');
+          b.setAttribute('aria-label', 'Show image ' + (idx + 1));
+          const im = document.createElement('img');
+          im.src = MEDIA_URL + src; im.alt = '';
+          b.appendChild(im);
+          b.addEventListener('click', () => {
+            show(src);
+            strip.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+            b.classList.add('sel');
+          });
+          strip.appendChild(b);
+        });
+      }
+    } catch (e) { /* malformed data-images: keep the initials thumb */ }
     // G1: keep the window body white for ALL cards — never copy the card's
     // thumb color here (getComputedStyle bleed); theme color lives only in
     // the category chip accent.
