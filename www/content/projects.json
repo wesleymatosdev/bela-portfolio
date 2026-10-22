@@ -8,7 +8,9 @@
       "cat": "brand",
       "color": "c1",
       "initials": "AB",
-      "images": []
+      "images": [
+        "cafe-aurora-cover.jpg"
+      ]
     },
     {
       "id": "techflow-social-campaign",
