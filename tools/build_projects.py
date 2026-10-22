@@ -9,8 +9,9 @@ Schema (www/content/projects.json):
   {"projects": [ {id?, title, blurb, year, cat, color?, initials, images?}, ... ]}
   - images: list of file names under www/assets/media, in display order;
     images[0] is the cover/main image shown in the detail window.
-  - color: c1..c6 theme color; when omitted or "auto", derived from the cover
-    image's palette (nearest theme color) and written back to the JSON.
+  - color: empty or "auto" = derived from the cover image's palette (nearest
+    theme color, written back to the JSON); a theme token (c1..c6, legacy); or
+    any hex color (#rgb / #rrggbb) picked in the CMS color widget — used as-is.
 """
 import json
 import re
@@ -57,16 +58,56 @@ def cover_palette(path: Path):
     return [tuple(int(min(255, (k[i] + 0.5) * 32)) for i in range(3)) for k, _ in top]
 
 
-def nearest_theme(rgb):
+def nearest_theme(rgb) -> str:
     def dist(a: tuple, b: tuple) -> float:
         return float(sum((a[i] - b[i]) ** 2 for i in range(3)))
-    best, best_score = None, None
+    best: str = ""
+    best_score = None
     for rank, color in enumerate(rgb):
         for cls, theme in THEME_COLORS.items():
             score = dist(color, theme) * (1 + rank * 0.35)
             if best_score is None or score < best_score:
                 best, best_score = cls, score
     return best
+
+
+HEX_RE = re.compile(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+
+
+def token_hex(token: str) -> str:
+    r, g, b = THEME_COLORS[token]
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def normalize_hex(value: str) -> str:
+    """'#abc' -> '#aabbcc'; returns lowercase 6-digit hex or raises."""
+    m = HEX_RE.match(value.strip())
+    if not m:
+        raise SystemExit(f"color must be a hex color like #ff8800, or a theme token "
+                         f"{sorted(THEME_COLORS)}, or empty/auto — got '{value}'")
+    h = m.group(1)
+    if len(h) == 3:
+        h = "".join(ch * 2 for ch in h)
+    return f"#{h.lower()}"
+
+
+def resolve_color(p: dict, i: int):
+    """Concrete hex for rendering plus whether JSON was healed. Auto-derived
+    results are written back to the JSON; explicit choices (token or hex) are
+    left untouched. Raises on an invalid explicit color."""
+    color = str(p.get("color") or "").strip()
+    if not color or color == "auto":
+        if p.get("images"):
+            token = nearest_theme(cover_palette(MEDIA / p["images"][0]))
+        else:
+            token = f"c{(i % 6) + 1}"  # no cover yet: cycle the palette
+        changed = p.get("color") != token
+        if changed:
+            p["color"] = token
+        return token_hex(token), changed
+    if color in THEME_COLORS:
+        return token_hex(color), False
+    return normalize_hex(color), False
 
 
 def validate_and_heal(projects):
@@ -104,17 +145,9 @@ def validate_and_heal(projects):
         for x in images:
             if not (MEDIA / x).is_file():
                 raise SystemExit(f"project '{p['id']}': image not found in www/assets/media: '{x}'")
-        color = str(p.get("color") or "").strip()
-        if not color or color == "auto":
-            if images:
-                color = nearest_theme(cover_palette(MEDIA / images[0]))
-            else:
-                color = f"c{(i % 6) + 1}"  # no cover yet: cycle the palette
-            if p.get("color") != color:
-                p["color"] = color
-                changed = True
-        if color not in THEME_COLORS:
-            raise SystemExit(f"project '{p['id']}': color must be one of {sorted(THEME_COLORS)}, got '{color}'")
+        thumb_hex, color_changed = resolve_color(p, i)
+        if color_changed:
+            changed = True
         if not (1990 <= int(p["year"]) <= 2100):
             raise SystemExit(f"project '{p['id']}': year out of range: {p['year']}")
         if not (1 <= len(str(p["initials"])) <= 3):
@@ -124,12 +157,12 @@ def validate_and_heal(projects):
     return changed
 
 
-def card_html(p):
+def card_html(p, thumb_hex: str):
     images = p.get("images") or []
     data_images = esc(json.dumps(images, separators=(",", ":")))
     return (
         f'<div class="scatter-card reveal" data-cat="{esc(p["cat"])}" data-images="{data_images}">'
-        f'<div class="scatter-thumb {esc(p["color"])}">'
+        f'<div class="scatter-thumb" style="--thumb-color:{esc(thumb_hex)}">'
         f'<span class="scatter-thumb-inner">{esc(p["initials"])}</span></div>'
         f'<div class="scatter-body"><h3>{esc(p["title"])}</h3>'
         f"<p>{esc(p['blurb'])}</p>"
@@ -149,7 +182,7 @@ def main():
         payload = {"projects": projects} if is_dict else projects
         DATA.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print("healed ids/colors -> projects.json")
-    cards = "\n    ".join(card_html(p) for p in projects)
+    cards = "\n    ".join(card_html(p, resolve_color(p, i)[0]) for i, p in enumerate(projects))
     html = HTML.read_text(encoding="utf-8")
     if START not in html or END not in html:
         raise SystemExit(f"{HTML.name} is missing the {START}/{END} markers")

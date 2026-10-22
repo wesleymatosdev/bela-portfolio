@@ -46,16 +46,7 @@ collections:
               - { label: Card initials, name: initials, widget: string, hint: 1–3 letters shown on the card thumbnail, e.g. AB }
               - label: Card color
                 name: color
-                widget: select
+                widget: color
                 required: false
-                default: auto
-                hint: "auto: picked from the cover image's palette. Override only if you want a fixed color."
-                options:
-                  - { label: Auto (from cover image), value: auto }
-                  - { label: Orange, value: c1 }
-                  - { label: Blue, value: c2 }
-                  - { label: Green, value: c3 }
-                  - { label: Purple, value: c4 }
-                  - { label: Coral, value: c5 }
-                  - { label: Violet, value: c6 }
+                hint: "Leave empty = auto (picked from the cover image's palette). Pick any color to fix this card's color."
               - { label: ID, name: id, widget: string, required: false, hint: Leave empty — filled automatically from the title }
