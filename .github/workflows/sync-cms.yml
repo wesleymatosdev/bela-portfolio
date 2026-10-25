@@ -1,0 +1,63 @@
+# Pulls published projects + media from the SonicJS CMS into this static repo,
+# regenerates the project cards, and pushes — the Deploy workflow then rebuilds
+# Pages. Fully reproducible: runs on any GitHub runner with a single secret.
+#
+# Setup (once):
+#   1. Mint an API key at  <cms>/admin/plugins/api-keys  (sk_...)
+#   2. gh secret set CMS_API_KEY            # paste the key when prompted
+#   3. gh workflow run sync-cms.yml
+#
+# Manual local run (no GitHub needed):
+#   CMS_API_KEY=sk_... python3 tools/sync_from_sonicjs.py
+#   (or with no env var: falls back to the admin password from 1Password via `op`)
+
+name: Sync content from CMS
+
+on:
+  workflow_dispatch:
+  # Bela edits in the CMS a few times a week; pick these up automatically.
+  # Content API responses carry Cache-Control; daily is plenty.
+  schedule:
+    - cron: "17 9 * * *" # daily 09:17 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "sync-cms"
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Pillow (palette extraction)
+        run: pip install --quiet "pillow~=11.3"
+
+      - name: Sync content + media from CMS
+        env:
+          CMS_API_KEY: ${{ secrets.CMS_API_KEY }}
+        run: python3 tools/sync_from_sonicjs.py
+
+      - name: Regenerate project cards
+        run: python3 tools/build_projects.py
+
+      - name: Commit and push (if changed)
+        run: |
+          git config user.name "bela-cms-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes — nothing to publish."
+          else
+            git add -A
+            git commit -m "publish: content update from CMS"
+            git push
+          fi
