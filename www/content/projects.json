@@ -1,64 +1,130 @@
 {
   "projects": [
     {
-      "id": "caf-aurora-brand-identit",
-      "title": "Café Aurora — Brand Identity",
-      "blurb": "Logo, packaging, social templates for a specialty coffee shop.",
+      "id": "lush-brand-campaign",
+      "title": "LUSH — Brand Campaign",
+      "blurb": "Brand campaign material for LUSH cosmetics.",
+      "year": 2026,
+      "cat": "brand",
+      "color": "c4",
+      "initials": "LU",
+      "images": [
+        "lush-brand-campaign-1.png",
+        "lush-brand-campaign-2.png",
+        "lush-brand-campaign-3.png",
+        "lush-brand-campaign-4.png"
+      ]
+    },
+    {
+      "id": "birds-spa-brand-identity",
+      "title": "Birds Spa — Brand Identity",
+      "blurb": "Spa & cosmetics brand identity — Birds Spa / Birds' Apartment.",
+      "year": 2026,
+      "cat": "brand",
+      "color": "c3",
+      "initials": "BS",
+      "images": [
+        "birds-spa-brand-identity-1.png",
+        "birds-spa-brand-identity-2.png",
+        "birds-spa-brand-identity-3.png",
+        "birds-spa-brand-identity-4.png",
+        "birds-spa-brand-identity-5.png",
+        "birds-spa-brand-identity-6.png",
+        "birds-spa-brand-identity-7.png",
+        "birds-spa-brand-identity-8.jpg",
+        "birds-spa-brand-identity-9.jpg"
+      ]
+    },
+    {
+      "id": "a-imagem-de-um-poema-editorial",
+      "title": "A Imagem de um Poema — Editorial",
+      "blurb": "Book and poster campaign — \"Depois do Medo vem o Mundo\".",
+      "year": 2026,
+      "cat": "print",
+      "color": "c2",
+      "initials": "IP",
+      "images": [
+        "a-imagem-de-um-poema-editorial-1.jpg",
+        "a-imagem-de-um-poema-editorial-2.png",
+        "a-imagem-de-um-poema-editorial-3.png",
+        "a-imagem-de-um-poema-editorial-4.jpg"
+      ]
+    },
+    {
+      "id": "arte-autoral-original-works",
+      "title": "Arte Autoral — Original Works",
+      "blurb": "Signed original artworks and editorial covers by Isabela Rossi.",
+      "year": 2026,
+      "cat": "print",
+      "color": "c4",
+      "initials": "AA",
+      "images": [
+        "arte-autoral-original-works-1.jpg",
+        "arte-autoral-original-works-2.jpg",
+        "arte-autoral-original-works-3.jpg"
+      ]
+    },
+    {
+      "id": "jogo-de-cartas-card-game",
+      "title": "Jogo de Cartas — Card Game",
+      "blurb": "Card game art — verdade, mentira, coringa and verso, plus box.",
+      "year": 2026,
+      "cat": "print",
+      "color": "c1",
+      "initials": "JC",
+      "images": [
+        "jogo-de-cartas-card-game-1.png",
+        "jogo-de-cartas-card-game-2.png"
+      ]
+    },
+    {
+      "id": "cafe-brand-identity",
+      "title": "Café — Brand Identity",
+      "blurb": "Coffee brand identity — ad creative and packaging mockup.",
       "year": 2026,
       "cat": "brand",
       "color": "c1",
-      "initials": "AB",
-      "images": []
+      "initials": "CF",
+      "images": [
+        "cafe-brand-identity-1.png",
+        "cafe-brand-identity-2.jpg"
+      ]
     },
     {
-      "id": "techflow-social-campaign",
-      "title": "TechFlow — Social Campaign",
-      "blurb": "30-day Instagram campaign for a SaaS startup.",
+      "id": "forra-do-pixel-book-cover",
+      "title": "Forra do Pixel — Book Cover",
+      "blurb": "Book cover design for \"Forra do Pixel\".",
       "year": 2026,
-      "cat": "social",
-      "color": "c2",
-      "initials": "SM",
-      "images": []
-    },
-    {
-      "id": "zine-vol-3-editorial",
-      "title": "Zine Vol.3 — Editorial",
-      "blurb": "32-page indie zine on creative processes.",
-      "year": 2025,
       "cat": "print",
-      "color": "c3",
-      "initials": "ED",
-      "images": []
+      "color": "c4",
+      "initials": "FP",
+      "images": [
+        "forra-do-pixel-book-cover-1.png"
+      ]
     },
     {
-      "id": "doodle-components-ui-kit",
-      "title": "Doodle Components — UI Kit",
-      "blurb": "120+ playful Figma components inspired by sticker art.",
-      "year": 2025,
+      "id": "tailcall-timeline-2023",
+      "title": "Tailcall — Timeline 2023",
+      "blurb": "Timeline graphic for Tailcall.",
+      "year": 2023,
       "cat": "ui",
       "color": "c4",
-      "initials": "UI",
-      "images": []
+      "initials": "TC",
+      "images": [
+        "tailcall-timeline-2023-1.png"
+      ]
     },
     {
-      "id": "bloom-skincare-packaging",
-      "title": "Bloom Skincare — Packaging",
-      "blurb": "Sustainable packaging for a vegan skincare line.",
-      "year": 2025,
+      "id": "brasil-rupestre-magazine-cover",
+      "title": "Brasil Rupestre — Magazine Cover",
+      "blurb": "Magazine cover art — Brasil Rupestre.",
+      "year": 2026,
       "cat": "print",
       "color": "c5",
-      "initials": "PK",
-      "images": []
-    },
-    {
-      "id": "flow-studio-reels-art-di",
-      "title": "@flow.studio — Reels Art Direction",
-      "blurb": "Art direction for 50+ short-form videos.",
-      "year": 2024,
-      "cat": "social",
-      "color": "c6",
-      "initials": "RA",
-      "images": []
+      "initials": "BR",
+      "images": [
+        "brasil-rupestre-magazine-cover-1.png"
+      ]
     }
   ]
 }
