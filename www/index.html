@@ -1116,7 +1116,10 @@ body {
         const glideImg = document.createElement('img');
         glideImg.alt = '';
         glideImg.setAttribute('aria-hidden', 'true');
-        glideImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;';
+        // object-fit mirrors .detail-cover img (contain) — read live inside
+        // glideTo so a future CSS change can't reintroduce a crop mismatch
+        // (cover-vs-contain made every incoming image look zoomed-in mid-glide)
+        glideImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;';
         coverBox.style.position = 'relative';
         coverBox.appendChild(glideImg);
         const GLIDE_MS = 480, GLIDE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -1141,6 +1144,7 @@ body {
             glideAnims = [];
           };
           glideImg.style.opacity = '1';
+          glideImg.style.objectFit = getComputedStyle(coverImg).objectFit; // always match the base image's fit
           glideImg.src = target;
           const start = () => {
             if (seq !== glideSeq) return;
