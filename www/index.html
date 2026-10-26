@@ -500,6 +500,15 @@ body {
 .detail-window {
   position: fixed;
   top: 90px; left: 50%;
+  /* Horizontal centering lives in the standalone `translate` property, NOT in
+     the entrance animation: with prefers-reduced-motion the reduce block kills
+     the animation entirely, and centering that only existed inside the
+     keyframes' translate(-50%, …) vanished with it — the window opened with
+     its left edge at 50vw, half off-screen. As a base property, the centering
+     survives any animation: none. The keyframes below animate `translate` for
+     the entrance drop, and every JS path that commits explicit pixel left/top
+     (drag, resize, genie, maximize) also clears translate. */
+  translate: -50% 0;
   width: min(680px, calc(100vw - 24px));
   max-height: min(78vh, 720px);
   background: #fff;
@@ -662,6 +671,8 @@ body {
   width: 94vw;
   max-height: 94vh;
   transform: none !important;
+  /* the base centering translate would shift a 94vw window 47vw off-screen */
+  translate: none !important;
   animation: none !important;
 }
 .detail-body {
@@ -753,8 +764,10 @@ body {
 .detail-pill:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
 .detail-pill:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
 @keyframes detail-window-in {
-  0% { transform: translate(-50%, -18px) scale(0.94); opacity: 0; }
-  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  /* `translate` (not transform) so the base rule's centering translate is what
+     animates — reduce-mode's animation:none falls back to the same -50% 0. */
+  0% { translate: -50% -18px; transform: scale(0.94); opacity: 0; }
+  100% { translate: -50% 0; transform: scale(1); opacity: 1; }
 }
 .detail-window.dragging, .detail-window.positioned { animation: none; }
 /* H1: resizable detail window — classic diagonal grip lines in the bottom-right
@@ -786,6 +799,7 @@ body {
   .detail-window.shift-2 {
     left: 12px; right: 12px; top: 74px;
     width: auto;
+    translate: none; /* full-width sheet: no keyframe-era centering to keep */
     max-height: calc(100vh - 98px);
   }
   .detail-titlebar { cursor: default; }
@@ -1297,8 +1311,10 @@ body {
         genieRect = { left: r.left + 'px', top: r.top + 'px' };
       }
       // freeze the visual position so the animation starts from where it is
+      // (translate:none drops the base centering — left/top below are visual px)
       win.style.left = genieRect.left;
       win.style.top = genieRect.top;
+      win.style.translate = 'none';
       win.style.transform = 'none';
       win.classList.add('positioned');
       win.classList.remove('maximized'); // genie always comes back to its own size
@@ -1454,6 +1470,7 @@ body {
       // lost by the class's !important overrides; restore puts it back below
       win.style.left = savedRect.left;
       win.style.top = savedRect.top;
+      win.style.translate = 'none'; // left/top above are visual px, not pre-translate
       win.classList.add('positioned');
       win.classList.remove('minimized'); // maximize restores a minimized body
       removeGenieIcon(); // H2: maximize cancels the genie state entirely
@@ -1494,16 +1511,16 @@ body {
     titlebar.addEventListener('pointerdown', (e) => {
       if (window.matchMedia('(max-width: 600px)').matches) return;
       if (e.button !== undefined && e.button !== 0) return;
-      // F1: the window is visually placed by the entrance animation's
-      // translate(-50%, 0). Freeze that visual position into explicit
-      // left/top BEFORE adding .dragging (which sets animation: none and
-      // would drop the transform — the window used to jump half its width
-      // to the right on grab). From here on the cursor offset recorded
-      // below is held constant for the whole drag.
-      const pre = win.getBoundingClientRect(); // includes the animated translate(-50%, 0)
+      // F1: the window's visual position includes the base rule's centering
+      // translate (-50% 0). Freeze that visual position into explicit
+      // left/top and clear the translate BEFORE adding .dragging — the drag
+      // math below writes plain viewport left/top, and leaving the centering
+      // active would shift the window another half-width to the left on grab.
+      const pre = win.getBoundingClientRect(); // includes the base centering translate
       win.style.left = pre.left + 'px';
       win.style.top = pre.top + 'px';
       win.style.right = 'auto';
+      win.style.translate = 'none'; // drop the centering: left/top are now visual px
       win.style.transform = 'none';
       win.classList.add('positioned'); // stops the entrance animation for good
       win.classList.add('dragging');
@@ -1545,12 +1562,13 @@ body {
       if (win.classList.contains('maximized')) return; // fullscreen size is the max already
       e.preventDefault();
       e.stopPropagation(); // never start a drag or a bring-to-front side effect
-      // freeze the entrance animation's translate(-50%, 0) into explicit
+      // freeze the base rule's centering translate into explicit
       // left/top, same trick the title-bar drag uses, so the resize anchors
       // the top-left corner exactly where the window visually is.
       const pre = win.getBoundingClientRect();
       win.style.left = pre.left + 'px';
       win.style.top = pre.top + 'px';
+      win.style.translate = 'none'; // left/top are visual px, drop the centering
       win.style.transform = 'none';
       win.classList.add('positioned');
       // drop a lingering minimized/max-height state: resizing restores the body
