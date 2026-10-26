@@ -1100,12 +1100,71 @@ body {
         const show = (src) => { coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle; };
         const buttons = [];
         let cur = 0; // index of the image currently on the cover
-        // single switch path shared by thumbnail clicks AND the scroll wheel
-        const select = (idx) => {
+
+        // Behance-style cover transition: the incoming image glides over the
+        // current one — direction-aware slide + fade + settle, ~480ms, soft
+        // ease-out. The brief forbids CSS/layout changes, so the second layer
+        // is a JS-injected absolutely-positioned img inside .detail-cover
+        // (which already clips with overflow:hidden). Interrupt-safe: a new
+        // step cancels the in-flight glide and animates from the stable pose.
+        const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const coverBox = gallery.querySelector('.detail-cover');
+        const glideImg = document.createElement('img');
+        glideImg.alt = '';
+        glideImg.setAttribute('aria-hidden', 'true');
+        glideImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;pointer-events:none;';
+        coverBox.style.position = 'relative';
+        coverBox.appendChild(glideImg);
+        const GLIDE_MS = 480, GLIDE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+        let glideSeq = 0, glideAnims = [];
+        const glideTo = (idx, dir) => {
+          const seq = ++glideSeq; // invalidates any in-flight transition
+          glideAnims.forEach(a => { try { a.cancel(); } catch (e) {} });
+          glideAnims = [];
+          coverImg.style.opacity = '1';
+          coverImg.style.transform = 'none';
+          const target = MEDIA_URL + imgs[idx];
+          const finish = () => {
+            if (seq !== glideSeq) return; // a newer transition superseded this one
+            glideAnims.forEach(a => { try { a.cancel(); } catch (e) {} });
+            glideAnims = [];
+            coverImg.src = target;
+            coverImg.alt = projectTitle;
+            coverImg.style.opacity = '1';
+            coverImg.style.transform = 'none';
+            glideImg.style.opacity = '0';
+            glideImg.style.transform = 'none';
+            glideAnims = [];
+          };
+          glideImg.style.opacity = '1';
+          glideImg.src = target;
+          const start = () => {
+            if (seq !== glideSeq) return;
+            const opts = { duration: GLIDE_MS, easing: GLIDE_EASE, fill: 'forwards' };
+            const over = glideImg.animate([
+              { transform: 'translateY(' + (dir * 6) + '%) scale(1.015)', opacity: 0 },
+              { transform: 'translateY(0) scale(1)', opacity: 1 },
+            ], opts);
+            const under = coverImg.animate([
+              { transform: 'translateY(0)', opacity: 1 },
+              { transform: 'translateY(' + (dir * -2.5) + '%)', opacity: 0 },
+            ], opts);
+            glideAnims = [over, under];
+            over.onfinish = finish;
+            setTimeout(finish, GLIDE_MS + 120); // watchdog: onfinish is paint-tied
+          };
+          // decode first so the glide never reveals a half-loaded frame
+          (glideImg.decode ? glideImg.decode() : Promise.resolve()).then(start, start);
+        };
+
+        // single switch path shared by thumbnail clicks AND the scroll wheel;
+        // dir (1 = down/next, -1 = up/prev) drives the glide direction
+        const select = (idx, dir = 0) => {
           cur = idx;
-          show(imgs[idx]);
           strip.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
           buttons[idx].classList.add('sel');
+          if (dir === 0 || REDUCED_MOTION.matches) { show(imgs[idx]); return; }
+          glideTo(idx, dir);
         };
         imgs.forEach((src, idx) => {
           const b = document.createElement('button');
@@ -1115,7 +1174,7 @@ body {
           const im = document.createElement('img');
           im.src = MEDIA_URL + src; im.alt = '';
           b.appendChild(im);
-          b.addEventListener('click', () => select(idx));
+          b.addEventListener('click', () => select(idx, Math.sign(idx - cur)));
           strip.appendChild(b);
           buttons.push(b);
         });
@@ -1144,7 +1203,7 @@ body {
             const dir = acc > 0 ? 1 : -1;
             acc = 0;
             lockUntil = now + COOLDOWN_MS;
-            select((cur + dir + imgs.length) % imgs.length);
+            select((cur + dir + imgs.length) % imgs.length, dir);
           }, { passive: false });
         }
       }
