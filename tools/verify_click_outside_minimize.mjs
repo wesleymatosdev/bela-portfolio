@@ -197,6 +197,35 @@ await page.waitForTimeout(600); // entrance animation settles
     `minimized before: ${okMin}, restored: ${lush2 && !lush2.minimized}, frontmost: ${lush2 && lush2.z === topZ}, icons: ${s.icons.length}, windows: ${s.windows.length}`);
 }
 
+// ---- check 8: the minimized dock icon shows a miniature of the image ----
+{
+  // LUSH is open + frontmost after check 7; minimize it via outside click
+  await clickOutside();
+  await page.waitForTimeout(700);
+  const s = await state();
+  const lush = s.windows.find(w => w.title.includes('LUSH'));
+  const mini = await page.evaluate(() => {
+    const icon = document.querySelector('.detail-genie-icon');
+    const img = icon && icon.querySelector('.detail-genie-img');
+    const cardImg = document.querySelectorAll('.scatter-card')[0].querySelector('.scatter-thumb-img');
+    if (!img) return { there: false };
+    return {
+      there: true,
+      srcMatchesCard: cardImg && img.getAttribute('src') === cardImg.getAttribute('src'),
+      loaded: img.complete && img.naturalWidth > 0,
+      cover: getComputedStyle(img).objectFit === 'cover',
+      tileThere: !!icon.querySelector('.detail-genie-tile'),
+    };
+  });
+  const ok = lush && lush.minimized && s.icons.length === 1
+    && mini.there && mini.srcMatchesCard && mini.loaded && mini.cover && mini.tileThere;
+  await page.screenshot({ path: `${OUT}/after-8-icon-miniature.png` });
+  check('8. minimized dock icon shows a miniature of the project image', ok, JSON.stringify(mini));
+  // leave the desktop clean: restore LUSH
+  await page.evaluate(() => document.querySelector('.detail-genie-icon').click());
+  await page.waitForTimeout(650);
+}
+
 // ---- check 6: reduced-motion → instant minimize to icon state ----
 {
   const rctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
