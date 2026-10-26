@@ -170,6 +170,33 @@ await page.waitForTimeout(600); // entrance animation settles
     `windows: ${after.windows.length}, icons: ${after.icons.length} (before: ${before.windows.length}/${before.icons.length})`);
 }
 
+// ---- check 7: re-clicking a card whose window is minimized restores it ----
+{
+  // two windows are open from check 5; put LUSH on top, then minimize it
+  // via outside click, then click its card again. In-page clicks: an open
+  // window can physically cover the cards, which would intercept real
+  // coordinate clicks (the card listener is what matters here).
+  const clickCard0 = () => page.evaluate(() => document.querySelectorAll('.scatter-card')[0].click());
+  await clickCard0();
+  await page.waitForTimeout(300);
+  await clickOutside();
+  await page.waitForTimeout(700);
+  let s = await state();
+  const lush = s.windows.find(w => w.title.includes('LUSH'));
+  const birds = s.windows.find(w => w.title.includes('Birds'));
+  const okMin = lush && lush.minimized && birds && !birds.minimized && s.icons.length === 1;
+  await clickCard0();
+  await page.waitForTimeout(700);
+  s = await state();
+  const lush2 = s.windows.find(w => w.title.includes('LUSH'));
+  const topZ = Math.max(...s.windows.map(w => w.z));
+  const ok = okMin && !!lush2 && !lush2.minimized && lush2.visible
+    && lush2.z === topZ && s.icons.length === 0 && s.windows.length === 2;
+  await page.screenshot({ path: `${OUT}/after-7-card-reclick-restore.png` });
+  check('7. card re-click on a minimized project restores its window (frontmost, icon gone)', ok,
+    `minimized before: ${okMin}, restored: ${lush2 && !lush2.minimized}, frontmost: ${lush2 && lush2.z === topZ}, icons: ${s.icons.length}, windows: ${s.windows.length}`);
+}
+
 // ---- check 6: reduced-motion → instant minimize to icon state ----
 {
   const rctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });

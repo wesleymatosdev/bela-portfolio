@@ -1088,6 +1088,15 @@ body {
     // one window per project: re-open focuses the existing one
     if (openWindows.has(projectTitle)) {
       const existing = openWindows.get(projectTitle);
+      // H3 follow-up: if that window is minimized (e.g. via click-outside),
+      // re-clicking its card RESTORES it — the dot's minimized branch is the
+      // same restore path the dock icon uses, so no second implementation.
+      // bringToFront first so the restored window lands on top of the stack.
+      if (existing.classList.contains('minimized')) {
+        bringToFront(existing);
+        existing.querySelector('.detail-dot.dot-min').click();
+        return;
+      }
       bringToFront(existing);
       return;
     }
