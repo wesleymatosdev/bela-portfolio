@@ -120,12 +120,18 @@ def main():
     for i, it in enumerate(sorted(projects, key=lambda x: x["data"].get("sort") or 99), start=1):
         d = it["data"]
         slug = it["slug"] or f"project-{i}"
-        media_ids = d.get("images") or ([d["coverImage"]] if d.get("coverImage") else [])
+        media_refs = d.get("images") or ([d["coverImage"]] if d.get("coverImage") else [])
         images = []
-        for n, mid in enumerate(media_ids, start=1):
-            key = media.get(mid)
+        for n, ref in enumerate(media_refs, start=1):
+            # Media refs come in two shapes: a media_asset id (bulk-loaded
+            # data) or a URL like /media/uploads/<hex>.<ext> / /files/<hex>.<ext>
+            # (stored by the admin media picker). Accept both.
+            if isinstance(ref, str) and ref.startswith("/"):
+                key = ref.rstrip("/").split("/media/", 1)[-1].split("/files/", 1)[-1]
+            else:
+                key = media.get(ref)
             if not key:
-                die(f"project '{slug}': media id {mid} not found in the CMS media list")
+                die(f"project '{slug}': media ref {ref!r} not found in the CMS media list")
             ext = "." + key.rsplit(".", 1)[-1].lower()
             if ext not in {f".{v}" for v in TYPES.values()}:
                 die(f"project '{slug}': unsupported image extension for {key}")
