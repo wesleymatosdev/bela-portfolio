@@ -1,0 +1,66 @@
+---
+import '../styles/global.css';
+import DoodleField from '../components/DoodleField.astro';
+import Hero from '../components/Hero.astro';
+import ScrollZone from '../components/ScrollZone.astro';
+import ProjectsGrid from '../components/ProjectsGrid.astro';
+import ContactSection from '../components/ContactSection.astro';
+import DetailWindowTemplate from '../components/DetailWindowTemplate.astro';
+import Footer from '../components/Footer.astro';
+---
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isabela Rossi — Creative Designer</title>
+<meta name="description" content="Isabela Rossi — Creative Designer & Social Media. Helping people & brands communicate beautifully.">
+<meta name="theme-color" content="#F1670E">
+
+<!-- SOCIAL / OG -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Isabela Rossi — Creative Designer">
+<meta property="og:description" content="Creative Designer & Social Media. Helping people & brands communicate beautifully.">
+<meta property="og:url" content="https://wesleymatosdev.github.io/bela-portfolio/">
+<meta property="og:image" content="https://wesleymatosdev.github.io/bela-portfolio/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Isabela Rossi — Creative Designer">
+<meta name="twitter:description" content="Creative Designer & Social Media. Helping people & brands communicate beautifully.">
+<meta name="twitter:image" content="https://wesleymatosdev.github.io/bela-portfolio/og-image.png">
+
+<!-- FAVICON -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+<!-- FONTS -->
+<!-- AD-FONT-TODO: Replace the placeholder name font below with Wesley's Adobe Font when he sends the kit/link.
+     Wire via Typekit kit JS: <script>try{Typekit.load({async:true});}catch(e){}</script>
+     and a <link rel="stylesheet" href="https://use.typekit.net/<KIT-ID>.css"> in <head>.
+     Then update --font-name in :root to the Adobe family name. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<DoodleField />
+<Hero />
+<ScrollZone />
+<ProjectsGrid />
+<ContactSection />
+<!-- F9: detail windows are created per-project by JS and float over the live page -->
+<DetailWindowTemplate />
+<Footer />
+
+<script>
+  import '../scripts/postit.js';
+  import '../scripts/detail-windows.js';
+  import '../scripts/filters.js';
+  import '../scripts/doodles.js';
+  import '../scripts/reveal.js';
+  import '../scripts/overflow-strip.js';
+  import '../scripts/wordmark.js';
+</script>
+
+</body>
+</html>

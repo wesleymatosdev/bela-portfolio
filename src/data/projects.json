@@ -1,0 +1,130 @@
+{
+  "projects": [
+    {
+      "id": "lush-brand-campaign",
+      "title": "LUSH — Brand Campaign",
+      "blurb": "Brand campaign material for LUSH cosmetics.",
+      "year": 2026,
+      "cat": "brand",
+      "color": "c4",
+      "initials": "LU",
+      "images": [
+        "lush-brand-campaign-1.webp",
+        "lush-brand-campaign-2.webp",
+        "lush-brand-campaign-3.webp",
+        "lush-brand-campaign-4.webp"
+      ]
+    },
+    {
+      "id": "birds-spa-brand-identity",
+      "title": "Birds Spa — Brand Identity",
+      "blurb": "Spa & cosmetics brand identity — Birds Spa / Birds' Apartment.",
+      "year": 2026,
+      "cat": "brand",
+      "color": "c3",
+      "initials": "BS",
+      "images": [
+        "birds-spa-brand-identity-1.webp",
+        "birds-spa-brand-identity-2.webp",
+        "birds-spa-brand-identity-3.webp",
+        "birds-spa-brand-identity-4.webp",
+        "birds-spa-brand-identity-5.webp",
+        "birds-spa-brand-identity-6.webp",
+        "birds-spa-brand-identity-7.webp",
+        "birds-spa-brand-identity-8.webp",
+        "birds-spa-brand-identity-9.webp"
+      ]
+    },
+    {
+      "id": "a-imagem-de-um-poema-editorial",
+      "title": "A Imagem de um Poema — Editorial",
+      "blurb": "Book and poster campaign — \"Depois do Medo vem o Mundo\".",
+      "year": 2026,
+      "cat": "print",
+      "color": "c2",
+      "initials": "IP",
+      "images": [
+        "a-imagem-de-um-poema-editorial-1.webp",
+        "a-imagem-de-um-poema-editorial-2.webp",
+        "a-imagem-de-um-poema-editorial-3.webp",
+        "a-imagem-de-um-poema-editorial-4.webp"
+      ]
+    },
+    {
+      "id": "arte-autoral-original-works",
+      "title": "Arte Autoral — Original Works",
+      "blurb": "Signed original artworks and editorial covers by Isabela Rossi.",
+      "year": 2026,
+      "cat": "print",
+      "color": "c4",
+      "initials": "AA",
+      "images": [
+        "arte-autoral-original-works-1.webp",
+        "arte-autoral-original-works-2.webp",
+        "arte-autoral-original-works-3.webp"
+      ]
+    },
+    {
+      "id": "jogo-de-cartas-card-game",
+      "title": "Jogo de Cartas — Card Game",
+      "blurb": "Card game art — verdade, mentira, coringa and verso, plus box.",
+      "year": 2026,
+      "cat": "print",
+      "color": "c1",
+      "initials": "JC",
+      "images": [
+        "jogo-de-cartas-card-game-1.webp",
+        "jogo-de-cartas-card-game-2.webp"
+      ]
+    },
+    {
+      "id": "cafe-brand-identity",
+      "title": "Café — Brand Identity",
+      "blurb": "Coffee brand identity — ad creative and packaging mockup.",
+      "year": 2026,
+      "cat": "brand",
+      "color": "c1",
+      "initials": "CF",
+      "images": [
+        "cafe-brand-identity-1.webp",
+        "cafe-brand-identity-2.webp"
+      ]
+    },
+    {
+      "id": "forra-do-pixel-book-cover",
+      "title": "Forra do Pixel — Book Cover",
+      "blurb": "Book cover design for \"Forra do Pixel\".",
+      "year": 2026,
+      "cat": "print",
+      "color": "c4",
+      "initials": "FP",
+      "images": [
+        "forra-do-pixel-book-cover-1.webp"
+      ]
+    },
+    {
+      "id": "tailcall-timeline-2023",
+      "title": "Tailcall — Timeline 2023",
+      "blurb": "Timeline graphic for Tailcall.",
+      "year": 2023,
+      "cat": "ui",
+      "color": "c4",
+      "initials": "TC",
+      "images": [
+        "tailcall-timeline-2023-1.webp"
+      ]
+    },
+    {
+      "id": "brasil-rupestre-magazine-cover",
+      "title": "Brasil Rupestre — Magazine Cover",
+      "blurb": "Magazine cover art — Brasil Rupestre.",
+      "year": 2026,
+      "cat": "print",
+      "color": "c5",
+      "initials": "BR",
+      "images": [
+        "brasil-rupestre-magazine-cover-1.webp"
+      ]
+    }
+  ]
+}
