@@ -1198,6 +1198,12 @@ body {
           // (deltaY ~ ±100) crosses STEP on its first event, so it stays 1:1.
           const STEP = 40, QUIET_MS = 250, COOLDOWN_MS = 180;
           let acc = 0, lastAt = -Infinity, lockUntil = 0;
+          // normalize deltaY to pixels: Firefox fires line-mode wheels
+          // (deltaMode 1, deltaY ≈ 1–3 per notch), which would never cross a
+          // pixel-tuned STEP; page mode (2) is rare but same idea
+          const dyOf = (e) => e.deltaMode === 1 ? e.deltaY * 16
+                           : e.deltaMode === 2 ? e.deltaY * window.innerHeight
+                           : e.deltaY;
           // bound to the gallery (cover + thumbs) — cycling fires when the
           // cursor is over the artwork; over the rest of the window the page
           // behind scrolls normally (client feedback: the window-level lock
@@ -1208,7 +1214,7 @@ body {
             if (now < lockUntil) return;
             if (now - lastAt > QUIET_MS) acc = 0;
             lastAt = now;
-            acc += e.deltaY;
+            acc += dyOf(e);
             if (Math.abs(acc) < STEP) return;
             const dir = acc > 0 ? 1 : -1;
             acc = 0;
