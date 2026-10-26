@@ -9,10 +9,10 @@
       "color": "c4",
       "initials": "LU",
       "images": [
-        "lush-brand-campaign-1.png",
-        "lush-brand-campaign-2.png",
-        "lush-brand-campaign-3.png",
-        "lush-brand-campaign-4.png"
+        "lush-brand-campaign-1.webp",
+        "lush-brand-campaign-2.webp",
+        "lush-brand-campaign-3.webp",
+        "lush-brand-campaign-4.webp"
       ]
     },
     {
@@ -24,15 +24,15 @@
       "color": "c3",
       "initials": "BS",
       "images": [
-        "birds-spa-brand-identity-1.png",
-        "birds-spa-brand-identity-2.png",
-        "birds-spa-brand-identity-3.png",
-        "birds-spa-brand-identity-4.png",
-        "birds-spa-brand-identity-5.png",
-        "birds-spa-brand-identity-6.png",
-        "birds-spa-brand-identity-7.png",
-        "birds-spa-brand-identity-8.jpg",
-        "birds-spa-brand-identity-9.jpg"
+        "birds-spa-brand-identity-1.webp",
+        "birds-spa-brand-identity-2.webp",
+        "birds-spa-brand-identity-3.webp",
+        "birds-spa-brand-identity-4.webp",
+        "birds-spa-brand-identity-5.webp",
+        "birds-spa-brand-identity-6.webp",
+        "birds-spa-brand-identity-7.webp",
+        "birds-spa-brand-identity-8.webp",
+        "birds-spa-brand-identity-9.webp"
       ]
     },
     {
@@ -44,10 +44,10 @@
       "color": "c2",
       "initials": "IP",
       "images": [
-        "a-imagem-de-um-poema-editorial-1.jpg",
-        "a-imagem-de-um-poema-editorial-2.png",
-        "a-imagem-de-um-poema-editorial-3.png",
-        "a-imagem-de-um-poema-editorial-4.jpg"
+        "a-imagem-de-um-poema-editorial-1.webp",
+        "a-imagem-de-um-poema-editorial-2.webp",
+        "a-imagem-de-um-poema-editorial-3.webp",
+        "a-imagem-de-um-poema-editorial-4.webp"
       ]
     },
     {
@@ -59,9 +59,9 @@
       "color": "c4",
       "initials": "AA",
       "images": [
-        "arte-autoral-original-works-1.jpg",
-        "arte-autoral-original-works-2.jpg",
-        "arte-autoral-original-works-3.jpg"
+        "arte-autoral-original-works-1.webp",
+        "arte-autoral-original-works-2.webp",
+        "arte-autoral-original-works-3.webp"
       ]
     },
     {
@@ -73,8 +73,8 @@
       "color": "c1",
       "initials": "JC",
       "images": [
-        "jogo-de-cartas-card-game-1.png",
-        "jogo-de-cartas-card-game-2.png"
+        "jogo-de-cartas-card-game-1.webp",
+        "jogo-de-cartas-card-game-2.webp"
       ]
     },
     {
@@ -86,8 +86,8 @@
       "color": "c1",
       "initials": "CF",
       "images": [
-        "cafe-brand-identity-1.png",
-        "cafe-brand-identity-2.jpg"
+        "cafe-brand-identity-1.webp",
+        "cafe-brand-identity-2.webp"
       ]
     },
     {
@@ -99,7 +99,7 @@
       "color": "c4",
       "initials": "FP",
       "images": [
-        "forra-do-pixel-book-cover-1.png"
+        "forra-do-pixel-book-cover-1.webp"
       ]
     },
     {
@@ -111,7 +111,7 @@
       "color": "c4",
       "initials": "TC",
       "images": [
-        "tailcall-timeline-2023-1.png"
+        "tailcall-timeline-2023-1.webp"
       ]
     },
     {
@@ -123,7 +123,7 @@
       "color": "c5",
       "initials": "BR",
       "images": [
-        "brasil-rupestre-magazine-cover-1.png"
+        "brasil-rupestre-magazine-cover-1.webp"
       ]
     }
   ]
