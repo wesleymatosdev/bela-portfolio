@@ -184,6 +184,16 @@ def main():
                     downloaded += 1
             images.append(fname)
 
+        # cover selection: the CMS picks which gallery image leads (coverIndex,
+        # 0-based). Rotate the list so that image is first; the site treats
+        # data-images[0] as the cover. Out-of-range indices fall back to 0.
+        try:
+            cover_idx = int(d.get("coverIndex") or 0)
+        except (TypeError, ValueError):
+            cover_idx = 0
+        if 0 < cover_idx < len(images):
+            images = images[cover_idx:] + images[:cover_idx]
+
         cms_year = d.get("year")
         old = old_by_id.get(slug) or old_by_id.get(it["id"])
         if cms_year:
