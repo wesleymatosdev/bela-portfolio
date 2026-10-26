@@ -51,6 +51,8 @@ jobs:
         run: python3 tools/build_projects.py
 
       - name: Commit and push (if changed)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "bela-cms-bot"
           git config user.email "actions@users.noreply.github.com"
@@ -60,4 +62,6 @@ jobs:
             git add -A
             git commit -m "publish: content update from CMS"
             git push
+            # GITHUB_TOKEN pushes don't trigger the Deploy workflow by themselves.
+            gh workflow run deploy.yml --ref main
           fi
