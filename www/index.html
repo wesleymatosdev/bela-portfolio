@@ -1545,6 +1545,43 @@ body {
   document.querySelectorAll('.scatter-card').forEach(card => {
     card.addEventListener('click', () => openWindow(card));
   });
+
+  // H3: a desktop pointerdown that lands OUTSIDE every open window minimizes
+  // the FRONTMOST open window — reusing the yellow dot's own handler
+  // (dotMin.click() -> genieTo(false)), so the genie animation, dock icon,
+  // slot reflow and restore are the exact same code path, never a second
+  // minimize implementation. Event type is pointerdown to match the drag /
+  // resize handlers (mixing in click could double-fire across handlers).
+  // Exclusions — conservative, anything with its own click behavior:
+  //   .detail-window      the windows themselves (titlebar, body, gallery, grip)
+  //   .scatter-card       cards OPEN windows — shift-stacking must keep working
+  //   button              dock icons (.detail-genie-icon), filter tabs
+  //   a                   social + contact stickers, any other link
+  //   .postit             about post-it toggles its own panel
+  //   .keycap             OVER/FLOW keycaps have their own press effect
+  //   .name-wordmark      hero wordmark letters run the easter-egg move
+  // Minimized windows stay in openWindows but are invisible (opacity 0,
+  // pointer-events: none), so they are skipped here — an outside click must
+  // never "minimize" an already-minimized window, which through the dot's
+  // handler would RESTORE it. One outside click = one window; repeat clicks
+  // peel the stack frontmost-first. Mobile (<= 600px) uses full-width
+  // sheets, not floating windows, and is a no-op — same breakpoint the
+  // drag/resize handlers already guard on.
+  document.addEventListener('pointerdown', (e) => {
+    if (window.matchMedia('(max-width: 600px)').matches) return;
+    if (!openWindows.size) return;
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest('.detail-window, .scatter-card, .detail-genie-icon, a, button, .postit, .keycap, .name-wordmark')) return;
+    let topWin = null, topZi = -1;
+    openWindows.forEach(w => {
+      if (w.classList.contains('minimized')) return;
+      const zi = parseInt(w.style.zIndex || 0, 10);
+      if (zi > topZi) { topZi = zi; topWin = w; }
+    });
+    if (topWin) topWin.querySelector('.detail-dot.dot-min').click();
+  });
+
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !openWindows.size) return;
     // close the topmost window
