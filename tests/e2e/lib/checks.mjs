@@ -328,18 +328,22 @@ export async function windowMaximize(page, ctx) {
   await win.locator('.detail-dot.dot-max').click();
   await settle(page, 300);
   const unmaxed = await win.evaluate((el) => !el.classList.contains('maximized'));
-  // .maximized is width:94vw with content-driven height, so "fills the
-  // viewport" means: >= 90% viewport WIDTH and taller than before.
+  // .maximized is width:94vw with content-driven height (mac settles ~837px,
+  // CI's runner renders the same window ~657px), so the deterministic
+  // contract is: maximized fills the viewport WIDTH; unmaximizing returns
+  // the window to its pre-toggle size.
   const fillsWidth = !!maxBox && maxBox.width >= VIEWPORT.width * 0.9;
-  const grew = !!maxBox && !!before && maxBox.height > before.height;
+  await settle(page, 300);
+  const restoredBox = await win.boundingBox();
+  const backToNormal = !!restoredBox && !!before && restoredBox.width <= before.width * 1.1;
   const problems = [];
   if (!maxed) problems.push('maximized class not applied');
   if (!fillsWidth) problems.push(`maximized window width ${maxBox?.width.toFixed(0)} < 90% of ${VIEWPORT.width}`);
-  if (!grew) problems.push(`maximized window did not grow (${before?.width.toFixed(0)}x${before?.height.toFixed(0)} -> ${maxBox?.width.toFixed(0)}x${maxBox?.height.toFixed(0)})`);
   if (!unmaxed) problems.push('maximized class not removed on second click');
+  if (!backToNormal) problems.push(`window did not return to its normal size (${before?.width.toFixed(0)} wide -> ${restoredBox?.width.toFixed(0)} wide)`);
   return {
     pass: problems.length === 0,
-    detail: problems.length ? problems.join('; ') : `fills viewport width on toggle (${maxBox.width.toFixed(0)}x${maxBox.height.toFixed(0)}) and restores`,
+    detail: problems.length ? problems.join('; ') : `fills viewport width on toggle (${maxBox.width.toFixed(0)}x${maxBox.height.toFixed(0)}) and restores to ${restoredBox.width.toFixed(0)}x${restoredBox.height.toFixed(0)}`,
     evidence: { before, maxBox, viewport: VIEWPORT, problems },
   };
 }
