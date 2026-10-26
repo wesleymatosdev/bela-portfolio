@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { launchBrowser, VIEWPORT } from './lib/browser.mjs';
 import { loadGroundTruth } from './lib/ground-truth.mjs';
 import * as checks from './lib/checks.mjs';
+import { DOM_AUDIT_INIT } from './lib/checks.mjs';
 
 function parseArgs(argv) {
   const args = { report: path.join(path.dirname(fileURLToPath(import.meta.url)), 'report') };
@@ -99,6 +100,7 @@ async function runChecks(page, browser, stack, url, gt, reportDir) {
 async function runStack(browser, stack, url, gt, reportDir) {
   console.log(`\n=== ${stack}: ${url} ===`);
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 });
+  await context.addInitScript(DOM_AUDIT_INIT);
   const page = await context.newPage();
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 300)); });
