@@ -695,7 +695,10 @@ body {
 .detail-cover img {
   display: block;
   width: 100%;
-  max-height: min(64vh, 640px);
+  /* shrunk from 64vh/640px — the whole window (titlebar + cover + thumbs +
+     meta + pill) must fit inside the 78vh window cap at any viewport height,
+     including short review panes; client: no modal overflow, no scrolling */
+  max-height: min(44vh, 420px);
   object-fit: contain; /* artwork is never cropped — letterbox on odd ratios */
 }
 .detail-thumbs { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
@@ -1099,12 +1102,84 @@ body {
       const imgs = JSON.parse(card.dataset.images || '[]');
       if (imgs.length) {
         gallery.hidden = false;
-        win.querySelector('.detail-thumb').hidden = true;
+        win.querySelector('.detail-thumb').remove(); // initials box: remove, not hide — a CSS display rule defeats [hidden] and leaves an empty section
         win.classList.add('has-gallery');
         const coverImg = gallery.querySelector('.detail-cover img');
         const strip = gallery.querySelector('.detail-thumbs');
         const show = (src) => { coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle; };
-        show(imgs[0]);
+        const buttons = [];
+        let cur = 0; // index of the image currently on the cover
+
+        // Behance-style cover transition: the incoming image glides over the
+        // current one — direction-aware slide + fade, ~480ms, soft ease-out,
+        // no zoom (client: the image arrives at its original size). The brief
+        // forbids CSS/layout changes, so the second layer
+        // is a JS-injected absolutely-positioned img inside .detail-cover
+        // (which already clips with overflow:hidden). Interrupt-safe: a new
+        // step cancels the in-flight glide and animates from the stable pose.
+        const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const coverBox = gallery.querySelector('.detail-cover');
+        const glideImg = document.createElement('img');
+        glideImg.alt = '';
+        glideImg.setAttribute('aria-hidden', 'true');
+        // object-fit mirrors .detail-cover img (contain) — read live inside
+        // glideTo so a future CSS change can't reintroduce a crop mismatch
+        // (cover-vs-contain made every incoming image look zoomed-in mid-glide)
+        glideImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;';
+        coverBox.style.position = 'relative';
+        coverBox.appendChild(glideImg);
+        const GLIDE_MS = 480, GLIDE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+        let glideSeq = 0, glideAnims = [];
+        const glideTo = (idx, dir) => {
+          const seq = ++glideSeq; // invalidates any in-flight transition
+          glideAnims.forEach(a => { try { a.cancel(); } catch (e) {} });
+          glideAnims = [];
+          coverImg.style.opacity = '1';
+          coverImg.style.transform = 'none';
+          const target = MEDIA_URL + imgs[idx];
+          const finish = () => {
+            if (seq !== glideSeq) return; // a newer transition superseded this one
+            glideAnims.forEach(a => { try { a.cancel(); } catch (e) {} });
+            glideAnims = [];
+            coverImg.src = target;
+            coverImg.alt = projectTitle;
+            coverImg.style.opacity = '1';
+            coverImg.style.transform = 'none';
+            glideImg.style.opacity = '0';
+            glideImg.style.transform = 'none';
+            glideAnims = [];
+          };
+          glideImg.style.opacity = '1';
+          glideImg.style.objectFit = getComputedStyle(coverImg).objectFit; // always match the base image's fit
+          glideImg.src = target;
+          const start = () => {
+            if (seq !== glideSeq) return;
+            const opts = { duration: GLIDE_MS, easing: GLIDE_EASE, fill: 'forwards' };
+            const over = glideImg.animate([
+              { transform: 'translateY(' + (dir * 6) + '%)', opacity: 0 },
+              { transform: 'none', opacity: 1 },
+            ], opts);
+            const under = coverImg.animate([
+              { transform: 'translateY(0)', opacity: 1 },
+              { transform: 'translateY(' + (dir * -2.5) + '%)', opacity: 0 },
+            ], opts);
+            glideAnims = [over, under];
+            over.onfinish = finish;
+            setTimeout(finish, GLIDE_MS + 120); // watchdog: onfinish is paint-tied
+          };
+          // decode first so the glide never reveals a half-loaded frame
+          (glideImg.decode ? glideImg.decode() : Promise.resolve()).then(start, start);
+        };
+
+        // single switch path shared by thumbnail clicks AND the scroll wheel;
+        // dir (1 = down/next, -1 = up/prev) drives the glide direction
+        const select = (idx, dir = 0) => {
+          cur = idx;
+          strip.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+          buttons[idx].classList.add('sel');
+          if (dir === 0 || REDUCED_MOTION.matches) { show(imgs[idx]); return; }
+          glideTo(idx, dir);
+        };
         imgs.forEach((src, idx) => {
           const b = document.createElement('button');
           b.type = 'button';
@@ -1113,19 +1188,53 @@ body {
           const im = document.createElement('img');
           im.src = MEDIA_URL + src; im.alt = '';
           b.appendChild(im);
-          b.addEventListener('click', () => {
-            show(src);
-            strip.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
-            b.classList.add('sel');
-          });
+          b.addEventListener('click', () => select(idx, Math.sign(idx - cur)));
           strip.appendChild(b);
+          buttons.push(b);
         });
+        select(0); // initial cover + .sel — after all buttons exist
+        if (imgs.length > 1) {
+          // Scroll wheel cycles the gallery. Trackpads fire dozens of small
+          // wheel events per gesture, so raw events would jump a dozen images
+          // at once. One gesture = one step via a delta accumulator: while
+          // events keep arriving we sum deltaY; a step fires only when the
+          // running total crosses STEP, then the total resets and a short
+          // cooldown swallows the tail of the same gesture. A gap longer
+          // than QUIET_MS counts as a new gesture. A discrete mouse wheel
+          // (deltaY ~ ±100) crosses STEP on its first event, so it stays 1:1.
+          const STEP = 40, QUIET_MS = 250, COOLDOWN_MS = 180;
+          let acc = 0, lastAt = -Infinity, lockUntil = 0;
+          // normalize deltaY to pixels: Firefox fires line-mode wheels
+          // (deltaMode 1, deltaY ≈ 1–3 per notch), which would never cross a
+          // pixel-tuned STEP; page mode (2) is rare but same idea
+          const dyOf = (e) => e.deltaMode === 1 ? e.deltaY * 16
+                           : e.deltaMode === 2 ? e.deltaY * window.innerHeight
+                           : e.deltaY;
+          // bound to the gallery (cover + thumbs) — cycling fires when the
+          // cursor is over the artwork; over the rest of the window the page
+          // behind scrolls normally (client feedback: the window-level lock
+          // broke vertical scrolling)
+          gallery.addEventListener('wheel', (e) => {
+            e.preventDefault(); // the wheel is ours here — the page behind must not scroll
+            const now = performance.now();
+            if (now < lockUntil) return;
+            if (now - lastAt > QUIET_MS) acc = 0;
+            lastAt = now;
+            acc += dyOf(e);
+            if (Math.abs(acc) < STEP) return;
+            const dir = acc > 0 ? 1 : -1;
+            acc = 0;
+            lockUntil = now + COOLDOWN_MS;
+            select((cur + dir + imgs.length) % imgs.length, dir);
+          }, { passive: false });
+        }
       }
     } catch (e) { /* malformed data-images: keep the initials thumb */ }
     // G1: keep the window body white for ALL cards — never copy the card's
     // thumb color here (getComputedStyle bleed); theme color lives only in
     // the category chip accent.
-    win.querySelector('.detail-thumb').style.background = '#fff';
+    const initialsBox = win.querySelector('.detail-thumb');
+    if (initialsBox) initialsBox.style.background = '#fff'; // removed entirely for gallery projects
     win.querySelector('.detail-year').textContent = year ? year.textContent.trim() : '—';
     win.querySelector('.detail-chip.cat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
     // G2: detail content is title + year + category only — no description paragraph.
