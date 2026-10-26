@@ -512,6 +512,12 @@ body {
   box-shadow: 6px 10px 0 rgba(0,0,0,0.12);
   animation: detail-window-in 0.45s cubic-bezier(0.34, 1.4, 0.5, 1) both;
 }
+/* image-led windows: with a gallery the modal opens large so the artwork
+   is the first thing you see — no small window + tiny cover */
+.detail-window.has-gallery {
+  width: min(940px, calc(100vw - 24px));
+  max-height: min(90vh, 880px);
+}
 /* multiple open windows genuinely stack: each new one offsets a touch */
 .detail-window.shift-1 { top: calc(90px + 26px); left: calc(50% + 26px); }
 .detail-window.shift-2 { top: calc(90px + 52px); left: calc(50% + 52px); }
@@ -677,12 +683,13 @@ body {
   border: 2px solid var(--ink);
   border-radius: 14px;
   overflow: hidden;
-  background: #f3f1e8;
+  /* no letterbox fill — the image itself leads */
+  background: transparent;
 }
 .detail-cover img {
   display: block;
   width: 100%;
-  max-height: min(46vh, 440px);
+  max-height: min(64vh, 640px);
   object-fit: contain; /* artwork is never cropped — letterbox on odd ratios */
 }
 .detail-thumbs { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
@@ -1087,6 +1094,7 @@ body {
       if (imgs.length) {
         gallery.hidden = false;
         win.querySelector('.detail-thumb').hidden = true;
+        win.classList.add('has-gallery');
         const coverImg = gallery.querySelector('.detail-cover img');
         const strip = gallery.querySelector('.detail-thumbs');
         const show = (src) => { coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle; };
