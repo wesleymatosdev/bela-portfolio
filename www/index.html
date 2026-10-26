@@ -1146,8 +1146,8 @@ body {
             if (seq !== glideSeq) return;
             const opts = { duration: GLIDE_MS, easing: GLIDE_EASE, fill: 'forwards' };
             const over = glideImg.animate([
-              { transform: 'translateY(' + (dir * 6) + '%) scale(1.015)', opacity: 0 },
-              { transform: 'translateY(0) scale(1)', opacity: 1 },
+              { transform: 'translateY(' + (dir * 6) + '%)', opacity: 0 },
+              { transform: 'none', opacity: 1 },
             ], opts);
             const under = coverImg.animate([
               { transform: 'translateY(0)', opacity: 1 },
@@ -1194,9 +1194,11 @@ body {
           // (deltaY ~ ±100) crosses STEP on its first event, so it stays 1:1.
           const STEP = 40, QUIET_MS = 250, COOLDOWN_MS = 180;
           let acc = 0, lastAt = -Infinity, lockUntil = 0;
-          // bound to the whole window (not just the gallery box) so the page
-          // behind never scrolls while the cursor is anywhere over the modal
-          win.addEventListener('wheel', (e) => {
+          // bound to the gallery (cover + thumbs) — cycling fires when the
+          // cursor is over the artwork; over the rest of the window the page
+          // behind scrolls normally (client feedback: the window-level lock
+          // broke vertical scrolling)
+          gallery.addEventListener('wheel', (e) => {
             e.preventDefault(); // the wheel is ours here — the page behind must not scroll
             const now = performance.now();
             if (now < lockUntil) return;
