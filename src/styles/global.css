@@ -630,6 +630,12 @@ body {
   overflow-y: auto;
 }
 .detail-thumb {
+  /* hidden must actually hide: the rule below is display:flex, which beats
+     the UA [hidden] default and rendered a white box above the gallery
+     (same fix as 1dfba69 on the legacy site) */
+  display: none;
+}
+.detail-thumb:not([hidden]) {
   height: 170px;
   border: 2px solid var(--ink);
   border-radius: 14px;

@@ -1,0 +1,125 @@
+# E2E regression gate for the Astro migration (PR #7).
+#
+# - legacy-self-check: serves www/ statically and runs the suite in self-check
+#   mode (legacy only) so the suite itself can never rot silently.
+# - astro-parity: builds the Astro app (npm ci + npm run build), serves it with
+#   `npm run preview`, and runs the suite in PARITY mode — the same checks
+#   against BOTH stacks, failing on any check that passes on legacy but fails
+#   on the candidate. This job only runs when the PR actually contains the
+#   Astro app (detected via astro.config.mjs on the merge ref).
+#
+# Browser: the pinned playwright-core (tests/e2e/package.json) ships the
+# installer CLI; the command below downloads the matching Chromium build into
+# the default cache (~/.cache/ms-playwright on Linux). That is the ONLY
+# browser downloaded — the suite launches it via executablePath, never a
+# second copy.
+name: e2e-parity
+
+on:
+  pull_request:
+    paths:
+      - 'www/**'
+      - 'src/**'
+      - 'public/**'
+      - 'astro.config.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/**'
+      - '.github/workflows/e2e-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-parity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  legacy-self-check:
+    name: legacy self-check (www/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install suite deps (playwright-core, pinned exact)
+        working-directory: tests/e2e
+        run: npm ci
+
+      - name: Install Chromium build matching pinned playwright-core
+        working-directory: tests/e2e
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Serve www/ statically
+        run: |
+          python3 -m http.server 8009 --bind 127.0.0.1 --directory www &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8009/ >/dev/null && break; sleep 1; done
+
+      - name: Run suite (self-check mode)
+        run: node tests/e2e/run.mjs --legacy http://127.0.0.1:8009/ --report tests/e2e/report
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-legacy-self-check
+          path: tests/e2e/report
+          if-no-files-found: ignore
+
+  astro-parity:
+    name: astro parity (www/ vs dist/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect Astro app on this ref
+        id: detect
+        run: echo "astro=$(test -f astro.config.mjs && echo yes || echo no)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.astro == 'yes'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install suite deps (playwright-core, pinned exact)
+        if: steps.detect.outputs.astro == 'yes'
+        working-directory: tests/e2e
+        run: npm ci
+
+      - name: Install Chromium build matching pinned playwright-core
+        if: steps.detect.outputs.astro == 'yes'
+        working-directory: tests/e2e
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Build Astro app
+        if: steps.detect.outputs.astro == 'yes'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Serve legacy (www/) and Astro preview
+        if: steps.detect.outputs.astro == 'yes'
+        run: |
+          python3 -m http.server 8009 --bind 127.0.0.1 --directory www &
+          npm run preview -- --host 127.0.0.1 --port 4321 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:8009/ >/dev/null && break; sleep 1; done
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:4321/bela-portfolio/ >/dev/null && break; sleep 1; done
+
+      - name: Run suite (parity mode)
+        if: steps.detect.outputs.astro == 'yes'
+        run: node tests/e2e/run.mjs --legacy http://127.0.0.1:8009/ --candidate http://127.0.0.1:4321/bela-portfolio/ --report tests/e2e/report
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report-astro-parity
+          path: tests/e2e/report
+          if-no-files-found: ignore
