@@ -184,6 +184,24 @@ body {
 .doodle-controller { --doodle-depth: 0.85; top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
 .doodle-arrow      { --doodle-depth: 0.65; top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
 .doodle-zigzag     { --doodle-depth: 0.4;  top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
+/* round 17: second wave — "a bunch more icons", same palette, scattered
+   through the gaps the first 14 left (page-height % positions) */
+.doodle-paperplane { --doodle-depth: 0.7;  top: 7%;  left: 8%;  width: 56px; height: 44px; animation-delay: 0.9s; }
+.doodle-bolt       { --doodle-depth: 0.45; top: 6%;  right: 20%; width: 36px; height: 52px; animation-delay: 1.7s; }
+.doodle-heart      { --doodle-depth: 0.6;  top: 15%; right: 7%;  width: 44px; height: 40px; animation-delay: 0.4s; }
+.doodle-cloud      { --doodle-depth: 0.8;  top: 21%; left: 30%; width: 64px; height: 40px; animation-delay: 1.1s; }
+.doodle-flower     { --doodle-depth: 0.5;  top: 33%; right: 40%; width: 46px; height: 46px; animation-delay: 2.6s; }
+.doodle-coffee     { --doodle-depth: 0.75; top: 41%; right: 8%;  width: 42px; height: 46px; animation-delay: 0.7s; }
+.doodle-envelope   { --doodle-depth: 0.55; top: 49%; left: 3%;   width: 56px; height: 40px; animation-delay: 1.9s; }
+.doodle-rocket     { --doodle-depth: 0.85; top: 57%; left: 40%;  width: 40px; height: 54px; animation-delay: 0.2s; }
+.doodle-moon       { --doodle-depth: 0.5;  top: 64%; left: 36%;  width: 44px; height: 44px; animation-delay: 1.3s; }
+.doodle-note       { --doodle-depth: 0.7;  top: 73%; left: 16%;  width: 34px; height: 48px; animation-delay: 0.9s; }
+.doodle-cassette   { --doodle-depth: 0.45; top: 81%; right: 16%; width: 62px; height: 42px; animation-delay: 2.1s; }
+.doodle-diamond    { --doodle-depth: 0.8;  top: 89%; left: 8%;   width: 46px; height: 40px; animation-delay: 0.6s; }
+.doodle-bubble     { --doodle-depth: 0.65; top: 12%; right: 32%; width: 52px; height: 44px; animation-delay: 1.5s; }
+.doodle-squiggle   { --doodle-depth: 0.4;  top: 66%; right: 30%; width: 56px; height: 20px; animation-delay: 1.2s; }
+.doodle-rainbow    { --doodle-depth: 0.6;  top: 87%; right: 26%; width: 60px; height: 34px; animation-delay: 2.8s; }
+.doodle-smiley     { --doodle-depth: 0.75; top: 44%; left: 45%;  width: 44px; height: 44px; animation-delay: 0.1s; }
 
 .sparkle {
   position: absolute;
@@ -392,9 +410,11 @@ body {
    All :hover rules stay gated to real pointers (the old "residual tint" fix). */
 @media (hover: hover) and (pointer: fine) {
   .scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
-  /* keycap-style pop on the thumb letter while the card lifts */
+  /* keycap-style pop on the thumb letter / gentle zoom on the main image */
   .scatter-thumb .scatter-thumb-inner { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
   .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: scale(1.18); }
+  .scatter-thumb .scatter-thumb-img { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .scatter-card:hover .scatter-thumb .scatter-thumb-img { transform: scale(1.05); }
   /* tape + post-it shadow lift slightly on hover */
   .scatter-card:hover {
     box-shadow: 5px 8px 0 rgba(0,0,0,0.2);
@@ -413,11 +433,20 @@ body {
   /* color set per-card by the CMS color picker (inline --thumb-color); falls back to the theme orange */
   background: var(--thumb-color, var(--orange));
 }
+/* main image = the attention-grabber; --thumb-color shows only while it loads */
+.scatter-thumb-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
 .scatter-thumb::after {
   content: '';
   position: absolute; inset: 0;
   background: repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 40px);
 }
+/* stripes are a letter-tile texture — never wash over a real image */
+.scatter-thumb.has-img::after { display: none; }
 /* Round 10 fix: card bodies are cream (page paper), never post-it yellow — yellow is hero-only */
 .scatter-body { padding: 14px 18px 18px; background: var(--cream); }
 .scatter-body h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
@@ -748,6 +777,7 @@ body {
   /* F7 → round 9 revert: no motion on hover; the body never flips theme anymore */
   @media (hover: hover) and (pointer: fine) {
     .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: none; }
+    .scatter-card:hover .scatter-thumb .scatter-thumb-img { transform: none; }
   }
   /* F3: post-it unfolds instantly, no motion */
   .postit.open .postit-panel { animation: none !important; max-height: none; transform: none; opacity: 1; }
@@ -760,7 +790,8 @@ body {
   .keycap-group.flow { bottom: 8%; right: 4%; }
   .doodle { transform: scale(0.7); }
   /* QA F1: these three crowd the centered name/subtitle/social stickers at 390px */
-  .doodle-pencil, .doodle-controller, .doodle-cursor { display: none; }
+  .doodle-pencil, .doodle-controller, .doodle-cursor,
+  .doodle-paperplane, .doodle-bolt, .doodle-bubble { display: none; }
   .name-wordmark { width: 88vw; }
   /* F7 → round 9 revert: no flow wash on mobile either; thumb stays as the color block */
   /* F3: post-it fits the first mobile view */
@@ -787,6 +818,22 @@ body {
   <svg class="doodle doodle-controller" viewBox="0 0 62 42" fill="none" aria-hidden="true"><rect x="4" y="8" width="54" height="28" rx="14" fill="#5DB06C" stroke="#080705" stroke-width="2.5"/><circle cx="20" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><circle cx="42" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><rect x="18" y="20" width="4" height="4" fill="#080705"/><rect x="40" y="20" width="4" height="4" fill="#080705"/></svg>
   <svg class="doodle doodle-arrow" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 4L25 40M12 28L25 42L38 28" stroke="#F1670E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
   <svg class="doodle doodle-zigzag" viewBox="0 0 60 24" fill="none" aria-hidden="true"><path d="M2 12L10 4L18 12L26 4L34 12L42 4L50 12L58 4" stroke="#A985B2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+  <svg class="doodle doodle-paperplane" viewBox="0 0 56 44" fill="none" aria-hidden="true"><path d="M4 20L52 4L34 40L24 28L4 20Z" fill="#6771DB" stroke="#080705" stroke-width="2" stroke-linejoin="round"/><path d="M52 4L24 28L26 38" stroke="#080705" stroke-width="2" stroke-linejoin="round" fill="none"/></svg>
+  <svg class="doodle doodle-bolt" viewBox="0 0 36 52" fill="none" aria-hidden="true"><path d="M22 2L6 28H16L12 50L30 20H18L26 2Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
+  <svg class="doodle doodle-heart" viewBox="0 0 44 40" fill="none" aria-hidden="true"><path d="M22 36C10 26 4 18 4 12C4 6 9 3 13 3C17 3 20 5 22 9C24 5 27 3 31 3C35 3 40 6 40 12C40 18 34 26 22 36Z" fill="#EA7980" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
+  <svg class="doodle doodle-cloud" viewBox="0 0 64 40" fill="none" aria-hidden="true"><path d="M16 34C9 34 4 29 4 23C4 17 9 12 15 12C17 6 23 2 30 2C38 2 44 7 46 14C53 14 58 19 58 25C58 30 54 34 48 34H16Z" fill="#EEECDE" stroke="#080705" stroke-width="2.5" stroke-linejoin="round"/></svg>
+  <svg class="doodle doodle-flower" viewBox="0 0 46 46" fill="none" aria-hidden="true"><circle cx="23" cy="10" r="7" fill="#EA7980" stroke="#080705" stroke-width="2"/><circle cx="35" cy="19" r="7" fill="#6771DB" stroke="#080705" stroke-width="2"/><circle cx="30" cy="33" r="7" fill="#5DB06C" stroke="#080705" stroke-width="2"/><circle cx="16" cy="33" r="7" fill="#F1670E" stroke="#080705" stroke-width="2"/><circle cx="11" cy="19" r="7" fill="#A985B2" stroke="#080705" stroke-width="2"/><circle cx="23" cy="23" r="6" fill="#F7CE2F" stroke="#080705" stroke-width="2"/></svg>
+  <svg class="doodle doodle-coffee" viewBox="0 0 42 46" fill="none" aria-hidden="true"><path d="M10 4C10 1 14 1 14-2" stroke="#080705" stroke-width="2" stroke-linecap="round" fill="none" transform="translate(0 6)"/><path d="M22 4C22 1 26 1 26-2" stroke="#080705" stroke-width="2" stroke-linecap="round" fill="none" transform="translate(0 6)"/><rect x="4" y="12" width="26" height="28" rx="4" fill="#F1670E" stroke="#080705" stroke-width="2.5"/><path d="M30 18H34A6 6 0 0134 30H30" stroke="#080705" stroke-width="2.5" fill="none"/></svg>
+  <svg class="doodle doodle-envelope" viewBox="0 0 56 40" fill="none" aria-hidden="true"><rect x="3" y="5" width="50" height="30" rx="4" fill="#5DB06C" stroke="#080705" stroke-width="2.5"/><path d="M5 9L28 24L51 9" stroke="#080705" stroke-width="2" stroke-linejoin="round" fill="none"/></svg>
+  <svg class="doodle doodle-rocket" viewBox="0 0 40 54" fill="none" aria-hidden="true"><path d="M20 2C28 10 30 22 28 34H12C10 22 12 10 20 2Z" fill="#EEECDE" stroke="#080705" stroke-width="2.5" stroke-linejoin="round"/><circle cx="20" cy="17" r="5" fill="#6771DB" stroke="#080705" stroke-width="1.5"/><path d="M12 34L4 46L12 43Z" fill="#EA7980" stroke="#080705" stroke-width="2" stroke-linejoin="round"/><path d="M28 34L36 46L28 43Z" fill="#EA7980" stroke="#080705" stroke-width="2" stroke-linejoin="round"/><path d="M15 36L20 52L25 36" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
+  <svg class="doodle doodle-moon" viewBox="0 0 44 44" fill="none" aria-hidden="true"><path d="M34 6C22 8 14 18 14 28C14 35 18 40 24 42C12 41 3 32 3 21C3 11 12 3 22 3C26 3 30 4 34 6Z" fill="#F7CE2F" stroke="#080705" stroke-width="2.5" stroke-linejoin="round"/></svg>
+  <svg class="doodle doodle-note" viewBox="0 0 34 48" fill="none" aria-hidden="true"><circle cx="10" cy="39" r="7" fill="#6771DB" stroke="#080705" stroke-width="2"/><path d="M17 39V6" stroke="#080705" stroke-width="3" stroke-linecap="round"/><path d="M17 6C24 8 30 10 30 18C26 14 22 13 17 12Z" fill="#EA7980" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
+  <svg class="doodle doodle-cassette" viewBox="0 0 62 42" fill="none" aria-hidden="true"><rect x="2" y="4" width="58" height="34" rx="4" fill="#A985B2" stroke="#080705" stroke-width="2.5"/><rect x="14" y="9" width="34" height="6" rx="2" fill="#EEECDE" stroke="#080705" stroke-width="1.5"/><circle cx="20" cy="26" r="6" fill="#EEECDE" stroke="#080705" stroke-width="2"/><circle cx="42" cy="26" r="6" fill="#EEECDE" stroke="#080705" stroke-width="2"/></svg>
+  <svg class="doodle doodle-diamond" viewBox="0 0 46 40" fill="none" aria-hidden="true"><path d="M10 4H36L44 14L23 38L2 14L10 4Z" fill="#6771DB" stroke="#080705" stroke-width="2.5" stroke-linejoin="round"/><path d="M2 14H44M10 4L16 14L23 38M36 4L30 14" stroke="#080705" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>
+  <svg class="doodle doodle-bubble" viewBox="0 0 52 44" fill="none" aria-hidden="true"><path d="M8 4H44A6 6 0 0150 10V28A6 6 0 0144 34H24L12 42V34H8A6 6 0 012 28V10A6 6 0 018 4Z" fill="#F1670E" stroke="#080705" stroke-width="2.5" stroke-linejoin="round"/><circle cx="16" cy="19" r="2.5" fill="#080705"/><circle cx="26" cy="19" r="2.5" fill="#080705"/><circle cx="36" cy="19" r="2.5" fill="#080705"/></svg>
+  <svg class="doodle doodle-squiggle" viewBox="0 0 56 20" fill="none" aria-hidden="true"><path d="M3 14C8 4 13 4 18 10C23 16 28 16 33 10C38 4 43 4 48 10L53 7" stroke="#5DB06C" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+  <svg class="doodle doodle-rainbow" viewBox="0 0 60 34" fill="none" aria-hidden="true"><path d="M6 32A24 24 0 0154 32" stroke="#EA7980" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M13 32A17 17 0 0147 32" stroke="#F7CE2F" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M20 32A10 10 0 0140 32" stroke="#5DB06C" stroke-width="4" stroke-linecap="round" fill="none"/></svg>
+  <svg class="doodle doodle-smiley" viewBox="0 0 44 44" fill="none" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="#F7CE2F" stroke="#080705" stroke-width="2.5"/><circle cx="15" cy="18" r="2.5" fill="#080705"/><circle cx="29" cy="18" r="2.5" fill="#080705"/><path d="M13 27C17 33 27 33 31 27" stroke="#080705" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>
   <div class="sparkle" style="top: 4%; left: 50%;"></div>
   <div class="sparkle" style="top: 26%; right: 25%; animation-delay: 0.5s;"></div>
   <div class="sparkle" style="top: 48%; left: 20%; animation-delay: 1s;"></div>
@@ -882,15 +929,15 @@ body {
   </div>
   <div class="scatter-grid" id="workGrid">
     <!-- @projects:start -->
-    <div class="scatter-card reveal" data-cat="brand" data-images="[&quot;lush-brand-campaign-1.webp&quot;,&quot;lush-brand-campaign-2.webp&quot;,&quot;lush-brand-campaign-3.webp&quot;,&quot;lush-brand-campaign-4.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#a985b2"><span class="scatter-thumb-inner">LU</span></div><div class="scatter-body"><h3>LUSH — Brand Campaign</h3><p>Brand campaign material for LUSH cosmetics.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="brand" data-images="[&quot;birds-spa-brand-identity-1.webp&quot;,&quot;birds-spa-brand-identity-2.webp&quot;,&quot;birds-spa-brand-identity-3.webp&quot;,&quot;birds-spa-brand-identity-4.webp&quot;,&quot;birds-spa-brand-identity-5.webp&quot;,&quot;birds-spa-brand-identity-6.webp&quot;,&quot;birds-spa-brand-identity-7.webp&quot;,&quot;birds-spa-brand-identity-8.webp&quot;,&quot;birds-spa-brand-identity-9.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#5db06c"><span class="scatter-thumb-inner">BS</span></div><div class="scatter-body"><h3>Birds Spa — Brand Identity</h3><p>Spa &amp; cosmetics brand identity — Birds Spa / Birds' Apartment.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;a-imagem-de-um-poema-editorial-1.webp&quot;,&quot;a-imagem-de-um-poema-editorial-2.webp&quot;,&quot;a-imagem-de-um-poema-editorial-3.webp&quot;,&quot;a-imagem-de-um-poema-editorial-4.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#6771db"><span class="scatter-thumb-inner">IP</span></div><div class="scatter-body"><h3>A Imagem de um Poema — Editorial</h3><p>Book and poster campaign — &quot;Depois do Medo vem o Mundo&quot;.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;arte-autoral-original-works-1.webp&quot;,&quot;arte-autoral-original-works-2.webp&quot;,&quot;arte-autoral-original-works-3.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#a985b2"><span class="scatter-thumb-inner">AA</span></div><div class="scatter-body"><h3>Arte Autoral — Original Works</h3><p>Signed original artworks and editorial covers by Isabela Rossi.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;jogo-de-cartas-card-game-1.webp&quot;,&quot;jogo-de-cartas-card-game-2.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#f1670e"><span class="scatter-thumb-inner">JC</span></div><div class="scatter-body"><h3>Jogo de Cartas — Card Game</h3><p>Card game art — verdade, mentira, coringa and verso, plus box.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="brand" data-images="[&quot;cafe-brand-identity-1.webp&quot;,&quot;cafe-brand-identity-2.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#f1670e"><span class="scatter-thumb-inner">CF</span></div><div class="scatter-body"><h3>Café — Brand Identity</h3><p>Coffee brand identity — ad creative and packaging mockup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;forra-do-pixel-book-cover-1.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#a985b2"><span class="scatter-thumb-inner">FP</span></div><div class="scatter-body"><h3>Forra do Pixel — Book Cover</h3><p>Book cover design for &quot;Forra do Pixel&quot;.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="ui" data-images="[&quot;tailcall-timeline-2023-1.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#a985b2"><span class="scatter-thumb-inner">TC</span></div><div class="scatter-body"><h3>Tailcall — Timeline 2023</h3><p>Timeline graphic for Tailcall.</p><div class="scatter-meta"><span class="scatter-year">2023</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
-    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;brasil-rupestre-magazine-cover-1.webp&quot;]"><div class="scatter-thumb" style="--thumb-color:#ea7980"><span class="scatter-thumb-inner">BR</span></div><div class="scatter-body"><h3>Brasil Rupestre — Magazine Cover</h3><p>Magazine cover art — Brasil Rupestre.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="brand" data-images="[&quot;lush-brand-campaign-1.webp&quot;,&quot;lush-brand-campaign-2.webp&quot;,&quot;lush-brand-campaign-3.webp&quot;,&quot;lush-brand-campaign-4.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#a985b2"><img class="scatter-thumb-img" src="assets/media/lush-brand-campaign-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>LUSH — Brand Campaign</h3><p>Brand campaign material for LUSH cosmetics.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="brand" data-images="[&quot;birds-spa-brand-identity-1.webp&quot;,&quot;birds-spa-brand-identity-2.webp&quot;,&quot;birds-spa-brand-identity-3.webp&quot;,&quot;birds-spa-brand-identity-4.webp&quot;,&quot;birds-spa-brand-identity-5.webp&quot;,&quot;birds-spa-brand-identity-6.webp&quot;,&quot;birds-spa-brand-identity-7.webp&quot;,&quot;birds-spa-brand-identity-8.webp&quot;,&quot;birds-spa-brand-identity-9.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#5db06c"><img class="scatter-thumb-img" src="assets/media/birds-spa-brand-identity-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Birds Spa — Brand Identity</h3><p>Spa &amp; cosmetics brand identity — Birds Spa / Birds' Apartment.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;a-imagem-de-um-poema-editorial-1.webp&quot;,&quot;a-imagem-de-um-poema-editorial-2.webp&quot;,&quot;a-imagem-de-um-poema-editorial-3.webp&quot;,&quot;a-imagem-de-um-poema-editorial-4.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#6771db"><img class="scatter-thumb-img" src="assets/media/a-imagem-de-um-poema-editorial-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>A Imagem de um Poema — Editorial</h3><p>Book and poster campaign — &quot;Depois do Medo vem o Mundo&quot;.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;arte-autoral-original-works-1.webp&quot;,&quot;arte-autoral-original-works-2.webp&quot;,&quot;arte-autoral-original-works-3.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#a985b2"><img class="scatter-thumb-img" src="assets/media/arte-autoral-original-works-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Arte Autoral — Original Works</h3><p>Signed original artworks and editorial covers by Isabela Rossi.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;jogo-de-cartas-card-game-1.webp&quot;,&quot;jogo-de-cartas-card-game-2.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#f1670e"><img class="scatter-thumb-img" src="assets/media/jogo-de-cartas-card-game-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Jogo de Cartas — Card Game</h3><p>Card game art — verdade, mentira, coringa and verso, plus box.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="brand" data-images="[&quot;cafe-brand-identity-1.webp&quot;,&quot;cafe-brand-identity-2.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#f1670e"><img class="scatter-thumb-img" src="assets/media/cafe-brand-identity-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Café — Brand Identity</h3><p>Coffee brand identity — ad creative and packaging mockup.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat brand">Branding</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;forra-do-pixel-book-cover-1.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#a985b2"><img class="scatter-thumb-img" src="assets/media/forra-do-pixel-book-cover-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Forra do Pixel — Book Cover</h3><p>Book cover design for &quot;Forra do Pixel&quot;.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="ui" data-images="[&quot;tailcall-timeline-2023-1.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#a985b2"><img class="scatter-thumb-img" src="assets/media/tailcall-timeline-2023-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Tailcall — Timeline 2023</h3><p>Timeline graphic for Tailcall.</p><div class="scatter-meta"><span class="scatter-year">2023</span><span class="scatter-cat ui">UI/UX</span></div></div></div>
+    <div class="scatter-card reveal" data-cat="print" data-images="[&quot;brasil-rupestre-magazine-cover-1.webp&quot;]"><div class="scatter-thumb has-img" style="--thumb-color:#ea7980"><img class="scatter-thumb-img" src="assets/media/brasil-rupestre-magazine-cover-1.webp" alt="" loading="lazy"></div><div class="scatter-body"><h3>Brasil Rupestre — Magazine Cover</h3><p>Magazine cover art — Brasil Rupestre.</p><div class="scatter-meta"><span class="scatter-year">2026</span><span class="scatter-cat print">Print</span></div></div></div>
   <!-- @projects:end -->
   
   </div>
@@ -1421,6 +1468,11 @@ document.querySelectorAll('.keycap').forEach(k => {
   const state = items.map(el => ({ el, tx: 0, ty: 0, r: 0, gx: 0, gy: 0, gr: 0, rect: null, depth: 0 }));
   let rafId = null, mouseX = -1e4, mouseY = -1e4, pointerInside = false;
   let scrollY = window.scrollY, scrollDirty = true, maxScroll = 1;
+  // rects are viewport coords — any scroll/resize invalidates them. Re-measure
+  // in the next rAF tick (not in the event) so cached positions always match
+  // where doodles actually are; before this fix the cache was taken once and
+  // hovering icons after scrolling silently targeted stale positions.
+  let rectsDirty = true;
   const INFLUENCE = 150;   // px radius where repel kicks in
   const STRENGTH = 34;     // max repel distance in px
   const TILT = 10;         // max extra rotation in deg
@@ -1442,6 +1494,7 @@ document.querySelectorAll('.keycap').forEach(k => {
     scrollY = window.scrollY;
     maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
     scrollDirty = true;
+    rectsDirty = true;
     if (rafId === null) { rafId = requestAnimationFrame(tick); }
   }
   function onMove(e) {
@@ -1454,6 +1507,7 @@ document.querySelectorAll('.keycap').forEach(k => {
     // targets fall back to 0 -> spring back handled by lerp in tick
   }
   function tick() {
+    if (rectsDirty) { measure(); rectsDirty = false; }
     for (const s of state) {
       if (pointerInside && s.rect) {
         const cx = s.rect.left + s.rect.width / 2;
@@ -1496,6 +1550,9 @@ document.querySelectorAll('.keycap').forEach(k => {
   document.addEventListener('mousemove', onMove, { passive: true });
   document.addEventListener('mouseleave', onLeave, { passive: true });
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', () => {
+    if (rafId === null) { measure(); rectsDirty = false; } else { rectsDirty = true; }
+  }, { passive: true });
   ReducedMotionQuery.addEventListener('change', (e) => {
     if (e.matches) {
       document.removeEventListener('mousemove', onMove);
