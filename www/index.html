@@ -1098,7 +1098,15 @@ body {
         const coverImg = gallery.querySelector('.detail-cover img');
         const strip = gallery.querySelector('.detail-thumbs');
         const show = (src) => { coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle; };
-        show(imgs[0]);
+        const buttons = [];
+        let cur = 0; // index of the image currently on the cover
+        // single switch path shared by thumbnail clicks AND the scroll wheel
+        const select = (idx) => {
+          cur = idx;
+          show(imgs[idx]);
+          strip.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+          buttons[idx].classList.add('sel');
+        };
         imgs.forEach((src, idx) => {
           const b = document.createElement('button');
           b.type = 'button';
@@ -1107,13 +1115,38 @@ body {
           const im = document.createElement('img');
           im.src = MEDIA_URL + src; im.alt = '';
           b.appendChild(im);
-          b.addEventListener('click', () => {
-            show(src);
-            strip.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
-            b.classList.add('sel');
-          });
+          b.addEventListener('click', () => select(idx));
           strip.appendChild(b);
+          buttons.push(b);
         });
+        select(0); // initial cover + .sel — after all buttons exist
+        if (imgs.length > 1) {
+          // Scroll wheel cycles the gallery. Trackpads fire dozens of small
+          // wheel events per gesture, so raw events would jump a dozen images
+          // at once. One gesture = one step via a delta accumulator: while
+          // events keep arriving we sum deltaY; a step fires only when the
+          // running total crosses STEP, then the total resets and a short
+          // cooldown swallows the tail of the same gesture. A gap longer
+          // than QUIET_MS counts as a new gesture. A discrete mouse wheel
+          // (deltaY ~ ±100) crosses STEP on its first event, so it stays 1:1.
+          const STEP = 40, QUIET_MS = 250, COOLDOWN_MS = 180;
+          let acc = 0, lastAt = -Infinity, lockUntil = 0;
+          // bound to the whole window (not just the gallery box) so the page
+          // behind never scrolls while the cursor is anywhere over the modal
+          win.addEventListener('wheel', (e) => {
+            e.preventDefault(); // the wheel is ours here — the page behind must not scroll
+            const now = performance.now();
+            if (now < lockUntil) return;
+            if (now - lastAt > QUIET_MS) acc = 0;
+            lastAt = now;
+            acc += e.deltaY;
+            if (Math.abs(acc) < STEP) return;
+            const dir = acc > 0 ? 1 : -1;
+            acc = 0;
+            lockUntil = now + COOLDOWN_MS;
+            select((cur + dir + imgs.length) % imgs.length);
+          }, { passive: false });
+        }
       }
     } catch (e) { /* malformed data-images: keep the initials thumb */ }
     // G1: keep the window body white for ALL cards — never copy the card's
