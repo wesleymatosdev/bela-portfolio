@@ -1,0 +1,48 @@
+# E2E regression suite for the bela-portfolio static site.
+# Single purpose: lock down CURRENT site behavior. Serves www/ statically and
+# runs tests/e2e against it. No framework logic, no matrix.
+name: e2e-regression
+
+on:
+  pull_request:
+    paths:
+      - 'www/**'
+      - 'www/content/**'
+      - 'tests/**'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Install pinned deps
+        working-directory: tests/e2e
+        run: npm ci
+
+      # The pinned playwright-core installs its exact matching Chromium build
+      # into the default cache (~/.cache/ms-playwright).
+      - name: Install Chromium (pinned playwright-core)
+        working-directory: tests/e2e
+        run: npx playwright-core install chromium
+
+      - name: Run E2E regression suite
+        working-directory: tests/e2e
+        run: node run.mjs --serve ../../www --report e2e-report
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: tests/e2e/e2e-report
+          if-no-files-found: ignore
