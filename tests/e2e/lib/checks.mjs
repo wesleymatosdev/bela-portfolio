@@ -113,6 +113,18 @@ export async function cardThumbs(page, ctx) {
 
 // ---------- modal / detail windows ----------
 
+// The window auto-sizes to its content; until the cover image has actually
+// loaded the window is shorter (CI measured 585px vs the settled ~810px).
+// Geometry-based checks (drag/maximize) wait for stability first.
+export async function waitWindowStable(page) {
+  await page.waitForFunction(() => {
+    const img = document.querySelector('.detail-window .detail-cover img[src]');
+    const win = document.querySelector('.detail-window');
+    return !!win && !!img && img.complete && img.naturalWidth > 0;
+  }, undefined, { timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(300);
+}
+
 // The cover is the img that actually carries a src inside .detail-cover —
 // pinned structurally (and diagnostics recorded) so a stray injected
 // placeholder img can never trip Playwright's strict mode in CI.
@@ -120,7 +132,6 @@ async function openDetailWindow(page, cardIndex = 0) {
   await page.locator('#workGrid .scatter-card').nth(cardIndex).click();
   const win = page.locator('.detail-window').first();
   await win.waitFor({ state: 'visible', timeout: 5000 });
-  ctx_coverDiagnostics(win);
   await coverLocator(win).evaluate((img) => img.decode().catch(() => {}));
   await settle(page, 900); // entrance animation settles
   return win;
@@ -130,44 +141,60 @@ export function coverLocator(win) {
   return win.locator('.detail-cover img[src]').first();
 }
 
-// Best-effort: record every .detail-cover img (incl. stray ones) for evidence.
-function ctx_coverDiagnostics(win) {
-  win.evaluate((el) => [...el.querySelectorAll('.detail-cover img')].map((i) => ({
-    src: i.getAttribute('src'), ariaHidden: i.getAttribute('aria-hidden'), outer: i.outerHTML.slice(0, 160),
-  }))).then((imgs) => { globalThis.__coverDiag = imgs; }).catch(() => {});
-}
 
 // 4. modal-image-led: cover is the lead (loads, visible height >= 200px at
 // 1440x900) and the initials tile is display:none (regression-guard for 1dfba69).
+// All modal DOM facts read in ONE page-side pass (querySelector, no locator
+// strictness). If anything about the window's structure is anomalous, the
+// window's HTML is captured as evidence so the failure is self-diagnosing.
 export async function modalImageLed(page, ctx) {
   const win = await openDetailWindow(page);
   ctx.state.win = win;
   const g = ctx.gt[0];
-  const hasGallery = await win.evaluate((el) => el.classList.contains('has-gallery'));
-  const initials = await win.evaluate((el) => {
-    const tile = el.querySelector('.detail-thumb');
-    if (!tile) return null;
-    return { hidden: tile.hidden, display: getComputedStyle(tile).display };
+  const facts = await page.evaluate(() => {
+    const winEl = document.querySelector('.detail-window');
+    if (!winEl) return { error: 'no .detail-window in DOM after card click' };
+    const tile = winEl.querySelector('.detail-thumb');
+    const coverImg = winEl.querySelector('.detail-cover img[src]');
+    const coverRect = coverImg ? coverImg.getBoundingClientRect() : null;
+    return {
+      title: winEl.querySelector('.detail-title')?.textContent ?? null,
+      hasGallery: winEl.classList.contains('has-gallery'),
+      tile: tile ? { hidden: tile.hidden, display: getComputedStyle(tile).display } : null,
+      cover: coverImg ? { src: coverImg.getAttribute('src'), naturalWidth: coverImg.naturalWidth, height: coverRect ? coverRect.height : 0 } : null,
+      windowCount: document.querySelectorAll('.detail-window').length,
+      coverImgs: [...winEl.querySelectorAll('.detail-cover img')].map((i) => ({
+        src: i.getAttribute('src'),
+        ariaHidden: i.getAttribute('aria-hidden'),
+        parent: i.parentElement?.className ?? null,
+        outer: i.outerHTML.slice(0, 200),
+      })),
+    };
   });
-  const cover = await coverLocator(win).evaluate((img) => ({
-    src: img.getAttribute('src'),
-    naturalWidth: img.naturalWidth,
-  }));
-  const box = await coverLocator(win).boundingBox();
-  const heightOk = !!box && box.height >= 200;
-  const problems = [];
-  if (!hasGallery) problems.push('window missing has-gallery class');
-  if (!initials) problems.push('.detail-thumb initials tile not found');
-  else {
-    if (!initials.hidden) problems.push('initials tile hidden attr not set');
-    if (initials.display !== 'none') problems.push(`initials tile computed display=${initials.display}, not display:none`);
+  if (facts.error) {
+    return { pass: false, detail: facts.error, evidence: facts };
   }
-  if (!(cover.naturalWidth > 0)) problems.push(`cover did not decode (naturalWidth=${cover.naturalWidth})`);
-  if (!heightOk) problems.push(`cover visible height ${(box?.height ?? 0).toFixed(0)}px < 200px`);
+  const problems = [];
+  if (!facts.hasGallery) problems.push('window missing has-gallery class');
+  if (!facts.tile) {
+    problems.push('.detail-thumb initials tile not found');
+    facts.anomalousWindowHTML = await page.evaluate(() =>
+      (document.querySelector('.detail-window')?.outerHTML ?? '').slice(0, 1500)
+    );
+  } else {
+    if (!facts.tile.hidden) problems.push('initials tile hidden attr not set');
+    if (facts.tile.display !== 'none') problems.push(`initials tile computed display=${facts.tile.display}, not display:none`);
+  }
+  if (!facts.cover) problems.push('no cover img with src found');
+  else {
+    if (!(facts.cover.naturalWidth > 0)) problems.push(`cover did not decode (naturalWidth=${facts.cover.naturalWidth})`);
+    if (!(facts.cover.height >= 200)) problems.push(`cover visible height ${(facts.cover.height ?? 0).toFixed(0)}px < 200px`);
+  }
+  const extra = (facts.coverImgs ?? []).filter((i) => !i.src);
   return {
     pass: problems.length === 0,
-    detail: problems.length ? problems.join('; ') : `cover ${cover.src} leads at ${box.height.toFixed(0)}px, initials tile display:none`,
-    evidence: { src: cover.src, naturalWidth: cover.naturalWidth, height: box?.height ?? null, expectedFirstImage: g.images[0], initials, hasGallery, coverImgsSeen: globalThis.__coverDiag ?? null, problems },
+    detail: problems.length ? problems.join('; ') : `cover ${facts.cover.src} leads at ${facts.cover.height.toFixed(0)}px, initials tile display:none`,
+    evidence: { ...facts, expectedFirstImage: g.images[0], strayCoverImgs: extra, problems },
   };
 }
 
@@ -178,11 +205,12 @@ export async function modalThumbSwitch(page, ctx) {
   const g = ctx.gt[0];
   const thumbs = win.locator('.detail-thumbs button');
   const count = await thumbs.count();
-  const before = await win.locator('.detail-cover img').getAttribute('src');
+  const cover = coverLocator(win);
+  const before = await cover.getAttribute('src');
   await thumbs.nth(1).click();
   await settle(page, 600);
-  await win.locator('.detail-cover img').evaluate((img) => img.decode().catch(() => {}));
-  const after = await win.locator('.detail-cover img').getAttribute('src');
+  await cover.evaluate((img) => img.decode().catch(() => {}));
+  const after = await cover.getAttribute('src');
   const selMoved = await thumbs.nth(1).evaluate((b) => b.classList.contains('sel'));
   const problems = [];
   if (count !== g.images.length) problems.push(`thumb count ${count} != ${g.images.length} images in projects.json`);
@@ -200,6 +228,7 @@ export async function modalThumbSwitch(page, ctx) {
 export async function windowDrag(page, ctx) {
   const win = ctx.state.win;
   if (!win) return { pass: false, detail: 'no open window from modal-image-led' };
+  await waitWindowStable(page);
   const before = await win.boundingBox();
   const tb = await win.locator('.detail-titlebar').boundingBox();
   await page.mouse.move(tb.x + tb.width / 2, tb.y + 20);
@@ -245,6 +274,7 @@ export async function windowGenie(page, ctx) {
 export async function windowMaximize(page, ctx) {
   const win = ctx.state.win;
   if (!win) return { pass: false, detail: 'no open window from modal-image-led' };
+  await waitWindowStable(page);
   const before = await win.boundingBox();
   await win.locator('.detail-dot.dot-max').click();
   await settle(page, 400);
