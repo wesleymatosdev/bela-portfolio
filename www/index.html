@@ -1396,6 +1396,11 @@ document.querySelectorAll('.keycap').forEach(k => {
   const state = items.map(el => ({ el, tx: 0, ty: 0, r: 0, gx: 0, gy: 0, gr: 0, rect: null, depth: 0 }));
   let rafId = null, mouseX = -1e4, mouseY = -1e4, pointerInside = false;
   let scrollY = window.scrollY, scrollDirty = true, maxScroll = 1;
+  // rects are viewport coords — any scroll/resize invalidates them. Re-measure
+  // in the next rAF tick (not in the event) so cached positions always match
+  // where doodles actually are; before this fix the cache was taken once and
+  // hovering icons after scrolling silently targeted stale positions.
+  let rectsDirty = true;
   const INFLUENCE = 150;   // px radius where repel kicks in
   const STRENGTH = 34;     // max repel distance in px
   const TILT = 10;         // max extra rotation in deg
@@ -1417,6 +1422,7 @@ document.querySelectorAll('.keycap').forEach(k => {
     scrollY = window.scrollY;
     maxScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
     scrollDirty = true;
+    rectsDirty = true;
     if (rafId === null) { rafId = requestAnimationFrame(tick); }
   }
   function onMove(e) {
@@ -1429,6 +1435,7 @@ document.querySelectorAll('.keycap').forEach(k => {
     // targets fall back to 0 -> spring back handled by lerp in tick
   }
   function tick() {
+    if (rectsDirty) { measure(); rectsDirty = false; }
     for (const s of state) {
       if (pointerInside && s.rect) {
         const cx = s.rect.left + s.rect.width / 2;
@@ -1471,6 +1478,9 @@ document.querySelectorAll('.keycap').forEach(k => {
   document.addEventListener('mousemove', onMove, { passive: true });
   document.addEventListener('mouseleave', onLeave, { passive: true });
   window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', () => {
+    if (rafId === null) { measure(); rectsDirty = false; } else { rectsDirty = true; }
+  }, { passive: true });
   ReducedMotionQuery.addEventListener('change', (e) => {
     if (e.matches) {
       document.removeEventListener('mousemove', onMove);
