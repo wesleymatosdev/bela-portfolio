@@ -783,7 +783,15 @@ body {
   .detail-thumbs { margin: 8px 16px 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .detail-window { animation: none !important; opacity: 1; }
+  /* The entrance animation normally centers the window with its final
+     translate(-50%, 0) keyframe (fill both). With animation disabled the
+     centering must come from the standalone translate property instead, or a
+     wide image-led window juts half off-screen and its traffic-light dots are
+     unreachable. Windows become .positioned once JS freezes explicit left/top
+     (drag / genie / maximize / resize) — those frozen rects already INCLUDE
+     the centering offset, so positioned windows must drop it. */
+  .detail-window { animation: none !important; opacity: 1; translate: -50% 0; }
+  .detail-window.positioned { translate: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
