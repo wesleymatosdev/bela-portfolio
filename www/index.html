@@ -689,7 +689,10 @@ body {
 .detail-cover img {
   display: block;
   width: 100%;
-  max-height: min(64vh, 640px);
+  /* shrunk from 64vh/640px — the whole window (titlebar + cover + thumbs +
+     meta + pill) must fit inside the 78vh window cap at any viewport height,
+     including short review panes; client: no modal overflow, no scrolling */
+  max-height: min(44vh, 420px);
   object-fit: contain; /* artwork is never cropped — letterbox on odd ratios */
 }
 .detail-thumbs { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
@@ -1093,7 +1096,7 @@ body {
       const imgs = JSON.parse(card.dataset.images || '[]');
       if (imgs.length) {
         gallery.hidden = false;
-        win.querySelector('.detail-thumb').hidden = true;
+        win.querySelector('.detail-thumb').remove(); // initials box: remove, not hide — a CSS display rule defeats [hidden] and leaves an empty section
         win.classList.add('has-gallery');
         const coverImg = gallery.querySelector('.detail-cover img');
         const strip = gallery.querySelector('.detail-thumbs');
@@ -1102,8 +1105,9 @@ body {
         let cur = 0; // index of the image currently on the cover
 
         // Behance-style cover transition: the incoming image glides over the
-        // current one — direction-aware slide + fade + settle, ~480ms, soft
-        // ease-out. The brief forbids CSS/layout changes, so the second layer
+        // current one — direction-aware slide + fade, ~480ms, soft ease-out,
+        // no zoom (client: the image arrives at its original size). The brief
+        // forbids CSS/layout changes, so the second layer
         // is a JS-injected absolutely-positioned img inside .detail-cover
         // (which already clips with overflow:hidden). Interrupt-safe: a new
         // step cancels the in-flight glide and animates from the stable pose.
@@ -1211,7 +1215,8 @@ body {
     // G1: keep the window body white for ALL cards — never copy the card's
     // thumb color here (getComputedStyle bleed); theme color lives only in
     // the category chip accent.
-    win.querySelector('.detail-thumb').style.background = '#fff';
+    const initialsBox = win.querySelector('.detail-thumb');
+    if (initialsBox) initialsBox.style.background = '#fff'; // removed entirely for gallery projects
     win.querySelector('.detail-year').textContent = year ? year.textContent.trim() : '—';
     win.querySelector('.detail-chip.cat').textContent = cat ? cat.textContent.trim() : (card.dataset.cat && CAT_LABEL[card.dataset.cat]) || '—';
     // G2: detail content is title + year + category only — no description paragraph.
