@@ -11,5 +11,11 @@
   },
   "dependencies": {
     "astro": "7.4.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.12",
+    "lighthouse": "13.5.0",
+    "playwright-core": "1.64.1",
+    "typescript": "6.0.3"
   }
 }

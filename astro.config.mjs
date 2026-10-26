@@ -11,4 +11,15 @@ export default defineConfig({
   build: {
     inlineStylesheets: 'always',
   },
+  // CSS minification disabled (the Vite-level flag is the one Astro v7
+  // honors; build.cssMinify is re-derived internally). The default minifier
+  // rewrites the scroll-driven animation longhands in global.css
+  // (`animation: fade-up linear both` + `animation-timeline: view()`) into
+  // the shorthand `animation: linear both fade-up view()` — Chromium rejects
+  // that declaration order (a timeline must precede the name in the
+  // `animation` shorthand), so every .reveal element stays at opacity: 0.
+  // Unminified CSS keeps behavior identical to the current site (~2KB cost).
+  vite: {
+    build: { cssMinify: false },
+  },
 });
