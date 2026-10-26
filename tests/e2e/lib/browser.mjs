@@ -10,8 +10,9 @@ const PLATFORM_BINARIES = [
   // macOS cache layout
   'chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
   'chrome-mac/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing',
-  // Linux cache layout
+  // Linux cache layout (x64 and arm64)
   'chrome-linux/chrome',
+  'chrome-linux-arm64/chrome',
 ];
 
 // CHROME_BIN wins; otherwise scan the default ms-playwright caches (macOS and

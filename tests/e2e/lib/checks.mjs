@@ -113,13 +113,28 @@ export async function cardThumbs(page, ctx) {
 
 // ---------- modal / detail windows ----------
 
+// The cover is the img that actually carries a src inside .detail-cover —
+// pinned structurally (and diagnostics recorded) so a stray injected
+// placeholder img can never trip Playwright's strict mode in CI.
 async function openDetailWindow(page, cardIndex = 0) {
   await page.locator('#workGrid .scatter-card').nth(cardIndex).click();
   const win = page.locator('.detail-window').first();
   await win.waitFor({ state: 'visible', timeout: 5000 });
-  await win.locator('.detail-cover img').evaluate((img) => img.decode().catch(() => {}));
+  ctx_coverDiagnostics(win);
+  await coverLocator(win).evaluate((img) => img.decode().catch(() => {}));
   await settle(page, 900); // entrance animation settles
   return win;
+}
+
+export function coverLocator(win) {
+  return win.locator('.detail-cover img[src]').first();
+}
+
+// Best-effort: record every .detail-cover img (incl. stray ones) for evidence.
+function ctx_coverDiagnostics(win) {
+  win.evaluate((el) => [...el.querySelectorAll('.detail-cover img')].map((i) => ({
+    src: i.getAttribute('src'), ariaHidden: i.getAttribute('aria-hidden'), outer: i.outerHTML.slice(0, 160),
+  }))).then((imgs) => { globalThis.__coverDiag = imgs; }).catch(() => {});
 }
 
 // 4. modal-image-led: cover is the lead (loads, visible height >= 200px at
@@ -134,11 +149,11 @@ export async function modalImageLed(page, ctx) {
     if (!tile) return null;
     return { hidden: tile.hidden, display: getComputedStyle(tile).display };
   });
-  const cover = await win.locator('.detail-cover img').evaluate((img) => ({
+  const cover = await coverLocator(win).evaluate((img) => ({
     src: img.getAttribute('src'),
     naturalWidth: img.naturalWidth,
   }));
-  const box = await win.locator('.detail-cover img').boundingBox();
+  const box = await coverLocator(win).boundingBox();
   const heightOk = !!box && box.height >= 200;
   const problems = [];
   if (!hasGallery) problems.push('window missing has-gallery class');
@@ -152,7 +167,7 @@ export async function modalImageLed(page, ctx) {
   return {
     pass: problems.length === 0,
     detail: problems.length ? problems.join('; ') : `cover ${cover.src} leads at ${box.height.toFixed(0)}px, initials tile display:none`,
-    evidence: { src: cover.src, naturalWidth: cover.naturalWidth, height: box?.height ?? null, expectedFirstImage: g.images[0], initials, hasGallery, problems },
+    evidence: { src: cover.src, naturalWidth: cover.naturalWidth, height: box?.height ?? null, expectedFirstImage: g.images[0], initials, hasGallery, coverImgsSeen: globalThis.__coverDiag ?? null, problems },
   };
 }
 
@@ -371,8 +386,8 @@ export async function reducedMotion(browser, ctx) {
     await page.locator('#workGrid .scatter-card').first().click();
     const win = page.locator('.detail-window').first();
     await win.waitFor({ state: 'visible', timeout: 5000 });
-    await win.locator('.detail-cover img').evaluate((img) => img.decode().catch(() => {}));
-    const cover = await win.locator('.detail-cover img').evaluate((img) => ({ nw: img.naturalWidth, src: img.getAttribute('src') }));
+      await win.locator('.detail-cover img[src]').first().evaluate((img) => img.decode().catch(() => {}));
+    const cover = await win.locator('.detail-cover img[src]').first().evaluate((img) => ({ nw: img.naturalWidth, src: img.getAttribute('src') }));
     if (!(cover.nw > 0)) problems.push(`modal cover did not load under reduced motion (${cover.src})`);
     await page.screenshot({ path: `${ctx.reportDir}/${ctx.stack}-reduced-motion-modal.png` });
     return {

@@ -44,7 +44,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: tests/e2e/package-lock.json
 
@@ -85,7 +85,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.detect.outputs.astro == 'yes'
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install suite deps (playwright-core, pinned exact)
