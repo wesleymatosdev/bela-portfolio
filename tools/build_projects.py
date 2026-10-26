@@ -8,7 +8,8 @@ produces zero diff (idempotent).
 Schema (www/content/projects.json):
   {"projects": [ {id?, title, blurb, year, cat, color?, initials, images?}, ... ]}
   - images: list of file names under www/assets/media, in display order;
-    images[0] is the cover/main image shown in the detail window.
+    images[0] is the main image on the card thumb and the detail-window cover.
+    Cards with no images fall back to the initials color tile.
   - color: empty or "auto" = derived from the cover image's palette (nearest
     theme color, written back to the JSON); a theme token (c1..c6, legacy); or
     any hex color (#rgb / #rrggbb) picked in the CMS color widget — used as-is.
@@ -160,10 +161,17 @@ def validate_and_heal(projects):
 def card_html(p, thumb_hex: str):
     images = p.get("images") or []
     data_images = esc(json.dumps(images, separators=(",", ":")))
+    # main image draws the eye; the initials tile is only a no-image fallback
+    if images:
+        cover = (f'<img class="scatter-thumb-img" src="assets/media/{esc(images[0])}"'
+                 f' alt="" loading="lazy">')
+        thumb_cls = "scatter-thumb has-img"
+    else:
+        cover = f'<span class="scatter-thumb-inner">{esc(p["initials"])}</span>'
+        thumb_cls = "scatter-thumb"
     return (
         f'<div class="scatter-card reveal" data-cat="{esc(p["cat"])}" data-images="{data_images}">'
-        f'<div class="scatter-thumb" style="--thumb-color:{esc(thumb_hex)}">'
-        f'<span class="scatter-thumb-inner">{esc(p["initials"])}</span></div>'
+        f'<div class="{thumb_cls}" style="--thumb-color:{esc(thumb_hex)}">{cover}</div>'
         f'<div class="scatter-body"><h3>{esc(p["title"])}</h3>'
         f"<p>{esc(p['blurb'])}</p>"
         f'<div class="scatter-meta">'
