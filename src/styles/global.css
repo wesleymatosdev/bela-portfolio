@@ -1,0 +1,778 @@
+:root {
+  --cream: #EEECDE;
+  --grid-line: #D8D9D1;
+  --ink: #080705;
+  --gray-stroke: #88867F;
+  --orange: #F1670E;
+  --orange-light: #FF8C42;
+  --orange-dark: #CA5E1D;
+  --blue: #6771DB;
+  --blue-light: #8198F5;
+  --blue-dark: #436BB0;
+  --purple: #A985B2;
+  --violet: #725AEB;
+  --yellow: #F7CE2F;
+  --green: #5DB06C;
+  --green-dark: #3A8A47;
+  --coral: #EA7980;
+  --coral-dark: #D4606A;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-name: 'Press Start 2P', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background-color: var(--cream);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  /* round 15: anchor for the full-page .doodle-field absolute layer */
+  position: relative;
+}
+
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  padding: 20px;
+}
+
+.keycap-group {
+  position: absolute;
+  display: flex;
+  gap: 5px;
+  z-index: 3;
+}
+.keycap-group.over {
+  top: 6%; left: 7%;
+  transform: rotate(-4deg);
+  animation: drop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
+}
+.keycap-group.flow {
+  bottom: 14%; right: 6%;
+  transform: rotate(3deg);
+  animation: drop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
+}
+
+.keycap {
+  width: 58px; height: 58px;
+  background: linear-gradient(145deg, var(--orange-light), var(--orange), var(--orange-dark));
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 1.3rem;
+  color: var(--ink);
+  box-shadow:
+    inset 2px 2px 4px rgba(255,255,255,0.35),
+    inset -2px -2px 4px rgba(0,0,0,0.22),
+    4px 6px 0 rgba(0,0,0,0.12),
+    6px 10px 16px rgba(0,0,0,0.16);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.keycap:hover { transform: translateY(-5px) scale(1.06); }
+.keycap.blue { background: linear-gradient(145deg, var(--blue-light), var(--blue), var(--blue-dark)); }
+
+/* Round 16: sticky OVERFLOW join — scroll drives OVER toward FLOW; once docked
+   ("OVERFLOW"), the joined strip follows the viewport down the page. The strip
+   is a fixed top-centered row; the flight path targets exactly this spot. */
+.overflow-strip {
+  position: fixed;
+  left: 0; right: 0;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding-top: 12px;   /* matches the flight target top — dock lands seamlessly */
+  z-index: 60;
+  pointer-events: none;   /* decorative strip — never blocks page interaction */
+}
+.overflow-strip .keycap { pointer-events: auto; }
+/* js docks the ORIGINAL two groups into this strip; strip CSS resets their
+   absolute placement + entrance animation, keys keep their size */
+.overflow-strip .keycap-group {
+  position: static;
+  top: auto; left: auto; right: auto; bottom: auto;
+  transform: none;
+  animation: none;
+  z-index: auto;
+}
+
+/* round 15 [I1]: full-page doodle background layer — spans the whole document
+   behind every section; hero keeps its own inline sparkles-free field */
+.doodle-field {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  /* full document height so doodles reach footer, not just the first viewport */
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none; /* mouse reactivity is document-level mousemove, not hit-testing */
+  z-index: 0;
+}
+.doodle {
+  position: absolute;
+  pointer-events: none;
+  animation: float 6s ease-in-out infinite;
+  z-index: 2;
+}
+/* F6: mouse-reactive drift uses individual translate/rotate props so they
+   compose with the float keyframe transform instead of fighting it.
+   Round 15: applies to the whole-page field, not just the hero. */
+.doodle-field .doodle, .doodle-field .sparkle { will-change: translate, rotate; }
+/* positions are % of the FULL page height now, so they scatter down the page */
+/* round 15 [I2]: --doodle-depth = parallax scroll factor (0 = scrolls with
+   content, smaller = lags behind). Set per doodle below. */
+.doodle-field .doodle, .doodle-field .sparkle { --doodle-depth: 0.75; }
+.doodle-star       { --doodle-depth: 0.55; top: 3%;  right: 11%; width: 48px; height: 48px; animation-delay: 0s; }
+.doodle-star-2     { --doodle-depth: 0.8;  top: 12%; left: 14%; width: 36px; height: 36px; animation-delay: 1.2s; }
+.doodle-star-3     { --doodle-depth: 0.4;  top: 21%; right: 22%; width: 30px; height: 30px; animation-delay: 2.4s; }
+.doodle-planet     { --doodle-depth: 0.85; top: 30%; left: 9%;  width: 68px; height: 68px; animation-delay: 1s; }
+.doodle-green      { --doodle-depth: 0.5;  top: 38%; left: 24%; width: 42px; height: 42px; animation-delay: 2s; }
+.doodle-coral      { --doodle-depth: 0.7;  top: 46%; left: 33%; width: 48px; height: 48px; animation-delay: 0.5s; }
+.doodle-blue-ring  { --doodle-depth: 0.45; top: 54%; right: 28%; width: 52px; height: 52px; animation-delay: 1.5s; }
+.doodle-pencil     { --doodle-depth: 0.9;  top: 62%; left: 5%;  width: 90px; height: 24px; animation-delay: 0.8s; transform: rotate(-15deg); }
+.doodle-compass    { --doodle-depth: 0.6;  top: 70%; right: 12%; width: 56px; height: 56px; animation-delay: 1.8s; }
+.doodle-palette    { --doodle-depth: 0.5;  top: 78%; right: 5%; width: 64px; height: 44px; animation-delay: 0.3s; }
+.doodle-cursor     { --doodle-depth: 0.75; top: 86%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
+.doodle-controller { --doodle-depth: 0.85; top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
+.doodle-arrow      { --doodle-depth: 0.65; top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
+.doodle-zigzag     { --doodle-depth: 0.4;  top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
+/* round 17: second wave — "a bunch more icons", same palette, scattered
+   through the gaps the first 14 left (page-height % positions) */
+.doodle-paperplane { --doodle-depth: 0.7;  top: 7%;  left: 8%;  width: 56px; height: 44px; animation-delay: 0.9s; }
+.doodle-bolt       { --doodle-depth: 0.45; top: 6%;  right: 20%; width: 36px; height: 52px; animation-delay: 1.7s; }
+.doodle-heart      { --doodle-depth: 0.6;  top: 15%; right: 7%;  width: 44px; height: 40px; animation-delay: 0.4s; }
+.doodle-cloud      { --doodle-depth: 0.8;  top: 21%; left: 30%; width: 64px; height: 40px; animation-delay: 1.1s; }
+.doodle-flower     { --doodle-depth: 0.5;  top: 33%; right: 40%; width: 46px; height: 46px; animation-delay: 2.6s; }
+.doodle-coffee     { --doodle-depth: 0.75; top: 41%; right: 8%;  width: 42px; height: 46px; animation-delay: 0.7s; }
+.doodle-envelope   { --doodle-depth: 0.55; top: 49%; left: 3%;   width: 56px; height: 40px; animation-delay: 1.9s; }
+.doodle-rocket     { --doodle-depth: 0.85; top: 57%; left: 40%;  width: 40px; height: 54px; animation-delay: 0.2s; }
+.doodle-moon       { --doodle-depth: 0.5;  top: 64%; left: 36%;  width: 44px; height: 44px; animation-delay: 1.3s; }
+.doodle-note       { --doodle-depth: 0.7;  top: 73%; left: 16%;  width: 34px; height: 48px; animation-delay: 0.9s; }
+.doodle-cassette   { --doodle-depth: 0.45; top: 81%; right: 16%; width: 62px; height: 42px; animation-delay: 2.1s; }
+.doodle-diamond    { --doodle-depth: 0.8;  top: 89%; left: 8%;   width: 46px; height: 40px; animation-delay: 0.6s; }
+.doodle-bubble     { --doodle-depth: 0.65; top: 12%; right: 32%; width: 52px; height: 44px; animation-delay: 1.5s; }
+.doodle-squiggle   { --doodle-depth: 0.4;  top: 66%; right: 30%; width: 56px; height: 20px; animation-delay: 1.2s; }
+.doodle-rainbow    { --doodle-depth: 0.6;  top: 87%; right: 26%; width: 60px; height: 34px; animation-delay: 2.8s; }
+.doodle-smiley     { --doodle-depth: 0.75; top: 44%; left: 45%;  width: 44px; height: 44px; animation-delay: 0.1s; }
+
+.sparkle {
+  position: absolute;
+  width: 7px; height: 7px;
+  background: var(--yellow);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--yellow);
+  animation: twinkle 2s ease-in-out infinite;
+  z-index: 2;
+}
+
+.name-container {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  animation: name-arrive 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+.name {
+  font-family: var(--font-name);
+  line-height: 1.4;
+}
+.name-wordmark {
+  display: block;
+  width: min(82vw, 620px);
+  height: auto;
+  aspect-ratio: 120.56 / 11.03;
+  margin: 0 auto;
+  filter: drop-shadow(4px 6px 0 rgba(0,0,0,0.08));
+}
+.subtitle {
+  font-family: var(--font-body);
+  font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+  font-weight: 500;
+  color: var(--ink);
+  margin-top: 18px;
+  letter-spacing: 0.02em;
+}
+.subtitle::before { content: "✦ "; color: var(--orange); }
+.subtitle::after  { content: " ✦"; color: var(--orange); }
+.tagline {
+  font-size: clamp(0.8rem, 2vw, 1rem);
+  color: #555;
+  margin-top: 8px;
+  font-weight: 400;
+}
+
+/* F3: hero post-it About — click to unfold */
+.postit-wrap { position: relative; z-index: 10; margin-top: 26px; perspective: 900px; }
+.postit {
+  position: relative;
+  width: min(300px, 82vw);
+  background: var(--yellow);
+  border: 2.5px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 4px 6px 0 rgba(0,0,0,0.14);
+  transform: rotate(-2deg);
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-align: left;
+  padding: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+.postit::before {
+  content: '';
+  position: absolute;
+  top: -12px; left: 50%;
+  width: 74px; height: 20px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.12);
+}
+.postit:hover { transform: rotate(0deg) translateY(-4px); box-shadow: 5px 10px 0 rgba(0,0,0,0.18); }
+.postit-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px 10px;
+  border-bottom: 2px dashed rgba(0,0,0,0.25);
+}
+.postit-head h2 { font-family: var(--font-pixel); font-size: 0.72rem; }
+.postit-hint { font-size: 0.68rem; font-weight: 600; color: #555; white-space: nowrap; }
+.postit-hint::after { content: " ▾"; }
+.postit.open .postit-hint::after { content: " ▴"; }
+.postit-panel {
+  overflow: hidden;
+  max-height: 0;
+  transform-origin: top center;
+}
+.postit-panel-inner { padding: 14px 16px 18px; }
+.postit.open .postit-panel { animation: postit-unfold 0.55s cubic-bezier(0.34, 1.3, 0.5, 1) forwards; }
+.postit.closing .postit-panel { animation: postit-fold 0.35s ease-in forwards; }
+.postit p { font-size: 0.9rem; line-height: 1.55; }
+.postit-skills { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.postit .skill-chip { padding: 3px 10px; background: var(--cream); border: 2px solid var(--ink); border-radius: 14px; font-size: 0.68rem; font-weight: 600; }
+@keyframes postit-unfold {
+  0%   { max-height: 0; transform: rotateX(-88deg); opacity: 0.2; }
+  55%  { max-height: 420px; transform: rotateX(8deg); opacity: 1; }
+  100% { max-height: 600px; transform: rotateX(0deg); opacity: 1; }
+}
+@keyframes postit-fold {
+  from { max-height: 600px; transform: rotateX(0deg); opacity: 1; }
+  to   { max-height: 0; transform: rotateX(-88deg); opacity: 0.2; }
+}
+
+/* F5: post-it skin for social + contact stickers */
+.social-stickers { display: flex; gap: 22px; margin-top: 28px; justify-content: center; z-index: 10; }
+.social-sticker, .contact-sticker {
+  position: relative;
+  background: var(--yellow);
+  border: 2.5px solid var(--ink);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  box-shadow: 3px 4px 0 rgba(0,0,0,0.15);
+}
+.social-sticker::before, .contact-sticker::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: 50%;
+  width: 34px; height: 12px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.12);
+  pointer-events: none;
+}
+.social-sticker {
+  width: 54px; height: 54px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: sticker-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.social-sticker:nth-child(1) { animation-delay: 0.7s; transform: rotate(-5deg); }
+.social-sticker:nth-child(2) { animation-delay: 0.8s; transform: rotate(4deg); }
+.social-sticker:nth-child(3) { animation-delay: 0.9s; transform: rotate(-2deg); }
+.social-sticker:hover {
+  transform: translateY(-6px) scale(1.1) rotate(0deg);
+  box-shadow: 3px 10px 0 rgba(0,0,0,0.2);
+}
+.social-sticker svg { width: 26px; height: 26px; fill: var(--ink); }
+
+.scroll-hint {
+  position: absolute;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-pixel);
+  font-size: 0.58rem;
+  color: var(--gray-stroke);
+  animation: bounce 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+.scroll-zone { position: relative; height: 80px; overflow: hidden; }
+/* round 15 [I1]: sections stack above the full-page doodle field (z-index 0) */
+.hero, .work-section, .contact-section, .footer { position: relative; z-index: 1; }
+.scroll-arrow-track { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+.scroll-arrow-track svg { animation: scroll-arrow-down 1.8s ease-in-out infinite; }
+
+.work-section { padding: 60px 5%; max-width: 1200px; margin: 0 auto; }
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+.section-header h2 { font-family: var(--font-pixel); font-size: 1.1rem; }
+.doodle-dot { width: 14px; height: 14px; background: var(--orange); border: 2px solid var(--ink); border-radius: 50%; }
+
+.filter-tabs { display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap; }
+.filter-tab {
+  padding: 6px 16px;
+  border: 2.5px solid var(--ink);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--cream);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-body);
+}
+.filter-tab:hover { background: var(--yellow); }
+.filter-tab.active { background: var(--ink); color: var(--cream); transform: rotate(-1deg); }
+
+.scatter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.scatter-card {
+  position: relative;
+  background: var(--cream);
+  border: 2.5px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 4px 6px 0 rgba(0,0,0,0.14);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+/* F2: no overflow clip — the hovered thumb must grow past the card borders */
+/* F5: post-it skin — tape accent, consistent with the hero about post-it */
+.scatter-card::before {
+  content: '';
+  position: absolute;
+  top: -10px; left: 50%;
+  width: 64px; height: 18px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.12);
+  z-index: 6;
+  pointer-events: none;
+}
+.scatter-card:nth-child(3n+1) { transform: rotate(-1.5deg); }
+.scatter-card:nth-child(3n+2) { transform: rotate(1deg); }
+.scatter-card:nth-child(3n+3) { transform: rotate(-0.5deg); }
+/* F2 + F7 → round 9 revert: theme-flow on the TEXT BODY is gone. The card body
+   keeps its pre-theme-flow post-it look at all times — yellow skin, dark ink text,
+   no color wash, no theme flip. The theme colors live only on the thumb block.
+   All :hover rules stay gated to real pointers (the old "residual tint" fix). */
+@media (hover: hover) and (pointer: fine) {
+  .scatter-card:hover { transform: translateY(-6px) rotate(0deg) !important; box-shadow: 4px 12px 0 rgba(0,0,0,0.18); z-index: 10; }
+  /* keycap-style pop on the thumb letter / gentle zoom on the main image */
+  .scatter-thumb .scatter-thumb-inner { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: scale(1.18); }
+  .scatter-thumb .scatter-thumb-img { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .scatter-card:hover .scatter-thumb .scatter-thumb-img { transform: scale(1.05); }
+  /* tape + post-it shadow lift slightly on hover */
+  .scatter-card:hover {
+    box-shadow: 5px 8px 0 rgba(0,0,0,0.2);
+  }
+}
+.scatter-thumb {
+  height: 160px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 1.8rem;
+  color: var(--cream);
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px 2px 0 0;
+  border-bottom: 2px dashed rgba(0,0,0,0.25);
+  /* color set per-card by the CMS color picker (inline --thumb-color); falls back to the theme orange */
+  background: var(--thumb-color, var(--orange));
+}
+/* main image = the attention-grabber; --thumb-color shows only while it loads */
+.scatter-thumb-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.scatter-thumb::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.1) 20px, rgba(255,255,255,0.1) 40px);
+}
+/* stripes are a letter-tile texture — never wash over a real image */
+.scatter-thumb.has-img::after { display: none; }
+/* Round 10 fix: card bodies are cream (page paper), never post-it yellow — yellow is hero-only */
+.scatter-body { padding: 14px 18px 18px; background: var(--cream); }
+.scatter-body h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 4px; }
+/* body text sits on cream now — use the near-ink dark gray */
+.scatter-body p { font-size: 0.82rem; color: #333; line-height: 1.4; }
+.scatter-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.scatter-year { font-family: var(--font-pixel); font-size: 0.55rem; color: var(--gray-stroke); }
+.scatter-cat { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; color: var(--cream); }
+.scatter-cat.brand { background: var(--orange); }
+.scatter-cat.social { background: var(--blue); }
+.scatter-cat.print { background: var(--green); }
+.scatter-cat.ui { background: var(--purple); }
+
+/* F3: old .about-section/.about-card styles removed — About now lives in the hero post-it */
+
+.contact-section { padding: 60px 5%; max-width: 800px; margin: 0 auto; text-align: center; }
+.contact-stickers { display: flex; gap: 26px; justify-content: center; margin-top: 24px; }
+.contact-sticker {
+  width: 60px; height: 60px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.contact-sticker:nth-child(1) { transform: rotate(-5deg); }
+.contact-sticker:nth-child(2) { transform: rotate(3deg); }
+.contact-sticker:nth-child(3) { transform: rotate(-2deg); }
+.contact-sticker:hover { transform: translateY(-6px) rotate(0deg) scale(1.1); box-shadow: 3px 10px 0 rgba(0,0,0,0.2); }
+.contact-sticker svg { width: 28px; height: 28px; fill: var(--ink); }
+
+.footer { text-align: center; padding: 30px 5%; font-size: 0.8rem; color: var(--gray-stroke); border-top: 2px dashed var(--grid-line); margin-top: 20px; }
+.footer-wordmark { height: 0.95em; width: auto; aspect-ratio: 120.56 / 11.03; vertical-align: -0.12em; }
+/* easter egg: hero letters are clickable — pointer is the only hint */
+.name-wordmark { overflow: visible; }
+.name-wordmark path[class^="wm-"] { cursor: pointer; }
+
+@keyframes drop-in { 0% { transform: translateY(-100px) rotate(-10deg); opacity: 0; } 100% { transform: translateY(0) rotate(-4deg); opacity: 1; } }
+@keyframes name-arrive { 0% { transform: scale(0.5) rotate(-5deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-15px) rotate(5deg); } }
+@keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+@keyframes sticker-pop { 0% { transform: scale(0) rotate(0); opacity: 0; } 100% { opacity: 1; } }
+@keyframes bounce { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(8px); } }
+@keyframes scroll-arrow-down { 0%, 100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(10px); opacity: 1; } }
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; animation: fade-up linear both; animation-timeline: view(); animation-range: entry 0% cover 40%; }
+    @keyframes fade-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    .scatter-card.reveal { animation-range: entry 10% cover 30%; }
+  }
+}
+
+/* F8/F9: kawaii detail windows — draggable, unstacked, floating over the live page */
+.detail-window {
+  position: fixed;
+  top: 90px; left: 50%;
+  width: min(680px, calc(100vw - 24px));
+  max-height: min(78vh, 720px);
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 60;
+  box-shadow: 6px 10px 0 rgba(0,0,0,0.12);
+  animation: detail-window-in 0.45s cubic-bezier(0.34, 1.4, 0.5, 1) both;
+}
+/* image-led windows: with a gallery the modal opens large so the artwork
+   is the first thing you see — no small window + tiny cover */
+.detail-window.has-gallery {
+  width: min(940px, calc(100vw - 24px));
+  max-height: min(90vh, 880px);
+}
+/* multiple open windows genuinely stack: each new one offsets a touch */
+.detail-window.shift-1 { top: calc(90px + 26px); left: calc(50% + 26px); }
+.detail-window.shift-2 { top: calc(90px + 52px); left: calc(50% + 52px); }
+.detail-window.dragging { animation: none; }
+.detail-titlebar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  background: var(--purple);
+  border-bottom: 2px solid var(--ink);
+  padding: 12px 18px;
+  min-height: 46px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  flex-shrink: 0;
+}
+.detail-window.dragging .detail-titlebar { cursor: grabbing; }
+.detail-titlebar h2 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  text-shadow: 1px 1px 0 rgba(0,0,0,0.25);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  pointer-events: none;
+}
+/* R12: Apple traffic-light window buttons — close (red, left) / minimize
+   (yellow, middle) / maximize (green, right), pastel site palette, white glyphs.
+   Behaviors (R11) are unchanged; the JS hooks the same dot-min/max/close classes. */
+.detail-dots { display: flex; gap: 8px; flex-shrink: 0; }
+.detail-dots .detail-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: none; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.15s ease, box-shadow 0.15s ease;
+}
+/* soft-pastel traffic lights; hover steps the color up a notch */
+.detail-dots .detail-dot.dot-close { background: var(--coral); }
+.detail-dots .detail-dot.dot-min   { background: var(--yellow); }
+.detail-dots .detail-dot.dot-max   { background: var(--green); }
+.detail-dots .detail-dot.dot-close:hover { background: var(--coral-dark); }
+.detail-dots .detail-dot.dot-min:hover   { background: #E8B90E; }
+.detail-dots .detail-dot.dot-max:hover   { background: var(--green-dark); }
+/* black glyph appears on hover only; dot is solid color at rest */
+.detail-dots .detail-dot svg {
+  width: 8px; height: 8px;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.detail-dots .detail-dot:hover svg { opacity: 1; }
+.detail-dots .detail-dot:hover { transform: scale(1.15); box-shadow: 0 0 0 3px rgba(255,255,255,0.22); }
+.detail-dots .detail-dot:active { transform: scale(0.85); }
+.detail-dots .detail-dot:focus-visible { outline: 2px dashed #fff; outline-offset: 2px; }
+/* H2: minimize is now the mac-style genie effect (JS-driven WAAPI):
+   the window collapses toward the bottom-right screen corner with
+   scale+skew+translate over ~400ms and ends as a small square icon.
+   Clicking that icon pops the window back open with the reverse animation.
+   The old collapse-to-titlebar (.minimized hiding the body) is gone —
+   the class now only marks the genie state. */
+.detail-window.minimized {
+  pointer-events: none;
+  opacity: 0;
+}
+/* R16: minimized windows no longer collapse into one shared icon — each
+   project gets its OWN desktop-shortcut-style icon, offset side by side
+   along the bottom edge (right offset = 22px + slot * 62px, assigned in JS).
+   The button is a column: colored tile (project thumb color + initials)
+   with the project title as a small label underneath. */
+.detail-genie-icon {
+  position: fixed;
+  right: 22px; bottom: 22px; /* per-project offset applied inline by JS */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer;
+  z-index: 60;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: genie-icon-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+/* the tile: reads like a desktop icon — project thumb color + initials */
+.detail-genie-icon .detail-genie-tile {
+  width: 44px; height: 44px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 3px 4px 0 rgba(0,0,0,0.15);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 0.72rem;
+  color: #fff;
+  text-shadow: 1px 2px 0 rgba(0,0,0,0.35);
+  transition: box-shadow 0.15s ease;
+}
+/* the shortcut label under the tile — capped below the 62px slot pitch so
+   side-by-side labels never overlap each other */
+.detail-genie-icon .detail-genie-label {
+  max-width: 58px;
+  padding: 1px 6px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  line-height: 1.3;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-genie-icon:hover { transform: translateY(-4px) scale(1.08); }
+.detail-genie-icon:hover .detail-genie-tile { box-shadow: 3px 8px 0 rgba(0,0,0,0.2); }
+.detail-genie-icon:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
+@keyframes genie-icon-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+/* maximize: window fills most of the viewport; !important so it wins over
+   any inline left/top left behind by dragging (state is restored on unmaximize) */
+.detail-window.maximized {
+  top: 3vh !important;
+  left: 3vw !important;
+  width: 94vw;
+  max-height: 94vh;
+  transform: none !important;
+  animation: none !important;
+}
+.detail-body {
+  flex: 1 1 auto; /* H1: when resizing sets an explicit height, the body fills and scrolls */
+  min-height: 0;
+  padding: 22px 24px 26px;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: #fff; /* G1: body always starts white, for every card */
+  overflow-y: auto;
+}
+.detail-thumb {
+  /* hidden must actually hide: the rule below is display:flex, which beats
+     the UA [hidden] default and rendered a white box above the gallery
+     (same fix as 1dfba69 on the legacy site) */
+  display: none;
+}
+.detail-thumb:not([hidden]) {
+  height: 170px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-pixel);
+  font-size: 2rem;
+  color: var(--ink);
+  margin-bottom: 18px;
+  background: #fff; /* G1: no card theme color here — white tile like the reference */
+  text-shadow: 2px 2px 0 rgba(0,0,0,0.08);
+}
+/* project gallery — base styles apply at every viewport. Media files are
+   pre-resized webp derivatives (sync pipeline), but the CSS still constrains
+   them so nothing can ever render at natural size inside the window. */
+.detail-gallery { margin-bottom: 16px; }
+.detail-cover {
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  overflow: hidden;
+  /* no letterbox fill — the image itself leads */
+  background: transparent;
+}
+.detail-cover img {
+  display: block;
+  width: 100%;
+  max-height: min(64vh, 640px);
+  object-fit: contain; /* artwork is never cropped — letterbox on odd ratios */
+}
+.detail-thumbs { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
+.detail-thumbs button {
+  flex: 0 0 auto;
+  width: 56px; height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  background: #f3f1e8;
+}
+.detail-thumbs button img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.detail-thumbs button.sel { border-color: var(--orange); }
+.detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.detail-chip {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.detail-chip.cat { background: var(--purple); color: #fff; }
+/* G2: description paragraph removed from detail view — content is title + year + category */
+/* pill close affordance, bottom center like the reference badge */
+.detail-pill-row { display: flex; justify-content: center; margin-top: 22px; }
+.detail-pill {
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  padding: 8px 22px;
+  font-family: var(--font-pixel);
+  font-size: 0.62rem;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+}
+.detail-pill:hover { transform: translateY(-3px); box-shadow: 0 6px 0 rgba(0,0,0,0.2); }
+.detail-pill:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.18); }
+.detail-pill:focus-visible { outline: 2.5px dashed var(--purple); outline-offset: 3px; }
+@keyframes detail-window-in {
+  0% { transform: translate(-50%, -18px) scale(0.94); opacity: 0; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+}
+.detail-window.dragging, .detail-window.positioned { animation: none; }
+/* H1: resizable detail window — classic diagonal grip lines in the bottom-right
+   corner (clipped to a triangle); drag it to resize. Min 320x220, max = viewport,
+   clamped in JS. Content reflows live: body is flex and scrolls when filled. */
+.detail-grip {
+  position: absolute;
+  right: 3px; bottom: 3px;
+  width: 20px; height: 20px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 7;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    var(--gray-stroke) 3px 5px
+  );
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+.detail-grip:hover { opacity: 1; }
+.detail-window.resizing { user-select: none; }
+.detail-window.resizing .detail-grip { opacity: 1; }
+/* F8 mobile: full-width sheet, no drag needed */
+@media (max-width: 600px) {
+  .detail-window,
+  .detail-window.shift-1,
+  .detail-window.shift-2 {
+    left: 12px; right: 12px; top: 74px;
+    width: auto;
+    max-height: calc(100vh - 98px);
+  }
+  .detail-titlebar { cursor: default; }
+  .detail-body { padding: 16px 14px 20px; }
+  .detail-thumb { height: 130px; font-size: 1.5rem; }
+  /* mobile sheet insets only — cover/thumbs shape comes from the base styles */
+  .detail-cover { border-radius: 10px; margin: 0 16px; }
+  .detail-thumbs { margin: 8px 16px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-window { animation: none !important; opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* F7 → round 9 revert: no motion on hover; the body never flips theme anymore */
+  @media (hover: hover) and (pointer: fine) {
+    .scatter-card:hover .scatter-thumb .scatter-thumb-inner { transform: none; }
+    .scatter-card:hover .scatter-thumb .scatter-thumb-img { transform: none; }
+  }
+  /* F3: post-it unfolds instantly, no motion */
+  .postit.open .postit-panel { animation: none !important; max-height: none; transform: none; opacity: 1; }
+  .postit.closing .postit-panel { animation: none !important; max-height: 0; }
+}
+
+@media (max-width: 600px) {
+  .keycap { width: 40px; height: 40px; font-size: 0.9rem; }
+  .keycap-group.over { top: 4%; left: 4%; }
+  .keycap-group.flow { bottom: 8%; right: 4%; }
+  .doodle { transform: scale(0.7); }
+  /* QA F1: these three crowd the centered name/subtitle/social stickers at 390px */
+  .doodle-pencil, .doodle-controller, .doodle-cursor,
+  .doodle-paperplane, .doodle-bolt, .doodle-bubble { display: none; }
+  .name-wordmark { width: 88vw; }
+  /* F7 → round 9 revert: no flow wash on mobile either; thumb stays as the color block */
+  /* F3: post-it fits the first mobile view */
+  .postit { width: min(260px, 86vw); }
+}

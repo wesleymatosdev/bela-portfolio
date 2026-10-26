@@ -1,0 +1,28 @@
+<!-- F9: detail windows are created per-project by JS and float over the live page -->
+<template id="detailTemplate">
+  <div class="detail-window" role="dialog" aria-modal="false">
+    <div class="detail-titlebar">
+      <h2 class="detail-title"></h2>
+      <div class="detail-dots">
+        <button type="button" class="detail-dot dot-close" aria-label="Close window" title="Close"><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M1.6 1.6 L6.4 6.4 M6.4 1.6 L1.6 6.4"/></svg></button>
+        <button type="button" class="detail-dot dot-min" aria-label="Minimize window" title="Minimize"><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M1.6 4 H6.4"/></svg></button>
+        <button type="button" class="detail-dot dot-max" aria-label="Maximize window" title="Maximize"><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M4.6 3.4 L6.5 1.5 M6.5 1.5 H5 M6.5 1.5 V3 M3.4 4.6 L1.5 6.5 M1.5 6.5 H3 M1.5 6.5 V5"/></svg></button>
+      </div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-thumb"></div>
+      <div class="detail-gallery" hidden>
+        <div class="detail-cover"><img alt=""></div>
+        <div class="detail-thumbs"></div>
+      </div>
+      <div class="detail-meta">
+        <span class="detail-chip cat"></span>
+        <span class="detail-chip">Year: <span class="detail-year"></span></span>
+      </div>
+      <div class="detail-pill-row">
+        <button class="detail-pill">← back to work</button>
+      </div>
+    </div>
+    <div class="detail-grip" aria-hidden="true" title="Resize"></div>
+  </div>
+</template>

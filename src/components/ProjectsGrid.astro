@@ -1,0 +1,84 @@
+---
+// Build-time port of tools/build_projects.py card generation (the part that
+// renders HTML; validation/healing stays with the sync pipeline until adoption).
+// Data contract: src/data/projects.json is a build-time COPY of
+// www/content/projects.json (written by sync-cms.yml). Astro reads it here —
+// never at runtime, never from the CMS.
+import projects from '../data/projects.json';
+
+const CATS = { brand: 'Branding', social: 'Social', print: 'Print', ui: 'UI/UX' } as const;
+// tools/build_projects.py THEME_COLORS: CMS color token (c1..c6) -> hex
+const THEME_COLORS: Record<string, string> = {
+  c1: '#f1670e', // orange
+  c2: '#6771db', // blue
+  c3: '#5db06c', // green
+  c4: '#a985b2', // purple
+  c5: '#ea7980', // coral
+  c6: '#725aeb', // violet
+};
+const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+type Project = {
+  id: string;
+  title: string;
+  blurb: string;
+  year: number;
+  cat: keyof typeof CATS;
+  color?: string;
+  initials: string;
+  images?: string[];
+};
+
+/** Same resolution order as build_projects.resolve_color: theme token, else
+ *  plain hex, else fall back to the theme orange (auto-derivation from the
+ *  cover image stays a pipeline concern — the JSON is always healed before
+ *  commit today, so tokens/hex are what reaches this file). */
+function resolveColor(p: Project): string {
+  const color = (p.color ?? '').trim();
+  if (THEME_COLORS[color]) return THEME_COLORS[color];
+  if (HEX_RE.test(color)) return color.toLowerCase();
+  return THEME_COLORS.c1;
+}
+
+const list = projects.projects as Project[];
+---
+<section class="work-section reveal" id="work">
+  <div class="section-header">
+    <div class="doodle-dot"></div>
+    <h2>SELECTED WORK</h2>
+    <div class="doodle-dot" style="background: var(--blue);"></div>
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all">ALL</button>
+    <button class="filter-tab" data-filter="brand">BRANDING</button>
+    <button class="filter-tab" data-filter="social">SOCIAL</button>
+    <button class="filter-tab" data-filter="print">PRINT</button>
+    <button class="filter-tab" data-filter="ui">UI/UX</button>
+  </div>
+  <div class="scatter-grid" id="workGrid">
+    {list.map((p) => {
+      const images = p.images ?? [];
+      const hex = resolveColor(p);
+      const catLabel = CATS[p.cat] ?? p.cat;
+      return (
+        <div class="scatter-card reveal" data-cat={p.cat} data-images={JSON.stringify(images)}>
+          <div class:list={['scatter-thumb', { 'has-img': images.length > 0 }]} style={`--thumb-color:${hex}`}>
+            {images.length > 0 ? (
+              <img class="scatter-thumb-img" src={`assets/media/${images[0]}`} alt="" loading="lazy" />
+            ) : (
+              <span class="scatter-thumb-inner">{p.initials}</span>
+            )}
+          </div>
+          <div class="scatter-body">
+            <h3>{p.title}</h3>
+            <p>{p.blurb}</p>
+            <div class="scatter-meta">
+              <span class="scatter-year">{p.year}</span>
+              <span class:list={['scatter-cat', p.cat]}>{catLabel}</span>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</section>
