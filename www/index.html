@@ -1863,7 +1863,6 @@ if (!CSS.supports('animation-timeline: view()')) {
   window.__cancelLuxoHops = cancelHops;
 
   const vw = window.innerWidth, vh = window.innerHeight;
-  const hopH = Math.max(70, Math.min(150, vh * 0.17));   // apex height
   const rot = s => (-s * 12).toFixed(1) + 'deg';         // slight tumble in the air
 
   caps.forEach((cap, i) => {
@@ -1875,6 +1874,12 @@ if (!CSS.supports('animation-timeline: view()')) {
     // anticipation crouch is visible before the leap
     const sx = side < 0 ? -(r.left + r.width / 2) : (vw - r.left + r.width / 2);
     const dy = size * 0.08;                              // crouch/land floor offset
+    // keep every hop fully on screen: the apex may never push the keycap
+    // above the viewport top (OVER hops from the top-left corner)
+    const hopH = Math.min(
+      Math.max(70, Math.min(150, vh * 0.17)),
+      Math.max(22, r.top - 10),
+    );
 
     const frames = [
       { transform: 'translate(' + sx + 'px,' + dy + 'px) rotate(' + rot(side) + ') scale(1,1)', opacity: 0, offset: 0 },
@@ -2114,70 +2119,106 @@ if (!CSS.supports('animation-timeline: view()')) {
 
     const t = targets();
     const vh = window.innerHeight;
-    const hopOver = Math.max(45, Math.min(80, vh * 0.08));   // short hops along the top edge
-    const hopFlow = Math.max(85, Math.min(150, vh * 0.17));  // big leaps up from below
+    // OVER walks a visible horizontal line below its corner; FLOW climbs with
+    // lateral sway. All anchors stay inside the viewport at every progress.
+    const lineY = Math.max(96, Math.min(150, vh * 0.14));
+    const hopWalk = Math.max(45, Math.min(80, vh * 0.09));
+    const climbSway = Math.max(18, Math.min(34, vh * 0.03));
 
-    // Each keycap flies within its own [start, end] window of scroll progress:
-    // OVER hops along the top into center first (its corner scrolls off-screen
-    // almost immediately, so it must lead), then FLOW leaps up letter by
-    // letter. Every window closes at or before p = 1, so the docked pose is
-    // always the exact strip layout. Pure function of p — scrub reverses it.
+    // Travel windows (scroll progress). OVER must dismount from its corner
+    // before the page scrolls it off-screen (p≈0.15), so its dismount is the
+    // first, shortest segment; then it WALKS the line in steps; then mounts
+    // into the strip. FLOW climbs in three hops, W landing last at p=0.86 —
+    // before its own hero slot would scroll out of view.
     const WIN = [
-      [0.00, 0.34], [0.06, 0.40], [0.12, 0.46], [0.18, 0.52],   // O V E R
-      [0.42, 0.76], [0.50, 0.84], [0.58, 0.92], [0.66, 1.00],   // F L O W
+      [0.00, 0.40], [0.02, 0.42], [0.04, 0.44], [0.06, 0.46],   // O V E R
+      [0.30, 0.62], [0.38, 0.70], [0.46, 0.78], [0.54, 0.86],   // F L O W
     ];
+    const DIS = [0.25, 0.22, 0.19, 0.16];  // dismount = first fraction of the window
 
     caps.forEach((c, i) => {
-      const [ws, we] = WIN[i];
-      const q = Math.min(1, Math.max(0, (p - ws) / (we - ws)));
-      const e = q * q * (3 - 2 * q);         // smoothstep along the path
-
-      // squash & stretch beats (Round 18 language, scrubbed by scroll):
-      // crouch just after leaving, stretch mid-air, squash on landing.
-      // The landing window is a sine that closes exactly at q = 1 so the
-      // docked pose is untouched by residual scale.
-      const crouch = Math.exp(-Math.pow((q - 0.10) / 0.08, 2));
-      const stretch = Math.exp(-Math.pow((q - 0.40) / 0.12, 2));
-      const land = q > 0.78 ? Math.sin(Math.PI * (q - 0.78) / 0.22) : 0;
-      const sx = 1 + 0.12 * crouch - 0.10 * stretch + 0.20 * land;
-      const sy = 1 - 0.18 * crouch + 0.14 * stretch - 0.26 * land;
-
-      // hop arc: leaves the ground after the crouch, back down exactly at q=1
-      const aq = Math.min(1, Math.max(0, (q - 0.06) / 0.94));
-      const arc = Math.sin(Math.PI * aq);
-      const hopH = c.grp === 'o' ? hopOver : hopFlow;
-      const tumble = (i % 2 ? -9 : 9) * arc; // slight in-air tumble, settles to 0
-
-      // target: this keycap's exact docked slot in the strip
+      const natX = c.docX;                       // x is scroll-invariant
+      const natY = c.docY - window.scrollY;      // natural viewport position
       const g = c.grp === 'o' ? t.o : t.f;
-      const tx = g.left + c.relX;
-      const ty = g.top + c.relY;
-      const natX = c.docX;                   // x is scroll-invariant
-      const natY = c.docY - window.scrollY;
+      const tx = g.left + c.relX, ty = g.top + c.relY;
+      const win = WIN[i];
+      const isOver = c.grp === 'o';
+      const dx = tx - natX;
+      const e = f => f * f * (3 - 2 * f);        // smoothstep
+      const pp = Math.min(win[1], Math.max(win[0], p));
 
-      const dx = (tx - natX) * e;
-      const dy = (ty - natY) * e - arc * hopH + 3 * crouch;
+      // multi-hop waypoint segments — every waypoint stays on screen
+      let segs;
+      if (isOver) {
+        const dEnd = win[0] + (win[1] - win[0]) * DIS[i];
+        const third = (win[1] - dEnd) / 3;
+        const ex = f => natX + dx * f;
+        segs = [
+          // dismount: hop down from the corner slot to the walking line
+          { p0: win[0], p1: dEnd, ax: natX, ay: natY, bx: ex(0.16), by: lineY, lift: 0, sway: 14 },
+          // two walk steps along the line
+          { p0: dEnd, p1: dEnd + third, ax: ex(0.16), ay: lineY, bx: ex(0.5), by: lineY, lift: hopWalk, sway: 0 },
+          { p0: dEnd + third, p1: dEnd + 2 * third, ax: ex(0.5), ay: lineY, bx: ex(0.84), by: lineY, lift: hopWalk, sway: 0 },
+          // mount: hop up into the exact strip slot
+          { p0: dEnd + 2 * third, p1: win[1], ax: ex(0.84), ay: lineY, bx: tx, by: ty, lift: 22, sway: 0 },
+        ];
+      } else {
+        segs = [];
+        const N = 3;
+        for (let k = 0; k < N; k++) {
+          segs.push({
+            p0: win[0] + (win[1] - win[0]) * k / N,
+            p1: win[0] + (win[1] - win[0]) * (k + 1) / N,
+            ax: natX + dx * e(k / N), ay: natY + (ty - natY) * k / N,
+            bx: natX + dx * e((k + 1) / N), by: natY + (ty - natY) * (k + 1) / N,
+            lift: 0, sway: (k % 2 ? -1 : 1) * climbSway,
+            bounce: 26,  // climb overshoots each hop landing, then settles — visible step
+          });
+        }
+      }
+
+      let j = segs.length - 1;
+      for (let k = 0; k < segs.length; k++) if (pp < segs[k].p1) { j = k; break; }
+      const sg = segs[j];
+      const u = Math.min(1, Math.max(0, (pp - sg.p0) / (sg.p1 - sg.p0)));
+      const ue = u * u * (3 - 2 * u);
+      const hop = Math.sin(Math.PI * u);
+
+      const x = sg.ax + (sg.bx - sg.ax) * ue + (sg.sway || 0) * hop;
+      let y = sg.ay + (sg.by - sg.ay) * ue - (sg.lift || 0) * hop;
+      if (sg.bounce && u > 0.7) {
+        // climb overshoots just past each hop's landing, then settles onto it
+        y -= sg.bounce * Math.max(0, Math.sin(Math.PI * (u - 0.7) / 0.3));
+      }
+
+      // squash personality: a small beat on EVERY hop landing, the heavy one
+      // on the final landing — the sine closes exactly at u=1 so the docked
+      // pose is untouched by residual scale
+      let sq = u > 0.8 ? Math.sin(Math.PI * (u - 0.8) / 0.2) * 0.05 : 0;
+      if (j === segs.length - 1 && u > 0.7) sq = Math.sin(Math.PI * (u - 0.7) / 0.3) * 0.24;
+      const tumble = (j % 2 ? -1 : 1) * 6 * hop;
+
       c.el.style.transform =
-        'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' +
+        'translate(' + (x - natX).toFixed(1) + 'px,' + (y - natY).toFixed(1) + 'px)' +
         ' rotate(' + tumble.toFixed(2) + 'deg)' +
-        ' scale(' + sx.toFixed(3) + ',' + sy.toFixed(3) + ')';
+        ' scale(' + (1 + sq * 0.7).toFixed(3) + ',' + (1 - sq).toFixed(3) + ')';
     });
   }
 
   let lastY = window.scrollY;
-  function onScroll() {
+  function syncScroll(now) {
+    const y = window.scrollY;
+    if (y === lastY) return;
     clearEntrance();
-    // scroll events are already coalesced to once per frame by the browser —
-    // apply synchronously (identical behavior, no rAF dependency)
     apply();
-    if (docked) charScroll(window.scrollY - lastY, performance.now());
-    lastY = window.scrollY;
+    if (docked) charScroll(y - lastY, now);
+    lastY = y;
   }
-
-  // No fixed fallback timer: there is no CSS entrance animation left to clear,
-  // and measuring is only needed before the first scroll — clearing early
-  // (while the Round 18 hops are still playing) would cancel them needlessly.
-  window.addEventListener('scroll', onScroll, { passive: true });
+  // Dual drive: the scroll listener reacts instantly to real scrolling; the
+  // interval catches instantaneous jumps (anchor links, find-in-page) whose
+  // event dispatch can lag, and environments that starve rAF (headless).
+  window.addEventListener('scroll', () => syncScroll(performance.now()), { passive: true });
+  setInterval(() => syncScroll(performance.now()), 50);
   window.addEventListener('resize', () => {
     if (window.__cancelLuxoHops) window.__cancelLuxoHops();
     cancelChar();
