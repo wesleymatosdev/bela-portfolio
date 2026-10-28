@@ -52,15 +52,16 @@
     },
     {
       "id": "arte-autoral-original-works",
-      "title": "WandaVision Art — Original Works",
+      "title": "Arte Autoral — Original Works",
       "blurb": "Signed original artworks and editorial covers by Isabela Rossi.",
       "year": 2026,
       "cat": "print",
       "color": "c4",
-      "initials": "WV",
+      "initials": "AA",
       "images": [
         "arte-autoral-original-works-1.webp",
-        "arte-autoral-original-works-2.webp"
+        "arte-autoral-original-works-2.webp",
+        "arte-autoral-original-works-3.webp"
       ]
     },
     {
