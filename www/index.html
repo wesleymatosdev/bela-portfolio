@@ -707,21 +707,42 @@ body {
    them so nothing can ever render at natural size inside the window. */
 .detail-gallery { margin-bottom: 16px; }
 .detail-cover {
+  position: relative;
   border: 2px solid var(--ink);
   border-radius: 14px;
   overflow: hidden;
-  /* no letterbox fill — the image itself leads */
+  /* definite height — the box is identical for every image, so the modal never
+     changes size when the gallery cycles (SETTLED: filled-backdrop design) */
+  height: min(44vh, 420px);
   background: transparent;
 }
 .detail-cover img {
   display: block;
   width: 100%;
-  /* shrunk from 64vh/640px — the whole window (titlebar + cover + thumbs +
-     meta + pill) must fit inside the 78vh window cap at any viewport height,
-     including short review panes; client: no modal overflow, no scrolling */
-  max-height: min(44vh, 420px);
-  object-fit: contain; /* artwork is never cropped — letterbox on odd ratios */
+  height: 100%;
+  /* cap kept from the 78vh-window budget: titlebar + cover + thumbs + meta +
+     pill must fit inside the window at any viewport height, including short
+     review panes; client: no modal overflow, no scrolling */
+  object-fit: contain; /* artwork is never cropped — the backdrop fills the rest */
 }
+/* SETTLED (client choice, "filled backdrop"): the letterbox around odd ratios
+   is filled with a blurred copy of the same image behind the sharp contain
+   front img (Behance/Dribbble style). Refinement (client-approved): the ghost
+   SQUEEZES/STRETCHES (object-fit: fill, no scale) instead of crop-scaling —
+   every section of the artwork stays in its original position (top colors at
+   top, left at left) so the bands visibly continue the sharp image; the blur
+   hides the distortion. cover crop-zoomed the 4.0 banner's middle until the
+   backdrop's colors stopped matching. The box clips the overscan with
+   overflow:hidden. */
+.detail-cover .backdrop {
+  position: absolute;
+  inset: -40px;
+  width: calc(100% + 80px);
+  height: calc(100% + 80px);
+  object-fit: fill;
+  filter: blur(26px) saturate(1.05);
+}
+.detail-cover img.front { position: relative; } /* paints above the absolute backdrop */
 .detail-thumbs { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
 .detail-thumbs button {
   flex: 0 0 auto;
@@ -1010,7 +1031,7 @@ body {
     <div class="detail-body">
       <div class="detail-thumb"></div>
       <div class="detail-gallery" hidden>
-        <div class="detail-cover"><img alt=""></div>
+        <div class="detail-cover"><img class="backdrop" alt="" aria-hidden="true"><img class="front" alt=""></div>
         <div class="detail-thumbs"></div>
       </div>
       <div class="detail-meta">
@@ -1137,9 +1158,13 @@ body {
         gallery.hidden = false;
         win.querySelector('.detail-thumb').remove(); // initials box: remove, not hide — a CSS display rule defeats [hidden] and leaves an empty section
         win.classList.add('has-gallery');
-        const coverImg = gallery.querySelector('.detail-cover img');
+        const coverImg = gallery.querySelector('.detail-cover img.front');
+        const backdropImg = gallery.querySelector('.detail-cover .backdrop');
         const strip = gallery.querySelector('.detail-thumbs');
-        const show = (src) => { coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle; };
+        const show = (src) => {
+          coverImg.src = MEDIA_URL + src; coverImg.alt = projectTitle;
+          backdropImg.src = MEDIA_URL + src; // blurred ghost follows the cover
+        };
         const buttons = [];
         let cur = 0; // index of the image currently on the cover
 
@@ -1161,6 +1186,15 @@ body {
         glideImg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none;';
         coverBox.style.position = 'relative';
         coverBox.appendChild(glideImg);
+        // each incoming image carries its OWN backdrop (client: the shared
+        // static ghost re-pointed only at finish, which read as a lag — the
+        // blur visibly lagged behind the artwork on every switch). This clone
+        // of the static backdrop inherits the .backdrop CSS (stretch fill +
+        // blur) and slides in lockstep with the incoming img; at finish the
+        // static ghost swaps to the same image unseen, underneath it.
+        const glideBdImg = backdropImg.cloneNode(false);
+        glideBdImg.style.cssText += 'opacity:0;pointer-events:none;';
+        coverBox.insertBefore(glideBdImg, glideImg);
         const GLIDE_MS = 480, GLIDE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
         let glideSeq = 0, glideAnims = [];
         const glideTo = (idx, dir) => {
@@ -1176,15 +1210,20 @@ body {
             glideAnims = [];
             coverImg.src = target;
             coverImg.alt = projectTitle;
+            backdropImg.src = target; // static ghost swaps under the identical moving clone — invisible
             coverImg.style.opacity = '1';
             coverImg.style.transform = 'none';
             glideImg.style.opacity = '0';
             glideImg.style.transform = 'none';
+            glideBdImg.style.opacity = '0';
+            glideBdImg.style.transform = 'none';
             glideAnims = [];
           };
           glideImg.style.opacity = '1';
           glideImg.style.objectFit = getComputedStyle(coverImg).objectFit; // always match the base image's fit
           glideImg.src = target;
+          glideBdImg.style.opacity = '1';
+          glideBdImg.src = target;
           const start = () => {
             if (seq !== glideSeq) return;
             const opts = { duration: GLIDE_MS, easing: GLIDE_EASE, fill: 'forwards' };
@@ -1192,11 +1231,15 @@ body {
               { transform: 'translateY(' + (dir * 6) + '%)', opacity: 0 },
               { transform: 'none', opacity: 1 },
             ], opts);
+            const overBd = glideBdImg.animate([
+              { transform: 'translateY(' + (dir * 6) + '%)', opacity: 0 },
+              { transform: 'none', opacity: 1 },
+            ], opts);
             const under = coverImg.animate([
               { transform: 'translateY(0)', opacity: 1 },
               { transform: 'translateY(' + (dir * -2.5) + '%)', opacity: 0 },
             ], opts);
-            glideAnims = [over, under];
+            glideAnims = [over, overBd, under];
             over.onfinish = finish;
             setTimeout(finish, GLIDE_MS + 120); // watchdog: onfinish is paint-tied
           };

@@ -1,0 +1,14 @@
+{
+  "name": "bela-portfolio-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "E2E regression gate for the Astro migration — same checks against the legacy site (www/) and the Astro build (dist/ via preview), fails on any parity break.",
+  "scripts": {
+    "test": "node run.mjs --legacy \"${E2E_LEGACY:-http://127.0.0.1:8009/}\" --candidate \"${E2E_CANDIDATE:-http://127.0.0.1:4321/bela-portfolio/}\"",
+    "self-check": "node run.mjs --legacy \"${E2E_LEGACY:-http://127.0.0.1:8009/}\""
+  },
+  "dependencies": {
+    "playwright-core": "1.64.1"
+  }
+}
