@@ -285,8 +285,10 @@ export async function modalThumbSwitch(page, ctx) {
   await cover.evaluate((img) => img.decode().catch(() => {}));
   const after = await cover.getAttribute('src');
   const selMoved = await thumbs.nth(1).evaluate((b) => b.classList.contains('sel'));
-  // filled-backdrop contract: the ghost follows the cover on every switch
-  const backdropAfter = await win.locator('.detail-cover .backdrop').getAttribute('src');
+  // filled-backdrop contract: the ghost follows the cover on every switch.
+  // .first() = the static ghost — the per-glide clone (same class, hidden) may
+  // also be present; page-side reads use querySelector, i.e. the first match.
+  const backdropAfter = await win.locator('.detail-cover .backdrop').first().getAttribute('src');
   const problems = [];
   if (count !== g.images.length) problems.push(`thumb count ${count} != ${g.images.length} images in projects.json`);
   if (before === after) problems.push('cover src did not change after thumbnail click');
