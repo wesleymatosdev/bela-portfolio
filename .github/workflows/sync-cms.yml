@@ -22,6 +22,9 @@ on:
 
 permissions:
   contents: write
+  # needed to `gh workflow run deploy.yml` after pushing — GITHUB_TOKEN pushes
+  # don't trigger workflows by themselves
+  actions: write
 
 concurrency:
   group: "sync-cms"
