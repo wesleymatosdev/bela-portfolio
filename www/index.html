@@ -1837,6 +1837,15 @@ if (!CSS.supports('animation-timeline: view()')) {
   if (caps.length !== 8 || typeof caps[0].animate !== 'function') return;
   const wordmark = document.querySelector('.hero .name-wordmark');
 
+  // Replay the full entrance on EVERY load, including reloads. Browsers restore
+  // the previous scroll position on reload; the restored scroll fires a scroll
+  // event, and our cancel-on-scroll below would then kill the choreography
+  // before its first hop — the entrance appeared to "only play once". Own the
+  // restoration instead: a page load starts at the hero, where the entrance lives.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+  window.addEventListener('pageshow', e => { if (e.persisted) window.scrollTo(0, 0); });
+
   const HOP_MS = 1150;     // one hop: crouch + leap + land + settle
   const STAGGER = 430;     // gap between hop starts — readable, not frenetic
   const START_DELAY = 350; // small beat after load before the first hop
@@ -1991,19 +2000,91 @@ if (!CSS.supports('animation-timeline: view()')) {
     };
   }
 
+  // ---- Round 16c: strip character while following (motion-on only) ----
+  // The docked strip rides position:fixed, so its transform is free for
+  // character: a one-shot overshoot-and-settle when it docks center, a squash
+  // beat on scroll direction flips, and a small velocity lean/squash while
+  // moving (weight shifts). Springs settle back to identity when scrolling
+  // stops; everything is canceled the moment the strip undocks.
+  let charAnims = [];
+  let charRaf = 0;
+  let charState = null; // { lean, vl, leanT, squash, vsq, lastV, lastFlip, idleAt }
+  function cancelChar() {
+    charAnims.forEach(a => { try { a.cancel(); } catch (e) {} });
+    charAnims = [];
+    if (charRaf) { cancelAnimationFrame(charRaf); charRaf = 0; }
+    charState = null;
+    over.style.transform = ''; flow.style.transform = '';
+    over.style.transformOrigin = ''; flow.style.transformOrigin = '';
+  }
+  function charTick(now) {
+    const s = charState;
+    if (!s) return;
+    // lean springs toward the scroll-velocity lean target; squash is a damped
+    // spring kicked by scroll energy and direction flips, pulled back to rest
+    s.vl += (s.leanT - s.lean) * 0.22; s.vl *= 0.6; s.lean += s.vl;
+    s.vsq = (s.vsq - s.squash * 0.06) * 0.8; s.squash += s.vsq;
+    if (now > s.idleAt) s.leanT = 0; // scrolling stopped: weight settles back
+    over.style.transform = flow.style.transform =
+      'rotate(' + s.lean.toFixed(2) + 'deg) scale(' + (1 + s.squash * 0.7).toFixed(3) + ',' + (1 - s.squash).toFixed(3) + ')';
+    if (now > s.idleAt + 900 && Math.abs(s.lean) < 0.15 && Math.abs(s.squash) < 0.004) {
+      // imperceptible residue: snap to identity and stop the loop
+      over.style.transform = ''; flow.style.transform = '';
+      over.style.transformOrigin = ''; flow.style.transformOrigin = '';
+      charRaf = 0; charState = null;
+      return;
+    }
+    charRaf = requestAnimationFrame(charTick);
+  }
+  function charScroll(v, now) {
+    if (!docked) return;
+    if (!charState) {
+      charState = { lean: 0, vl: 0, leanT: 0, squash: 0, vsq: 0, lastV: 0, lastFlip: 0, idleAt: 0 };
+      over.style.transformOrigin = '50% 100%';
+      flow.style.transformOrigin = '50% 100%';
+    }
+    const s = charState;
+    if (v * s.lastV < 0 && Math.abs(v) > 3 && now - s.lastFlip > 250) {
+      s.vsq = 0.014;         // direction flip: the wordmark takes the hit
+      s.lastFlip = now;
+    }
+    s.vsq = Math.min(0.008, s.vsq + Math.abs(v) * 0.00002); // moving = weight
+    s.leanT = Math.max(-2.5, Math.min(2.5, v * 0.03));
+    s.lastV = v;
+    s.idleAt = now + 160;
+    if (!charRaf) charRaf = requestAnimationFrame(charTick);
+  }
+  function dockSettle() {
+    // the word lands on the strip: squash, overshoot, settle (one-shot)
+    [over, flow].forEach(el => {
+      el.style.transformOrigin = '50% 100%';
+      charAnims.push(el.animate([
+        { transform: 'scale(1,1)' },
+        { transform: 'scale(1.045,0.905)', offset: 0.3, easing: 'cubic-bezier(.3,.7,.4,1)' },
+        { transform: 'scale(0.988,1.025)', offset: 0.68 },
+        { transform: 'scale(1,1)' },
+      ], { duration: 520 }));
+    });
+    Promise.allSettled(charAnims.map(a => a.finished)).then(() => {
+      if (!charState) { over.style.transformOrigin = ''; flow.style.transformOrigin = ''; }
+    }).catch(() => {});
+  }
+
   function dock() {
-    if (docked) return;
+    const wasDocked = docked;
     docked = true;
     over.style.transform = '';
     flow.style.transform = '';
     caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
     strip.appendChild(over);
     strip.appendChild(flow);
+    if (!wasDocked) dockSettle();
   }
 
   function undock() {
     if (!docked) return;
     docked = false;
+    cancelChar();
     overNext.parentNode.insertBefore(over, overNext);
     flowParent.appendChild(flow);
     over.style.transform = '';
@@ -2083,11 +2164,14 @@ if (!CSS.supports('animation-timeline: view()')) {
     });
   }
 
+  let lastY = window.scrollY;
   function onScroll() {
     clearEntrance();
     // scroll events are already coalesced to once per frame by the browser —
     // apply synchronously (identical behavior, no rAF dependency)
     apply();
+    if (docked) charScroll(window.scrollY - lastY, performance.now());
+    lastY = window.scrollY;
   }
 
   // No fixed fallback timer: there is no CSS entrance animation left to clear,
@@ -2096,6 +2180,7 @@ if (!CSS.supports('animation-timeline: view()')) {
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', () => {
     if (window.__cancelLuxoHops) window.__cancelLuxoHops();
+    cancelChar();
     const d = docked;
     undock();
     measure();
