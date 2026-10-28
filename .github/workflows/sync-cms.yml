@@ -37,7 +37,10 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          # pinned: "3.x" started resolving to 3.15 on ubuntu-latest (image
+          # drift, 2026-10-28), which has no prebuilt Pillow wheel — pip then
+          # compiles Pillow from source and dies on missing libjpeg headers
+          python-version: "3.12"
 
       - name: Install Pillow (palette extraction)
         run: pip install --quiet "pillow~=11.3"
