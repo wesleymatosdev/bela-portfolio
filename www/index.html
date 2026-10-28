@@ -90,15 +90,16 @@ body {
   gap: 5px;
   z-index: 3;
 }
+/* Round 18 (Luxo hops): groups are static containers — each individual keycap
+   hops in from offscreen via WAAPI (see the Round 18 script below). Keeping the
+   entrance off CSS lets scroll and prefers-reduced-motion cancel it instantly. */
 .keycap-group.over {
   top: 6%; left: 7%;
   transform: rotate(-4deg);
-  animation: drop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.25s both;
 }
 .keycap-group.flow {
   bottom: 14%; right: 6%;
   transform: rotate(3deg);
-  animation: drop-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both;
 }
 
 .keycap {
@@ -480,7 +481,6 @@ body {
 .name-wordmark { overflow: visible; }
 .name-wordmark path[class^="wm-"] { cursor: pointer; }
 
-@keyframes drop-in { 0% { transform: translateY(-100px) rotate(-10deg); opacity: 0; } 100% { transform: translateY(0) rotate(-4deg); opacity: 1; } }
 @keyframes name-arrive { 0% { transform: scale(0.5) rotate(-5deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-15px) rotate(5deg); } }
 @keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
@@ -1819,6 +1819,101 @@ if (!CSS.supports('animation-timeline: view()')) {
   }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 }
+</script>
+
+<script>
+// Round 18: Luxo hop entrance. Each keycap enters by hopping in from offscreen
+// (alternating sides: left, right, left, ...), one after another, toward its
+// slot in the word. Every hop has character: an anticipation crouch before
+// leaving the ground, a stretch at launch, an arc through the air, a squash on
+// landing, then a small settle bounce. The LAST keycap lands with extra weight
+// — a beat of overshoot — and its landing squashes the wordmark subtly, like
+// the lamp stepping onto the I. transform/opacity only (compositor-friendly).
+// First scroll cancels everything mid-flight (keycaps snap to their slots and
+// the Round 16 scroll join takes over); prefers-reduced-motion never starts it.
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const caps = Array.from(document.querySelectorAll('.hero .keycap'));
+  if (caps.length !== 8 || typeof caps[0].animate !== 'function') return;
+  const wordmark = document.querySelector('.hero .name-wordmark');
+
+  const HOP_MS = 1150;     // one hop: crouch + leap + land + settle
+  const STAGGER = 430;     // gap between hop starts — readable, not frenetic
+  const START_DELAY = 350; // small beat after load before the first hop
+
+  const anims = [];
+  let canceled = false;
+  function cancelHops() {
+    if (canceled) return;
+    canceled = true;
+    anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+  }
+  // any scroll hands choreography over to the Round 16 scroll join
+  window.addEventListener('scroll', cancelHops, { passive: true });
+  // Round 16 docking can also call this directly (defensive)
+  window.__cancelLuxoHops = cancelHops;
+
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const hopH = Math.max(70, Math.min(150, vh * 0.17));   // apex height
+  const rot = s => (-s * 12).toFixed(1) + 'deg';         // slight tumble in the air
+
+  caps.forEach((cap, i) => {
+    const last = i === caps.length - 1;
+    const r = cap.getBoundingClientRect();
+    const size = Math.max(r.width, r.height);
+    const side = i % 2 === 0 ? -1 : 1;                   // left, right, left, ...
+    // start: half the keycap peeking in at the viewport edge, so the
+    // anticipation crouch is visible before the leap
+    const sx = side < 0 ? -(r.left + r.width / 2) : (vw - r.left + r.width / 2);
+    const dy = size * 0.08;                              // crouch/land floor offset
+
+    const frames = [
+      { transform: 'translate(' + sx + 'px,' + dy + 'px) rotate(' + rot(side) + ') scale(1,1)', opacity: 0, offset: 0 },
+      { transform: 'translate(' + sx + 'px,' + dy + 'px) rotate(' + rot(side) + ') scale(1,1)', opacity: 1, offset: 0.08 },
+      // anticipation: lean inward + crouch (squash down)
+      { transform: 'translate(' + (sx - side * size * 0.12) + 'px,' + (dy + size * 0.14) + 'px) rotate(' + rot(side) + ') scale(1.14,0.78)', offset: 0.18, easing: 'cubic-bezier(.5,0,.7,.4)' },
+      // launch: stretch tall off the ground
+      { transform: 'translate(' + (sx * 0.72) + 'px,' + (dy * 0.4 - size * 0.35) + 'px) rotate(' + (side * 7) + 'deg) scale(0.84,1.22)', offset: 0.32, easing: 'cubic-bezier(.3,.4,.6,1)' },
+      // apex of the arc
+      { transform: 'translate(' + (sx * 0.45) + 'px,' + (dy * 0.15 - hopH) + 'px) rotate(' + (side * 3) + 'deg) scale(0.92,1.1)', offset: 0.5, easing: 'cubic-bezier(.5,.6,.8,.6)' },
+      { transform: 'translate(' + (sx * 0.12) + 'px,' + (-size * 0.05) + 'px) rotate(' + (side * 1) + 'deg) scale(1.02,0.98)', offset: 0.62, easing: 'cubic-bezier(.6,0,.8,.5)' },
+      // landing squash
+      last
+        ? { transform: 'translate(0,' + (size * 0.1) + 'px) scale(1.34,0.6)', offset: 0.7, easing: 'cubic-bezier(.4,0,.6,1)' }
+        : { transform: 'translate(0,' + (size * 0.1) + 'px) scale(1.2,0.76)', offset: 0.7, easing: 'cubic-bezier(.4,0,.6,1)' },
+      last
+        ? { transform: 'translate(0,' + (size * 0.1) + 'px) scale(1.3,0.64)', offset: 0.78 }   // hold the heavy squash a beat
+        : { transform: 'translate(0,' + (-size * 0.1) + 'px) scale(0.95,1.08)', offset: 0.8 }, // settle bounce
+      last
+        ? { transform: 'translate(0,0) scale(0.96,1.05)', offset: 0.9 }
+        : { transform: 'translate(0,' + (size * 0.03) + 'px) scale(1.05,0.97)', offset: 0.9 },
+      { transform: 'none', opacity: 1, offset: 1 },
+    ];
+
+    anims.push(cap.animate(frames, {
+      duration: HOP_MS,
+      delay: START_DELAY + i * STAGGER,
+      fill: 'backwards',   // hidden at its offscreen start until the hop begins
+      easing: 'linear',
+    }));
+  });
+
+  // the last keycap's landing squashes the wordmark — the lamp-on-the-I beat
+  if (wordmark) {
+    wordmark.style.transformOrigin = '50% 100%';
+    anims.push(wordmark.animate([
+      { transform: 'scale(1,1)', offset: 0 },
+      { transform: 'scale(1.02,0.945) translateY(1.5px)', offset: 0.22, easing: 'cubic-bezier(.3,0,.4,1)' },
+      { transform: 'scale(1.02,0.945) translateY(1.5px)', offset: 0.4 },  // held under the W
+      { transform: 'scale(0.995,1.012) translateY(-0.5px)', offset: 0.72 },
+      { transform: 'scale(1,1)', offset: 1 },
+    ], {
+      duration: 850,
+      delay: START_DELAY + (caps.length - 1) * STAGGER + HOP_MS * 0.68,
+      easing: 'linear',
+    }));
+  }
+})();
 </script>
 
 <script>
