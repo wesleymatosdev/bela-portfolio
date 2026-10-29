@@ -2640,17 +2640,7 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'rotate(-360deg)', offset: 1 }
     ], dur: 2300, origin: '50% 4%' },
     'wm-B': {frames: [{"transform":"scale(1, 1)","offset":0},{"transform":"scale(1.32, 0.70)","offset":0.1},{"transform":"scale(0.78, 1.30)","offset":0.24},{"transform":"scale(1.22, 0.80)","offset":0.38},{"transform":"scale(0.86, 1.16)","offset":0.52},{"transform":"scale(1.12, 0.90)","offset":0.66},{"transform":"scale(0.95, 1.06)","offset":0.8},{"transform":"scale(1.02, 0.98)","offset":0.9},{"transform":"scale(1, 1)","offset":1}], dur: 950, easing: 'ease-in-out'},
-    'wm-E': { frames: [
-      { transform: 'translateY(0px) scale(1, 1) rotate(0deg)', offset: 0, easing: 'cubic-bezier(.4,0,.6,1)' },
-      { transform: 'translateY(0.5px) scale(1.05, 0.92) rotate(10deg)', offset: 0.05, easing: 'cubic-bezier(.25,.6,.35,1)' },
-      { transform: 'translateY(-3.2px) scale(0.96, 1.08) rotate(120deg)', offset: 0.24, easing: 'ease-in-out' },
-      { transform: 'translateY(-4.1px) scale(1, 1) rotate(240deg)', offset: 0.36, easing: 'cubic-bezier(.4,0,.6,1)' },
-      { transform: 'translateY(0.3px) scale(1.1, 0.88) rotate(360deg)', offset: 0.5, easing: 'cubic-bezier(.3,.5,.4,1)' },
-      { transform: 'translateY(0.12px) scale(1.04, 0.95)', offset: 0.64, easing: 'ease-in-out' },
-      { transform: 'translateY(0.04px) scale(0.99, 1.015)', offset: 0.78, easing: 'ease-in-out' },
-      { transform: 'translateY(0px) scale(1, 1)', offset: 0.92, easing: 'ease-out' },
-      { transform: 'translateY(0px) scale(1, 1)', offset: 1 }
-    ], dur: 2800, origin: '50% 100%' },
+    'wm-E': { type: 'eWash', dur: 1650 },
     'wm-L': {frames: [{"transform":"none","offset":0},{"transform":"rotate(5deg)","filter":"blur(0.3px) brightness(0.97)","offset":0.22},{"transform":"rotate(8deg) translateY(0.3px)","filter":"blur(0.6px) brightness(0.94)","offset":0.42},{"transform":"rotate(10deg) translateY(0.4px)","filter":"blur(0.9px) brightness(0.92)","offset":0.55},{"transform":"rotate(-3deg) translateY(0px)","filter":"blur(0px) brightness(1.15)","offset":0.62},{"transform":"rotate(4deg)","filter":"brightness(1.05)","offset":0.7},{"transform":"rotate(-2deg)","filter":"brightness(1)","offset":0.78},{"transform":"rotate(1deg)","offset":0.87},{"transform":"none","offset":1}], dur: 1400, easing: 'cubic-bezier(0.45, 0, 0.55, 1)'},
     'wm-R': { frames: [
       { transform: 'translate(0px, 0px) scale(1, 1)', offset: 0, easing: 'cubic-bezier(.55,0,.7,.4)' },
@@ -2721,6 +2711,139 @@ if (!CSS.supports('animation-timeline: view()')) {
     p.__zz = anim;
     anim.finished.then(cleanup).catch(cleanup);
   }
+
+  // E: "wash" — Wesley's pick (Lavish round 2): ONE gentle crest washes
+  // through each of the three strokes (top bar, middle stroke, bottom bar),
+  // staggered ~130ms so it cascades down the E and is absorbed at the right
+  // end. Same machinery as the slice approach: thin vertical slices of the
+  // real design path shift vertically along the crest — the glyph never
+  // translates or fattens, the hand-drawn character survives every frame,
+  // and the spine + period dot sit in the taper where displacement ~0.
+  // Displacement is 0 before each stroke's crest arrives and after it
+  // leaves, so the move lands pixel-exact back on the design rest state.
+  function eWashWave(p) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = p.ownerSVGElement;
+    // re-click mid-flight: kill the previous run dead, then start over
+    if (p.__es) { p.__es.stop(); p.__es = null; }
+    const bb = p.getBBox();
+    // x span for every stroke: from the spine edge to the right edge —
+    // the spine column itself never washes. y windows per stroke
+    // (glyph units, raster-measured; bars are y 0.72..2.30 and 7.86..9.44,
+    // middle stroke band y 3.3..6.6 with <=0.45u travel).
+    const WX0 = bb.x + 1.66, WX1 = bb.x + 8.66;
+    const STROKES = [
+      { y0: bb.y - 0.25, y1: bb.y + 1.75, delay: 0.10 },  // top bar
+      { y0: bb.y + 1.88, y1: bb.y + 6.82, delay: 0.23 },  // middle stroke + dot
+      { y0: bb.y + 6.95, y1: bb.y + 8.95, delay: 0.36 },  // bottom bar
+    ];
+    const WASH = 1.2;                  // one crest crossing, per stroke
+    const SIG = 1.0;                   // crest half-width
+    const AMP = 0.42;                  // peak displacement, <=~0.45u
+    const DUR = 1650;                  // last stroke's crest lands inside this
+    const TAPER = 0.9;                 // ends ease to 0 so strokes stay attached
+    const ss = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    const env = x => ss((x - WX0) / TAPER) * ss((WX1 - x) / TAPER);
+    const SPAN = WX1 - WX0;
+
+    let defs = svg.querySelector('defs');
+    if (!defs) { defs = document.createElementNS(NS, 'defs'); svg.insertBefore(defs, svg.firstChild); }
+    const uid = 'wm-ew-' + Math.random().toString(36).slice(2, 8);
+    const fill = getComputedStyle(p).fill;
+    const d = p.getAttribute('d');
+
+    // One mask with ALL THREE hole rects — p carries a single mask attribute,
+    // so per-window masks would silently overwrite each other (only the last
+    // window's base ink hidden => doubled strokes). The clip lives on a
+    // STATIC g per band — a clip-path on the moving element itself would
+    // travel with it. Only the path child inside gets the per-frame translateY.
+    const mask = document.createElementNS(NS, 'mask');
+    mask.id = uid;
+    const mw = document.createElementNS(NS, 'rect');
+    mw.setAttribute('x', bb.x - 1); mw.setAttribute('y', bb.y - 1);
+    mw.setAttribute('width', bb.width + 2); mw.setAttribute('height', bb.height + 2);
+    mw.setAttribute('fill', '#fff');
+    mask.appendChild(mw);
+    for (const st of STROKES) {
+      const mh = document.createElementNS(NS, 'rect');
+      mh.setAttribute('x', WX0); mh.setAttribute('y', st.y0);
+      mh.setAttribute('width', SPAN); mh.setAttribute('height', st.y1 - st.y0);
+      mh.setAttribute('fill', '#000');
+      mask.appendChild(mh);
+    }
+    defs.appendChild(mask);
+    p.setAttribute('mask', 'url(#' + uid + ')');
+
+    const parts = STROKES.map(st => {
+      const layer = document.createElementNS(NS, 'g');
+      const bands = [];
+      const cpEls = [];
+      const BAND = 0.09, OV = 0.02;
+      const n = Math.ceil((SPAN + OV) / BAND);
+      for (let i = 0; i < n; i++) {
+        const bx = WX0 + i * BAND - (i ? OV / 2 : 0);
+        const cp = document.createElementNS(NS, 'clipPath');
+        cp.id = uid + '-' + st.delay + '-' + i;
+        const r = document.createElementNS(NS, 'rect');
+        r.setAttribute('x', bx.toFixed(3)); r.setAttribute('y', st.y0);
+        r.setAttribute('width', (BAND + OV).toFixed(3));
+        r.setAttribute('height', (st.y1 - st.y0).toFixed(3));
+        cp.appendChild(r); defs.appendChild(cp); cpEls.push(cp);
+        const g = document.createElementNS(NS, 'g');
+        g.setAttribute('clip-path', 'url(#' + cp.id + ')');
+        const c = document.createElementNS(NS, 'path');
+        c.setAttribute('d', d); c.setAttribute('fill', fill);
+        g.appendChild(c); layer.appendChild(g);
+        bands.push({ x: bx + BAND / 2, el: c });
+      }
+      svg.appendChild(layer);
+      return { layer, bands, cpEls, delay: st.delay, done: false };
+    });
+
+    const t0 = performance.now();
+    let raf = 0, dead = false;
+    const stopPart = part => {
+      part.layer.remove();
+      for (const cp of part.cpEls) cp.remove();
+      part.done = true;
+    };
+    const api = {
+      stop() {
+        if (dead) return; dead = true;
+        cancelAnimationFrame(raf);
+        for (const part of parts) { if (!part.done) stopPart(part); }
+        mask.remove();
+        p.removeAttribute('mask');
+        if (p.__es === api) p.__es = null;
+      }
+    };
+    const frame = now => {
+      if (dead) return;
+      const t = (now - t0) / 1000;
+      for (const part of parts) {
+        if (part.done) continue;
+        const lt = (t - part.delay) / WASH;
+        if (lt >= 1) { stopPart(part); continue; }   // crest absorbed: back to design
+        const dy = new Array(part.bands.length).fill(0);
+        if (lt > 0) {
+          const e = lt * lt * (3 - 2 * lt);
+          const sPos = WX0 - SIG + (SPAN + 2 * SIG) * e;
+          part.bands.forEach((b, i) => {
+            const dpos = b.x - sPos;
+            if (Math.abs(dpos) < SIG) {
+              const crest = Math.pow(Math.cos(Math.PI * dpos / (2 * SIG)), 2);
+              dy[i] = (-AMP * crest * env(b.x)).toFixed(3);
+            }
+          });
+        }
+        part.bands.forEach((b, i) => { b.el.style.transform = 'translateY(' + dy[i] + 'px)'; });
+      }
+      if (parts.every(part => part.done)) api.stop();
+      else raf = requestAnimationFrame(frame);
+    };
+    p.__es = api;
+    raf = requestAnimationFrame(frame);
+  }
   const paths = [...svg.querySelectorAll('path[class^="wm-"]')];
 
   function playMove(p) {
@@ -2728,6 +2851,7 @@ if (!CSS.supports('animation-timeline: view()')) {
     const move = MOVES[cls];
     if (!move) return;
     if (move.type === 'snakeCrawl') { snakeScroll(p, move.snakeDir); return; }
+    if (move.type === 'eWash') { eWashWave(p); return; }
     // re-trigger mid-flight: restart the move from the top instead of stacking
     p.getAnimations().forEach(a => a.cancel());
     p.style.transformBox = 'fill-box';
