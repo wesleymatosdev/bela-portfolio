@@ -1918,10 +1918,15 @@ if (!CSS.supports('animation-timeline: view()')) {
 
 <script>
 // Round 16: sticky OVERFLOW join. Scroll progress (0..1 over the first ~90vh)
-// flies the OVER and FLOW keycap groups toward each other and up to a fixed
-// top-centered target; at progress 1 they dock into .overflow-strip as one row
-// reading "OVERFLOW", which then follows the viewport for the rest of the page.
-// Scroll back up = undock + fly back to their hero corners.
+// flies the OVER and FLOW keycaps toward a fixed top-centered target; at
+// progress 1 they dock into .overflow-strip as one row reading "OVERFLOW",
+// which then follows the viewport for the rest of the page. Scroll back up =
+// undock + fly back to their hero corners along the same path.
+// Round 16b: the flight itself hops, matching the Round 18 entrance — each
+// keycap travels an arc with an anticipation crouch, stretch in the air, a
+// tumble, and a squash on landing, staggered letter by letter (O first, W
+// last). Everything is a pure function of scroll progress, so scrubbing is
+// fully reversible and the landing pose is exactly the docked layout.
 // prefers-reduced-motion: groups stay in their base hero positions.
 (function () {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1931,26 +1936,49 @@ if (!CSS.supports('animation-timeline: view()')) {
   if (!over || !flow || !strip || reduce) return;
 
   let docked = false;
-  let baseO = null, baseF = null;   // untransformed hero rects (document coords)
+  let baseO = null, baseF = null;   // untransformed hero rects (viewport, at measure time)
+
+  // the 8 keycaps in reading order — flight transforms live on them now
+  const caps = [
+    ...Array.from(over.querySelectorAll('.keycap')).map(el => ({ el, grp: 'o' })),
+    ...Array.from(flow.querySelectorAll('.keycap')).map(el => ({ el, grp: 'f' })),
+  ];
 
   // remember where each group belongs in the hero so undock restores exactly
   const overNext = over.nextSibling;
   const flowParent = flow.parentNode;
 
-  // the drop-in entrance animation has fill:both — its final transform would
-  // override our inline flight transforms. Clear it once it has run (or on the
-  // first scroll) and cache the natural positions from that clean state.
-  let entranceCleared = false;
-  function clearEntrance() {
-    if (entranceCleared) return;
-    entranceCleared = true;
+  // cache natural positions from a clean (untransformed) state. Keycap rects
+  // are stored relative to their group (rotation cancels out) and as document
+  // coords for the scroll-invariant flight math.
+  function measure() {
     over.style.animation = 'none';
     flow.style.animation = 'none';
     const tO = over.style.transform, tF = flow.style.transform;
     over.style.transform = 'none'; flow.style.transform = 'none';
     baseO = over.getBoundingClientRect();
     baseF = flow.getBoundingClientRect();
+    const sy = window.scrollY;
+    caps.forEach(c => {
+      const r = c.el.getBoundingClientRect();
+      const g = c.grp === 'o' ? baseO : baseF;
+      c.relX = r.left - g.left;   // slot inside the group (layout coords)
+      c.relY = r.top - g.top;
+      c.docX = r.left;            // document coords = natural viewport + scrollY
+      c.docY = r.top + sy;
+    });
     over.style.transform = tO; flow.style.transform = tF;
+  }
+
+  // clear the old CSS entrance once, then keep the clean measurements.
+  // Cancels any Round 18 hops FIRST — getBoundingClientRect includes transforms,
+  // so measuring mid-hop would cache wrong slot positions.
+  let entranceCleared = false;
+  function clearEntrance() {
+    if (entranceCleared) return;
+    entranceCleared = true;
+    if (window.__cancelLuxoHops) window.__cancelLuxoHops();
+    measure();
   }
 
   // viewport target: where the docked strip sits (top-centered)
@@ -1968,6 +1996,7 @@ if (!CSS.supports('animation-timeline: view()')) {
     docked = true;
     over.style.transform = '';
     flow.style.transform = '';
+    caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
     strip.appendChild(over);
     strip.appendChild(flow);
   }
@@ -1987,46 +2016,71 @@ if (!CSS.supports('animation-timeline: view()')) {
 
     if (p >= 1) { dock(); return; }
     undock();
-    if (p <= 0 || !baseO) { over.style.transform = ''; flow.style.transform = ''; return; }
-
-    // Round 17 (feedback): NO diagonal flight. Two sequential phases driven by
-    // scroll progress — phase A (0..0.5): each group moves VERTICALLY only,
-    // sticking to the top edge (y target = strip top) while keeping its x.
-    // phase B (0.5..1): both groups slide HORIZONTALLY (slowly — linear-ish
-    // ease) to their joined center positions. Scroll up reverses the same path.
-    const t = targets();
-    // natural viewport position = document position - scrollY (x is scroll-invariant)
-    const oNatTop = baseO.top - window.scrollY;
-    const fNatTop = baseF.top - window.scrollY;
-    // vertical targets: top strip; horizontal targets: joined center row
-    const oTy = t.o.top, fTy = t.f.top;
-    const oTx = t.o.left, fTx = t.f.left;
-
-    let ox, oy, fx, fy, rotE;
-    if (p <= 0.5) {
-      // phase A: vertical only, x frozen at base; rotation settles
-      const a = p / 0.5;                       // 0..1 within phase A
-      const ae = 1 - Math.pow(1 - a, 3);       // easeOutCubic
-      ox = 0; fx = 0;
-      oy = (oTy - oNatTop) * ae;
-      fy = (fTy - fNatTop) * ae;
-      rotE = ae;
-    } else {
-      // phase B: y pinned at strip top; x slides to center slowly (linear-ish)
-      const b = (p - 0.5) / 0.5;               // 0..1 within phase B
-      const be = b * b * (3 - 2 * b);          // smoothstep — gentle, slow feel
-      oy = oTy - oNatTop;                      // full vertical offset
-      fy = fTy - fNatTop;
-      ox = (oTx - baseO.left) * be;
-      fx = (fTx - baseF.left) * be;
-      rotE = 1;
+    if (p <= 0 || !baseO) {
+      over.style.transform = ''; flow.style.transform = '';
+      caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
+      return;
     }
-    over.style.transform =
-      'translate(' + ox.toFixed(1) + 'px,' + oy.toFixed(1) + 'px)' +
-      ' rotate(' + (-4 * (1 - rotE)).toFixed(2) + 'deg)';
-    flow.style.transform =
-      'translate(' + fx.toFixed(1) + 'px,' + fy.toFixed(1) + 'px)' +
-      ' rotate(' + (3 * (1 - rotE)).toFixed(2) + 'deg)';
+
+    // scroll-scrubbed transforms must track the scroll exactly — CSS transitions
+    // on transform would add lag; hand control to the flight math instead
+    caps.forEach(c => { c.el.style.transition = 'none'; });
+
+    // the group keeps only its rotation settle; translation lives on keycaps
+    const rotE = 1 - Math.pow(1 - p, 3);
+    over.style.transform = 'rotate(' + (-4 * (1 - rotE)).toFixed(2) + 'deg)';
+    flow.style.transform = 'rotate(' + (3 * (1 - rotE)).toFixed(2) + 'deg)';
+
+    const t = targets();
+    const vh = window.innerHeight;
+    const hopOver = Math.max(45, Math.min(80, vh * 0.08));   // short hops along the top edge
+    const hopFlow = Math.max(85, Math.min(150, vh * 0.17));  // big leaps up from below
+
+    // Each keycap flies within its own [start, end] window of scroll progress:
+    // OVER hops along the top into center first (its corner scrolls off-screen
+    // almost immediately, so it must lead), then FLOW leaps up letter by
+    // letter. Every window closes at or before p = 1, so the docked pose is
+    // always the exact strip layout. Pure function of p — scrub reverses it.
+    const WIN = [
+      [0.00, 0.34], [0.06, 0.40], [0.12, 0.46], [0.18, 0.52],   // O V E R
+      [0.42, 0.76], [0.50, 0.84], [0.58, 0.92], [0.66, 1.00],   // F L O W
+    ];
+
+    caps.forEach((c, i) => {
+      const [ws, we] = WIN[i];
+      const q = Math.min(1, Math.max(0, (p - ws) / (we - ws)));
+      const e = q * q * (3 - 2 * q);         // smoothstep along the path
+
+      // squash & stretch beats (Round 18 language, scrubbed by scroll):
+      // crouch just after leaving, stretch mid-air, squash on landing.
+      // The landing window is a sine that closes exactly at q = 1 so the
+      // docked pose is untouched by residual scale.
+      const crouch = Math.exp(-Math.pow((q - 0.10) / 0.08, 2));
+      const stretch = Math.exp(-Math.pow((q - 0.40) / 0.12, 2));
+      const land = q > 0.78 ? Math.sin(Math.PI * (q - 0.78) / 0.22) : 0;
+      const sx = 1 + 0.12 * crouch - 0.10 * stretch + 0.20 * land;
+      const sy = 1 - 0.18 * crouch + 0.14 * stretch - 0.26 * land;
+
+      // hop arc: leaves the ground after the crouch, back down exactly at q=1
+      const aq = Math.min(1, Math.max(0, (q - 0.06) / 0.94));
+      const arc = Math.sin(Math.PI * aq);
+      const hopH = c.grp === 'o' ? hopOver : hopFlow;
+      const tumble = (i % 2 ? -9 : 9) * arc; // slight in-air tumble, settles to 0
+
+      // target: this keycap's exact docked slot in the strip
+      const g = c.grp === 'o' ? t.o : t.f;
+      const tx = g.left + c.relX;
+      const ty = g.top + c.relY;
+      const natX = c.docX;                   // x is scroll-invariant
+      const natY = c.docY - window.scrollY;
+
+      const dx = (tx - natX) * e;
+      const dy = (ty - natY) * e - arc * hopH + 3 * crouch;
+      c.el.style.transform =
+        'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' +
+        ' rotate(' + tumble.toFixed(2) + 'deg)' +
+        ' scale(' + sx.toFixed(3) + ',' + sy.toFixed(3) + ')';
+    });
   }
 
   function onScroll() {
@@ -2036,9 +2090,19 @@ if (!CSS.supports('animation-timeline: view()')) {
     apply();
   }
 
-  setTimeout(clearEntrance, 1400); // entrance done by then; safe fallback
+  // No fixed fallback timer: there is no CSS entrance animation left to clear,
+  // and measuring is only needed before the first scroll — clearing early
+  // (while the Round 18 hops are still playing) would cancel them needlessly.
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', () => { if (entranceCleared) { const d = docked; undock(); clearEntrance(); baseO = baseF = null; clearEntrance(); docked = d; if (d) dock(); apply(); } });
+  window.addEventListener('resize', () => {
+    if (window.__cancelLuxoHops) window.__cancelLuxoHops();
+    const d = docked;
+    undock();
+    measure();
+    docked = d;
+    if (d) dock();
+    apply();
+  });
   apply();
 })();
 
