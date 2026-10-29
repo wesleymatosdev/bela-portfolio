@@ -2127,6 +2127,7 @@ if (!CSS.supports('animation-timeline: view()')) {
   function dock() {
     const wasDocked = docked;
     docked = true;
+    resetCollSm();
     over.style.transform = '';
     flow.style.transform = '';
     caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
@@ -2138,6 +2139,7 @@ if (!CSS.supports('animation-timeline: view()')) {
   function undock() {
     if (!docked) return;
     docked = false;
+    resetCollSm();
     cancelChar();
     overNext.parentNode.insertBefore(over, overNext);
     flowParent.appendChild(flow);
@@ -2147,11 +2149,19 @@ if (!CSS.supports('animation-timeline: view()')) {
 
   // ---- OVER letters are solid: the walking queue shoves itself ----
   // The four boxes walk the same line at different paces (rear letters catch
-  // up), so they bunch up mid-walk; this stateless per-frame pass resolves
-  // the overlaps — front boxes get shoved toward the strip, pushers knock
-  // back with a squash and a tip. Scrub-stable: reversing scroll un-walks
-  // the fight. Landed boxes are anchored to their exact strip slots and
-  // pushes fade out over the last 3% of a window, so landings stay exact.
+  // up), so they bunch up mid-walk; collideOVER resolves the overlaps — front
+  // boxes shoved toward the strip, pushers knocking back with a squash and a
+  // tip. The RAW pass is stateless over the scrub, but its output is spiky
+  // (penetration depth pulses with every hop sine and the min-axis flips
+  // frame to frame), so the collision DELTA is low-pass filtered per letter:
+  // the scrub stays exact, only the shove eases. Reset on dock/undock/resize.
+  const IDX4 = [0, 1, 2, 3];
+  let collSpring = null;  // per-OVER-letter spring state { off, vel } — the
+  // raw resolution can step frame to frame, but the letters' collision offset
+  // chases it through an under-damped spring: motion is always smooth, and
+  // the overshoot reads as bouncing off each other
+  let collLastT = 0;
+  function resetCollSm() { collSpring = null; }
   function collideOVER(poses) {
     const IDX = [0, 1, 2, 3];
     for (let iter = 0; iter < 8; iter++) {
@@ -2160,25 +2170,17 @@ if (!CSS.supports('animation-timeline: view()')) {
         if (!A || !B || (A.landed && B.landed)) continue;
         const ca = caps[i], cb = caps[j];
         const ox = (ca.w + cb.w) / 2 - Math.abs(A.x - B.x);   // x penetration (same walking line)
-        const oy = (ca.h + cb.h) / 2 - Math.abs(A.y - B.y);   // y penetration (hop arcs)
-        if (ox <= 0 || oy <= 0) continue;
-        const amp = 1.3 * Math.min(A.fade, B.fade);           // bounce off a bit harder than the overlap
-        const sgnX = A.x <= B.x ? -1 : 1, sgnY = A.y <= B.y ? -1 : 1;
-        // displacement accumulates across iterations (that IS the resolution);
-        // the impact flair takes the max, or 8 iterations compound it
-        const shoveX = (P, s) => {
-          P.x += s;
-          P.sqx = Math.max(P.sqx || 0, 0.15 * Math.min(1.2, amp));
-          P.rot += s * 7; P.rot = Math.max(-16, Math.min(16, P.rot));
-        };
-        const shoveY = (P, s) => { P.y += s; P.sqy = Math.max(P.sqy || 0, 0.16 * Math.min(1.2, amp)); };
-        if (ox < oy) {
-          if (!A.landed) shoveX(A, sgnX * ox * amp * (B.landed ? 1 : 0.5));
-          if (!B.landed) shoveX(B, -sgnX * ox * amp * (A.landed ? 1 : 0.5));
-        } else {
-          if (!A.landed) shoveY(A, sgnY * oy * amp * (B.landed ? 1 : 0.5));
-          if (!B.landed) shoveY(B, -sgnY * oy * amp * (A.landed ? 1 : 0.5));
-        }
+        const oy = (ca.h + cb.h) / 2 - Math.abs(A.y - B.y);   // y overlap (hop arcs)
+        // resolve ALONG THE LINE only: picking the min axis let pairs flip
+        // between horizontal shoves and vertical slams frame to frame — the
+        // flicker Wesley saw. A 1-D queue always pushes along the line; hop
+        // arcs lift letters over each other naturally.
+        if (ox <= 2 || oy <= 0) continue;                     // dead zone: ignore marginal contacts
+        const amp = 1.2 * Math.min(A.fade, B.fade);           // bounce off a bit harder than the overlap
+        const sgnX = A.x <= B.x ? -1 : 1;
+        const shoveX = (P, s) => { P.x += s; };
+        if (!A.landed) shoveX(A, sgnX * ox * amp * (B.landed ? 1 : 0.5));
+        if (!B.landed) shoveX(B, -sgnX * ox * amp * (A.landed ? 1 : 0.5));
       }
     }
   }
@@ -2190,6 +2192,7 @@ if (!CSS.supports('animation-timeline: view()')) {
     if (p >= 0.87) { dock(); return; }
     undock();
     if (p <= 0 || !baseO) {
+      resetCollSm();
       over.style.transform = ''; flow.style.transform = '';
       caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
       return;
@@ -2238,7 +2241,7 @@ if (!CSS.supports('animation-timeline: view()')) {
       // the queue so collideOVER has something to fight about. [0,1] → [0,1]
       // keeps every segment boundary continuous and the landings exact.
       const pp2 = isOver
-        ? win[0] + (win[1] - win[0]) * Math.pow((pp - win[0]) / (win[1] - win[0]), [1.5, 1.2, 0.85, 0.68][i])
+        ? win[0] + (win[1] - win[0]) * Math.pow((pp - win[0]) / (win[1] - win[0]), [1.25, 1.12, 0.92, 0.8][i])
         : pp;
 
       // multi-hop waypoint segments — every waypoint stays on screen
@@ -2321,9 +2324,32 @@ if (!CSS.supports('animation-timeline: view()')) {
     });
 
     // FLOW letters walk their own lanes; the OVER queue is solid —
-    // resolve walker overlaps before writing
+    // the raw resolution result becomes the TARGET of a per-letter spring,
+    // so the shove is always smooth (its overshoot reads as bouncing off)
     const overPoses = [0, 1, 2, 3].map(i => caps[i].el.__pose);
-    if (!window.__luxoNoCollide) collideOVER(overPoses);
+    if (!window.__luxoNoCollide) {
+      const baseP = overPoses.map(P => ({ x: P.x, rot: P.rot }));
+      collideOVER(overPoses);
+      const tN = performance.now(), dtt = collLastT ? Math.min(100, tN - collLastT) : 16;
+      collLastT = tN;
+      const dt = dtt / 1000, snap = dtt >= 100;
+      if (!collSpring || snap) collSpring = IDX4.map(() => ({ off: 0, vel: 0 }));
+      overPoses.forEach((P, i) => {
+        const S = collSpring[i], b = baseP[i];
+        const target = P.x - b.x;
+        // under-damped spring: kicks from the raw pass become weighty shoves
+        S.vel += (target - S.off) * 150 * dt;
+        S.vel *= Math.exp(-16 * dt);
+        S.off += S.vel * dt;
+        P.x = b.x + S.off;
+        // impact flair scales continuously with the spring compression
+        const mag = Math.min(1, Math.abs(S.off) / 30);
+        P.sqx = Math.max(P.sqx || 0, mag * 0.15);
+        P.rot += Math.sign(S.off) * mag * 7;
+      });
+    } else {
+      collSpring = null;
+    }
 
     caps.forEach((c, i) => {
       const P = c.el.__pose;
@@ -2372,6 +2398,7 @@ if (!CSS.supports('animation-timeline: view()')) {
     // NOTE: no __cancelLuxoHops here — emulators/headless can fire a spurious
     // resize right after load, which killed the entrance during its delay
     // phase. Hop offsets are cached at load; the entrance plays through.
+    resetCollSm();
     cancelChar();
     const d = docked;
     undock();
