@@ -1690,8 +1690,12 @@ function filterWork(cat, btn) {
 }
 document.querySelectorAll('.keycap').forEach(k => {
   k.addEventListener('click', () => {
-    k.style.transform = 'translateY(2px) scale(0.95)';
-    setTimeout(() => { k.style.transform = ''; }, 150);
+    // press ON TOP of the current transform — the entrance/join/follow own
+    // k.style.transform, so never overwrite or clear it (overwriting used to
+    // teleport a letter that was mid-join back to its natural slot)
+    const base = k.style.transform || '';
+    k.style.transform = base + ' translateY(2px) scale(0.95)';
+    setTimeout(() => { k.style.transform = base; }, 150);
   });
 });
 
