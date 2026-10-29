@@ -2163,16 +2163,21 @@ if (!CSS.supports('animation-timeline: view()')) {
           { p0: dEnd + 2 * third, p1: win[1], ax: ex(0.84), ay: lineY, bx: tx, by: ty, lift: 22, sway: 0 },
         ];
       } else {
+        // FLOW: repeats an "E-letter" energy cycle until it reaches the dock —
+        // wind up on its own box (rock back + twist, cw/ccw alternating —
+        // gravity flipping sides), then discharge one small hop forward.
         segs = [];
-        const N = 3;
-        for (let k = 0; k < N; k++) {
+        const CYC = 5;
+        const startX = natX + dx * 0.03, startY = natY - 4;
+        for (let k = 0; k < CYC; k++) {
           segs.push({
-            p0: win[0] + (win[1] - win[0]) * k / N,
-            p1: win[0] + (win[1] - win[0]) * (k + 1) / N,
-            ax: natX + dx * e(k / N), ay: natY + (ty - natY) * k / N,
-            bx: natX + dx * e((k + 1) / N), by: natY + (ty - natY) * (k + 1) / N,
-            lift: 0, sway: (k % 2 ? -1 : 1) * climbSway,
-            bounce: 26,  // climb overshoots each hop landing, then settles — visible step
+            p0: win[0] + (win[1] - win[0]) * k / CYC,
+            p1: win[0] + (win[1] - win[0]) * (k + 1) / CYC,
+            ax: startX + (tx - startX) * k / CYC, ay: startY + (ty - startY) * k / CYC,
+            bx: startX + (tx - startX) * (k + 1) / CYC, by: startY + (ty - startY) * (k + 1) / CYC,
+            lift: 24,
+            rock: true,
+            rotAmp: (k % 2 ? -12 : 12),   // twist cw, then ccw, alternating
           });
         }
       }
@@ -2184,23 +2189,43 @@ if (!CSS.supports('animation-timeline: view()')) {
       const ue = u * u * (3 - 2 * u);
       const hop = Math.sin(Math.PI * u);
 
-      const x = sg.ax + (sg.bx - sg.ax) * ue + (sg.sway || 0) * hop;
+      let x = sg.ax + (sg.bx - sg.ax) * ue + (sg.sway || 0) * hop;
       let y = sg.ay + (sg.by - sg.ay) * ue - (sg.lift || 0) * hop;
       if (sg.bounce && u > 0.7) {
         // climb overshoots just past each hop's landing, then settles onto it
         y -= sg.bounce * Math.max(0, Math.sin(Math.PI * (u - 0.7) / 0.3));
       }
-
-      // squash personality: a small beat on EVERY hop landing, the heavy one
-      // on the final landing — the sine closes exactly at u=1 so the docked
-      // pose is untouched by residual scale
-      let sq = u > 0.8 ? Math.sin(Math.PI * (u - 0.8) / 0.2) * 0.05 : 0;
-      if (j === segs.length - 1 && u > 0.7) sq = Math.sin(Math.PI * (u - 0.7) / 0.3) * 0.24;
-      const tumble = (j % 2 ? -1 : 1) * 6 * hop;
+      // E-letter energy cycle: rock back on the box (crouch + twist) for the
+      // first 45% — gathering impulse against gravity — then discharge it in
+      // one small forward hop, rotation unwinding through straight
+      let sq, rot;
+      if (sg.rock) {
+        if (u < 0.45) {
+          const wu = u / 0.45, s1 = Math.sin(Math.PI * wu);
+          const back = (sg.rotAmp > 0 ? 1 : -1) * 6;
+          x = sg.ax - back * s1;
+          y = sg.ay + 4 * s1;
+          sq = 0.12 * s1;
+          rot = sg.rotAmp * (s1 + 0.3 * Math.sin(2 * Math.PI * wu));
+        } else {
+          const h = (u - 0.45) / 0.55, he = h * h * (3 - 2 * h), dh = Math.sin(Math.PI * h);
+          x = sg.ax + (sg.bx - sg.ax) * he + (sg.sway || 0) * dh;
+          y = sg.ay + (sg.by - sg.ay) * he - (sg.lift || 0) * dh;
+          sq = h > 0.72 ? Math.sin(Math.PI * (h - 0.72) / 0.28) * (j === segs.length - 1 ? 0.24 : 0.07) : 0;
+          rot = sg.rotAmp * (1 - he) * (1 - h * 0.3);
+        }
+      } else {
+        // squash personality: a small beat on EVERY hop landing, the heavy one
+        // on the final landing — the sine closes exactly at u=1 so the docked
+        // pose is untouched by residual scale
+        sq = u > 0.8 ? Math.sin(Math.PI * (u - 0.8) / 0.2) * 0.05 : 0;
+        if (j === segs.length - 1 && u > 0.7) sq = Math.sin(Math.PI * (u - 0.7) / 0.3) * 0.24;
+        rot = (j % 2 ? -1 : 1) * 6 * hop;
+      }
 
       c.el.style.transform =
         'translate(' + (x - natX).toFixed(1) + 'px,' + (y - natY).toFixed(1) + 'px)' +
-        ' rotate(' + tumble.toFixed(2) + 'deg)' +
+        ' rotate(' + rot.toFixed(2) + 'deg)' +
         ' scale(' + (1 + sq * 0.7).toFixed(3) + ',' + (1 - sq).toFixed(3) + ')';
     });
   }
