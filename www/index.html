@@ -91,8 +91,9 @@ body {
   z-index: 3;
 }
 /* Round 18 (Luxo hops): groups are static containers — each individual keycap
-   hops in from offscreen via WAAPI (see the Round 18 script below). Keeping the
-   entrance off CSS lets scroll and prefers-reduced-motion cancel it instantly. */
+   walks in from offscreen via the Round 18 rAF pose loop (see the Round 18
+   script below). Keeping the entrance off CSS lets scroll and
+   prefers-reduced-motion cancel it instantly. */
 .keycap-group.over {
   top: 6%; left: 7%;
   transform: rotate(-4deg);
@@ -1833,8 +1834,12 @@ if (!CSS.supports('animation-timeline: view()')) {
 // landing, then a small settle bounce. The LAST keycap lands with extra weight
 // — a beat of overshoot — and its landing squashes the wordmark subtly, like
 // the lamp stepping onto the I. transform/opacity only (compositor-friendly).
-// First scroll cancels everything mid-flight (keycaps snap to their slots and
-// the Round 16 scroll join takes over); prefers-reduced-motion never starts it.
+// The keycaps are SOLID here too: a rAF pose loop drives the walk (same math
+// the scrubbed join uses) and mid-flight letters that overlap shove each
+// other apart through under-damped springs — the first load ends in the same
+// scramble for space as the scroll join. First scroll cancels everything
+// mid-flight (the Round 16 scroll join takes over); reduced-motion never
+// starts it.
 (function () {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const caps = Array.from(document.querySelectorAll('.hero .keycap'));
@@ -1854,11 +1859,23 @@ if (!CSS.supports('animation-timeline: view()')) {
   const STAGGER = 380;     // gap between letter starts — readable, not frenetic
   const START_DELAY = 350; // small beat after load before the first hop
 
-  const anims = [];
-  let canceled = false;
+  const anims = [];        // wordmark squash only — keycaps are pose-driven
+  let canceled = false, rafId = 0;
+  // while the entrance owns the keycaps, the Round 16 join must not write
+  // transforms — the two writers interleaving is what read as flicker
+  window.__luxoEntranceActive = true;
+  // .keycap has `transition: transform .15s ease` (for the hover lift) — with
+  // per-frame pose writes that retargets the transition every frame and the
+  // rendered transform trails the written one: super flickery. Kill it while
+  // the entrance drives; restore afterwards so the hover/press keep their ease.
+  caps.forEach(c => { c.style.transition = 'none'; });
   function cancelHops() {
     if (canceled) return;
     canceled = true;
+    window.__luxoEntranceActive = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+    caps.forEach(c => { c.style.transform = ''; c.style.opacity = ''; c.style.transition = ''; });
     anims.forEach(a => { try { a.cancel(); } catch (e) {} });
   }
   // any scroll hands choreography over to the Round 16 scroll join
@@ -1867,10 +1884,8 @@ if (!CSS.supports('animation-timeline: view()')) {
   window.__cancelLuxoHops = cancelHops;
 
   const vw = window.innerWidth, vh = window.innerHeight;
-  const rot = s => (-s * 12).toFixed(1) + 'deg';         // slight tumble in the air
 
-  caps.forEach((cap, i) => {
-    const last = i === caps.length - 1;
+  const cfgs = caps.map((cap, i) => {
     const r = cap.getBoundingClientRect();
     const size = Math.max(r.width, r.height);
     const side = i % 2 === 0 ? -1 : 1;                   // left, right, left, ...
@@ -1894,66 +1909,161 @@ if (!CSS.supports('animation-timeline: view()')) {
     ][i];
     const K = prof.hops;
     const dur = HOP_MS * (0.7 + 0.45 * K);               // more hops = a bit longer
-    const wEnd = 0.85;                                   // hops end, settle begins
-    const lerp = (a, b, u) => a + (b - a) * u;
-    const ss = u => u * u * (3 - 2 * u);
-
-    // pose at entrance-progress f (0..1): offset from the natural slot
-    function pose(f) {
-      if (f >= wEnd) {
-        // landed: heavy squash (W) or settle bounce, then rest
-        const s = (f - wEnd) / (1 - wEnd), b = Math.sin(Math.PI * s);
-        if (last) {
-          const sq = s < 0.45 ? 1 - b * 0.38 : 1 + b * 0.05;
-          return { x: 0, y: size * 0.08 * (1 - s), rot: 0, sx: sq + 0.3 * b * (s < 0.45 ? 1 : 0), sy: sq - 0.06 * b * (s >= 0.45 ? 1 : 0) };
-        }
-        return { x: 0, y: -size * 0.09 * b, rot: 0, sx: 1 + 0.08 * b, sy: 1 - 0.10 * b * (s < 0.5 ? 1 : 0.3) };
-      }
-      const g = f / wEnd;
-      const k = Math.min(K - 1, Math.floor(g * K));
-      const u = g * K - k;
-      const h = Math.sin(Math.PI * u);
-      const f0 = k / K, f1 = (k + 1) / K, ue = ss(u);
-      // approach offset from the natural slot (frames add sx/dy into the
-      // translate, so these start at sx/dy and glide to 0 at the landing)
-      let x = lerp(sx * (1 - f0), sx * (1 - f1), ue);
-      let y = lerp(dy * (1 - f0), dy * (1 - f1), ue);
-      // hop arc: entry hop the biggest, later hops smaller (losing momentum);
-      // clamped so the apex never pushes the keycap above the viewport top
-      const lift = Math.min(
-        hopH * prof.amp * (k === 0 ? 1 : Math.max(0.2, 0.55 - 0.1 * k)),
-        maxLift,
-      ) * h;
-      y -= lift;
-      // personality: entry tumble decaying + alternating micro-twist per step
-      const rot = (side * 9 + (k % 2 ? -5 : 5)) * h * (1 - f * 0.6);
-      // landing squash on every step; opacity fades in during the first hop
-      let sq = u > 0.78 ? Math.sin(Math.PI * (u - 0.78) / 0.22) * 0.09 : 0;
-      const opacity = Math.min(1, f * 14 + u * 0.4);
-      return { x, y, rot, sq, opacity };
-    }
-
-    const N = 72, frames = [];
-    for (let s = 0; s <= N; s++) {
-      const f = s / N;
-      const p = pose(f);
-      frames.push({
-        transform: 'translate(' + p.x.toFixed(1) + 'px,' + p.y.toFixed(1) + 'px)' +
-          ' rotate(' + p.rot.toFixed(2) + 'deg)' +
-          ' scale(' + (p.sx ?? (1 + p.sq * 0.7)).toFixed(3) + ',' + (p.sy ?? (1 - p.sq)).toFixed(3) + ')',
-        opacity: p.opacity != null ? p.opacity : 1,
-        offset: f,
-      });
-    }
-    frames[0].opacity = 0;
-
-    anims.push(cap.animate(frames, {
-      duration: dur,
+    return {
+      el: cap, sx, dy, hopH, maxLift, prof, K, dur, side, size, last: i === caps.length - 1,
+      wEnd: 0.85,                                        // hops end, settle begins
+      w: r.width, h: r.height,                           // collision box
+      natX: r.left, natY: r.top,
       delay: START_DELAY + i * STAGGER,
-      fill: 'backwards',   // hidden at its offscreen start until the hop begins
-      easing: 'linear',
-    }));
+    };
   });
+  // re-measure the geometry once web fonts settle and on resize: the IIFE-time
+  // rects can be stale (fallback-font layout sits lower), which broke the hop
+  // clamp and let letters hop above the viewport
+  function measureCfgs() {
+    const vw2 = window.innerWidth, vh2 = window.innerHeight;
+    // read UNTRANSFORMED rects: a mid-walk transform would poison the geometry
+    const prevTf = cfgs.map(cfg => { const t = cfg.el.style.transform; cfg.el.style.transform = 'none'; return t; });
+    const rects = cfgs.map(cfg => cfg.el.getBoundingClientRect());
+    cfgs.forEach((cfg, i) => {
+      const r = rects[i];
+      const size = Math.max(r.width, r.height);
+      const side = i % 2 === 0 ? -1 : 1;
+      cfg.sx = side < 0 ? -(r.left + r.width / 2) : (vw2 - r.left + r.width / 2);
+      cfg.dy = size * 0.08;
+      cfg.hopH = Math.min(Math.max(70, Math.min(150, vh2 * 0.17)), Math.max(22, r.top - 10));
+      cfg.maxLift = Math.max(22, r.top - 10);
+      cfg.size = size;
+      cfg.w = r.width; cfg.h = r.height;
+      cfg.natX = r.left; cfg.natY = r.top;
+      cfg.el.style.transform = prevTf[i];
+    });
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureCfgs);
+  window.addEventListener('resize', measureCfgs);
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const ss = u => u * u * (3 - 2 * u);
+  window.__cfgDump = cfgs.map(c => ({ maxLift: Math.round(c.maxLift), hopH: Math.round(c.hopH), sx: Math.round(c.sx), natY: Math.round(c.natY), w: c.w }));
+
+  // pose at entrance-progress f (0..1): offset from the natural slot
+  function pose(cfg, f) {
+    if (f >= cfg.wEnd) {
+      // landed: heavy squash (W) or settle bounce, then rest
+      const s = (f - cfg.wEnd) / (1 - cfg.wEnd), b = Math.sin(Math.PI * s);
+      if (cfg.last) {
+        const sq = s < 0.45 ? 1 - b * 0.38 : 1 + b * 0.05;
+        return { x: 0, y: cfg.size * 0.08 * (1 - s), rot: 0, sx: sq + 0.3 * b * (s < 0.45 ? 1 : 0), sy: sq - 0.06 * b * (s >= 0.45 ? 1 : 0), opacity: 1 };
+      }
+      return { x: 0, y: -cfg.size * 0.09 * b, rot: 0, sx: 1 + 0.08 * b, sy: 1 - 0.10 * b * (s < 0.5 ? 1 : 0.3), opacity: 1 };
+    }
+    const g = f / cfg.wEnd;
+    const k = Math.min(cfg.K - 1, Math.floor(g * cfg.K));
+    const u = g * cfg.K - k;
+    const h = Math.sin(Math.PI * u);
+    const f0 = k / cfg.K, f1 = (k + 1) / cfg.K, ue = ss(u);
+    // approach offset from the natural slot: starts at sx/dy, glides to 0
+    let x = lerp(cfg.sx * (1 - f0), cfg.sx * (1 - f1), ue);
+    let y = lerp(cfg.dy * (1 - f0), cfg.dy * (1 - f1), ue);
+    // hop arc: entry hop the biggest, later hops smaller (losing momentum);
+    // clamped so the apex never pushes the keycap above the viewport top
+    const lift = Math.min(
+      cfg.hopH * cfg.prof.amp * (k === 0 ? 1 : Math.max(0.2, 0.55 - 0.1 * k)),
+      cfg.maxLift,
+    ) * h;
+    y -= lift;
+    // personality: entry tumble decaying + alternating micro-twist per step
+    const rot = (cfg.side * 9 + (k % 2 ? -5 : 5)) * h * (1 - f * 0.6);
+    // landing squash on every step; opacity fades in during the first hop
+    const sq = u > 0.78 ? Math.sin(Math.PI * (u - 0.78) / 0.22) * 0.09 : 0;
+    const opacity = Math.min(1, f * 14 + u * 0.4);
+    return { x, y, rot, sq, opacity };
+  }
+
+  // solid keycaps: mid-flight letters that overlap shove each other along
+  // their travel (x) through the same under-damped springs the scroll join
+  // uses — the raw pass only produces the spring TARGET, so motion is smooth
+  let spring = cfgs.map(() => ({ off: 0, vel: 0 }));
+  let lastT = 0;
+  const t0 = performance.now();
+
+  function tick(now) {
+    if (canceled) return;
+    const t = now - t0;
+    // geometry can shift in the first moments (font swap/layout settle) — keep
+    // it fresh through the risk window; after 800ms it's stable
+    if (t < 800) measureCfgs();
+    let allDone = true;
+    const poses = cfgs.map((cfg, i) => {
+      const f = Math.min(1, Math.max(0, (t - cfg.delay) / cfg.dur));
+      if (f < 1) allDone = false;
+      const P = pose(cfg, f);
+      // collision authority fades out over the settle so landings stay exact
+      P.fade = f < cfg.wEnd ? 1 : Math.max(0, 1 - (f - cfg.wEnd) / (1 - cfg.wEnd));
+      P.f = f;
+      return P;
+    });
+
+    // raw resolution along each pair's travel (x): overlapping mid-flight
+    // boxes separate; landed/settling letters are anchored
+    const baseP = poses.map(P => ({ x: P.x, rot: P.rot }));
+    for (let iter = 0; iter < 6; iter++) {
+      for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) {
+        const A = poses[a], B = poses[b];
+        if (A.f >= cfgs[a].wEnd && B.f >= cfgs[b].wEnd) continue;
+        const ox = (cfgs[a].w + cfgs[b].w) / 2 - Math.abs(A.x - B.x);
+        const oy = (cfgs[a].h + cfgs[b].h) / 2 - Math.abs(A.y - B.y);
+        if (ox <= 2 || oy <= 0) continue;                  // dead zone
+        const amp = 1.2 * Math.min(A.fade, B.fade);
+        const sgn = A.x <= B.x ? -1 : 1;
+        const fa = A.f >= cfgs[a].wEnd ? 0 : (B.f >= cfgs[b].wEnd ? 1 : 0.5);
+        const fb = B.f >= cfgs[b].wEnd ? 0 : (A.f >= cfgs[a].wEnd ? 1 : 0.5);
+        A.x += sgn * ox * amp * fa;
+        B.x -= sgn * ox * amp * fb;
+      }
+    }
+
+    // spring chase: the shove is always smooth, overshoot = bouncing off.
+    // Explicit Euler explodes on frame hitches (dt 100ms ⇒ 100px jumps —
+    // flicker), so integrate in fixed ≤8ms substeps.
+    const dtt = lastT ? Math.min(100, now - lastT) : 16;
+    lastT = now;
+    const dt = dtt / 1000;
+    const subH = dt / Math.max(1, Math.ceil(dt / 0.008));
+    poses.forEach((P, i) => {
+      const S = spring[i], b = baseP[i];
+      const target = P.x - b.x;
+      const steps = Math.max(1, Math.ceil(dt / 0.008));
+      for (let s = 0; s < steps; s++) {
+        S.vel += (target - S.off) * 150 * subH;
+        S.vel *= Math.exp(-16 * subH);
+        S.off += S.vel * subH;
+      }
+      S.off = Math.max(-80, Math.min(80, S.off));
+      P.x = b.x + S.off;
+      const mag = Math.min(1, Math.abs(S.off) / 30);
+      P.sqx = Math.max(P.sqx || 0, mag * 0.15);
+      P.rot += Math.sign(S.off) * mag * 7;
+
+      const el = caps[i];
+      if (P.opacity < 1) el.style.opacity = P.opacity.toFixed(2);
+      else el.style.opacity = '';
+      el.style.transform =
+        'translate(' + P.x.toFixed(1) + 'px,' + P.y.toFixed(1) + 'px)' +
+        ' rotate(' + P.rot.toFixed(2) + 'deg)' +
+        ' scale(' + ((P.sx ?? 1 + P.sq * 0.7 + P.sqx)).toFixed(3) + ',' + (P.sy ?? 1 - Math.min(0.45, P.sq)).toFixed(3) + ')';
+    });
+
+    if (allDone) {
+      // pristine hand-back: inline styles off = exact natural layout, and the
+      // CSS transition comes back for hover/press
+      window.__luxoEntranceActive = false;
+      caps.forEach(c => { c.style.transform = ''; c.style.opacity = ''; c.style.transition = ''; });
+      rafId = 0;
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
 
   // the last keycap's landing squashes the wordmark — the lamp-on-the-I beat
   if (wordmark) {
@@ -2186,6 +2296,8 @@ if (!CSS.supports('animation-timeline: view()')) {
   }
 
   function apply(p) {
+    // the entrance owns the keycaps until it finishes or is canceled
+    if (window.__luxoEntranceActive) return;
     // dock as soon as the walk is visually complete (all windows end by 0.86):
     // waiting for pSmooth to crawl to ~1.0 delayed the dock settle by >1s,
     // disconnected from the scroll — the "quirk" near the scroll arrow
@@ -2334,13 +2446,18 @@ if (!CSS.supports('animation-timeline: view()')) {
       collLastT = tN;
       const dt = dtt / 1000, snap = dtt >= 100;
       if (!collSpring || snap) collSpring = IDX4.map(() => ({ off: 0, vel: 0 }));
+      // same ≤8ms substepping as the entrance spring — no hitch explosions
+      const subH = dt / Math.max(1, Math.ceil(dt / 0.008));
       overPoses.forEach((P, i) => {
         const S = collSpring[i], b = baseP[i];
         const target = P.x - b.x;
-        // under-damped spring: kicks from the raw pass become weighty shoves
-        S.vel += (target - S.off) * 150 * dt;
-        S.vel *= Math.exp(-16 * dt);
-        S.off += S.vel * dt;
+        const steps = Math.max(1, Math.ceil(dt / 0.008));
+        for (let s = 0; s < steps; s++) {
+          S.vel += (target - S.off) * 150 * subH;
+          S.vel *= Math.exp(-16 * subH);
+          S.off += S.vel * subH;
+        }
+        S.off = Math.max(-80, Math.min(80, S.off));
         P.x = b.x + S.off;
         // impact flair scales continuously with the spring compression
         const mag = Math.min(1, Math.abs(S.off) / 30);
