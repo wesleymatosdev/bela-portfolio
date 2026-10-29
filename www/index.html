@@ -2640,17 +2640,7 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'rotate(-360deg)', offset: 1 }
     ], dur: 2300, origin: '50% 4%' },
     'wm-B': {frames: [{"transform":"scale(1, 1)","offset":0},{"transform":"scale(1.32, 0.70)","offset":0.1},{"transform":"scale(0.78, 1.30)","offset":0.24},{"transform":"scale(1.22, 0.80)","offset":0.38},{"transform":"scale(0.86, 1.16)","offset":0.52},{"transform":"scale(1.12, 0.90)","offset":0.66},{"transform":"scale(0.95, 1.06)","offset":0.8},{"transform":"scale(1.02, 0.98)","offset":0.9},{"transform":"scale(1, 1)","offset":1}], dur: 950, easing: 'ease-in-out'},
-    'wm-E': { frames: [
-      { transform: 'translateY(0px) scale(1, 1) rotate(0deg)', offset: 0, easing: 'cubic-bezier(.4,0,.6,1)' },
-      { transform: 'translateY(0.5px) scale(1.05, 0.92) rotate(10deg)', offset: 0.05, easing: 'cubic-bezier(.25,.6,.35,1)' },
-      { transform: 'translateY(-3.2px) scale(0.96, 1.08) rotate(120deg)', offset: 0.24, easing: 'ease-in-out' },
-      { transform: 'translateY(-4.1px) scale(1, 1) rotate(240deg)', offset: 0.36, easing: 'cubic-bezier(.4,0,.6,1)' },
-      { transform: 'translateY(0.3px) scale(1.1, 0.88) rotate(360deg)', offset: 0.5, easing: 'cubic-bezier(.3,.5,.4,1)' },
-      { transform: 'translateY(0.12px) scale(1.04, 0.95)', offset: 0.64, easing: 'ease-in-out' },
-      { transform: 'translateY(0.04px) scale(0.99, 1.015)', offset: 0.78, easing: 'ease-in-out' },
-      { transform: 'translateY(0px) scale(1, 1)', offset: 0.92, easing: 'ease-out' },
-      { transform: 'translateY(0px) scale(1, 1)', offset: 1 }
-    ], dur: 2800, origin: '50% 100%' },
+    'wm-E': { type: 'eSnake', dur: 1700 },
     'wm-L': {frames: [{"transform":"none","offset":0},{"transform":"rotate(5deg)","filter":"blur(0.3px) brightness(0.97)","offset":0.22},{"transform":"rotate(8deg) translateY(0.3px)","filter":"blur(0.6px) brightness(0.94)","offset":0.42},{"transform":"rotate(10deg) translateY(0.4px)","filter":"blur(0.9px) brightness(0.92)","offset":0.55},{"transform":"rotate(-3deg) translateY(0px)","filter":"blur(0px) brightness(1.15)","offset":0.62},{"transform":"rotate(4deg)","filter":"brightness(1.05)","offset":0.7},{"transform":"rotate(-2deg)","filter":"brightness(1)","offset":0.78},{"transform":"rotate(1deg)","offset":0.87},{"transform":"none","offset":1}], dur: 1400, easing: 'cubic-bezier(0.45, 0, 0.55, 1)'},
     'wm-R': { frames: [
       { transform: 'translate(0px, 0px) scale(1, 1)', offset: 0, easing: 'cubic-bezier(.55,0,.7,.4)' },
@@ -2721,6 +2711,114 @@ if (!CSS.supports('animation-timeline: view()')) {
     p.__zz = anim;
     anim.finished.then(cleanup).catch(cleanup);
   }
+
+  // E: "infinite snake" — the middle stroke's wave PHASE travels along the
+  // stroke (the I letters' feel) while the glyph itself never translates or
+  // fattens: thin vertical slices of the real design path shift vertically
+  // along a traveling sine, so the stroke undulates in place and lands back
+  // on the exact design path (displacement is identically zero at start and
+  // end). Deformation, not translation — the hand-drawn stroke is NOT
+  // periodic, so tiled copies kink; slicing the actual glyph keeps it
+  // design-faithful at every frame. The period dot sits in the left taper
+  // where displacement ~0, so it stays put. Distinct from the L's tilt
+  // shimmer: the wave clearly migrates left-to-right along the stroke.
+  function eSnakeWave(p) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = p.ownerSVGElement;
+    // re-click mid-flight: kill the previous run dead, then start over
+    if (p.__es) { p.__es.stop(); p.__es = null; }
+    const bb = p.getBBox();
+    // middle-stroke window, glyph units (raster-measured from the design):
+    // only the squiggle + dot live in this band, never the legs (slot
+    // y ~1.9..8.2, stroke rest band y ~3.3..6.6, travel <=~0.55u)
+    const WX0 = bb.x + 1.66, WX1 = bb.x + 8.66;
+    const WY0 = bb.y + 1.88, WY1 = bb.y + 6.82;
+    const SPAN = WX1 - WX0;
+    const BAND = 0.09, OV = 0.02;      // thin slices; overlap kills hairline seams
+    const N = Math.ceil((SPAN + OV) / BAND);
+    const LAM = 2.2;                   // ~3 tight waves across the span, like the design
+    const K = 2 * Math.PI / LAM;
+    const AMP = 0.26;                  // peak deviation <=~0.52u: thin stays thin
+    const CYCLES = 2;                  // two full phase travels before it lands
+    const DUR = 1700;
+    const TAPER = 0.9;                 // ends ease to 0 so the stroke stays attached
+    const ss = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    const env = x => ss((x - WX0) / TAPER) * ss((WX1 - x) / TAPER);
+    // PURE traveling wave: sin(kx - phi) with phi growing linearly — the humps
+    // migrate along the stroke (like the I's crawl). The ENVELOPE ramps the
+    // motion in and out over time instead of subtracting the rest shape, so
+    // displacement is still exactly 0 at start and end (seamless landing)
+    // while the middle of the run is an unambiguous traveling wave.
+    const dy = (x, phi, ramp) => env(x) * ramp * AMP * Math.sin(K * (x - WX0) - phi);
+
+    let defs = svg.querySelector('defs');
+    if (!defs) { defs = document.createElementNS(NS, 'defs'); svg.insertBefore(defs, svg.firstChild); }
+    const uid = 'wm-es-' + Math.random().toString(36).slice(2, 8);
+    // mask hides the base glyph ONLY inside the window while the slices
+    // redraw it; everywhere else the untouched base glyph shows through
+    const mask = document.createElementNS(NS, 'mask');
+    mask.id = uid;
+    const mw = document.createElementNS(NS, 'rect');
+    mw.setAttribute('x', bb.x - 1); mw.setAttribute('y', bb.y - 1);
+    mw.setAttribute('width', bb.width + 2); mw.setAttribute('height', bb.height + 2);
+    mw.setAttribute('fill', '#fff');
+    const mh = document.createElementNS(NS, 'rect');
+    mh.setAttribute('x', WX0); mh.setAttribute('y', WY0);
+    mh.setAttribute('width', SPAN); mh.setAttribute('height', WY1 - WY0);
+    mh.setAttribute('fill', '#000');
+    mask.appendChild(mw); mask.appendChild(mh); defs.appendChild(mask);
+    p.setAttribute('mask', 'url(#' + uid + ')');
+
+    // the clip lives on a STATIC g per band — a clip-path on the moving
+    // element itself would travel with it (slices would smear). Only the
+    // path child inside gets the per-frame translateY.
+    const fill = getComputedStyle(p).fill;
+    const d = p.getAttribute('d');
+    const layer = document.createElementNS(NS, 'g');
+    const bands = [];
+    for (let i = 0; i < N; i++) {
+      const bx = WX0 + i * BAND - (i ? OV / 2 : 0);
+      const cp = document.createElementNS(NS, 'clipPath');
+      cp.id = uid + '-b' + i;
+      const r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', bx.toFixed(3)); r.setAttribute('y', WY0);
+      r.setAttribute('width', (BAND + OV).toFixed(3));
+      r.setAttribute('height', (WY1 - WY0).toFixed(3));
+      cp.appendChild(r); defs.appendChild(cp);
+      const g = document.createElementNS(NS, 'g');
+      g.setAttribute('clip-path', 'url(#' + cp.id + ')');
+      const c = document.createElementNS(NS, 'path');
+      c.setAttribute('d', d); c.setAttribute('fill', fill);
+      g.appendChild(c); layer.appendChild(g);
+      bands.push({ x: bx + BAND / 2, el: c });
+    }
+    svg.appendChild(layer);
+
+    const t0 = performance.now();
+    let raf = 0, dead = false;
+    const api = {
+      stop() {
+        if (dead) return; dead = true;
+        cancelAnimationFrame(raf);
+        layer.remove();
+        mask.remove();
+        p.removeAttribute('mask');
+        if (p.__es === api) p.__es = null;
+      }
+    };
+    const frame = now => {
+      if (dead) return;
+      const u = Math.min(1, (now - t0) / DUR);
+      const ramp = ss(u / 0.18) * ss((1 - u) / 0.18);  // ease the whole move in/out
+      const phi = 2 * Math.PI * CYCLES * u;            // constant crawl speed
+      for (const b of bands)
+        b.el.style.transform = 'translateY(' + dy(b.x, phi, ramp).toFixed(3) + 'px)';
+      if (u < 1) raf = requestAnimationFrame(frame);
+      else api.stop();                        // displacement is 0 here — seamless
+    };
+    p.__es = api;
+    raf = requestAnimationFrame(frame);
+  }
   const paths = [...svg.querySelectorAll('path[class^="wm-"]')];
 
   function playMove(p) {
@@ -2728,6 +2826,7 @@ if (!CSS.supports('animation-timeline: view()')) {
     const move = MOVES[cls];
     if (!move) return;
     if (move.type === 'snakeCrawl') { snakeScroll(p, move.snakeDir); return; }
+    if (move.type === 'eSnake') { eSnakeWave(p); return; }
     // re-trigger mid-flight: restart the move from the top instead of stacking
     p.getAnimations().forEach(a => a.cancel());
     p.style.transformBox = 'fill-box';
