@@ -241,9 +241,9 @@ body {
   margin-top: 18px;
   letter-spacing: 0.02em;
   /* the name gets the stage to itself: subtitle/tagline rise in only after
-     the letter intro settles (last move ends ~3.4s). `backwards` fill hides
-     them during the delay but falls back to visible if animations are off. */
-  animation: rise-in .7s ease-out 3.3s backwards;
+     the synchronized name + OVERFLOW entrance settles (~5.4s). `backwards`
+     fill hides them during the delay but falls back to visible if animations are off. */
+  animation: rise-in .7s ease-out 5.5s backwards;
 }
 .subtitle::before { content: "✦ "; color: var(--orange); }
 .subtitle::after  { content: " ✦"; color: var(--orange); }
@@ -252,7 +252,7 @@ body {
   color: #555;
   margin-top: 8px;
   font-weight: 400;
-  animation: rise-in .7s ease-out 3.6s backwards;
+  animation: rise-in .7s ease-out 5.8s backwards;
 }
 @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } }
 
@@ -1924,6 +1924,9 @@ if (!CSS.supports('animation-timeline: view()')) {
       delay: START_DELAY + i * STAGGER,
     };
   });
+  // Share the exact entrance duration with the wordmark intro so both hero
+  // animations return to their resting state on the same beat.
+  window.__luxoEntranceDuration = cfgs[cfgs.length - 1].delay + cfgs[cfgs.length - 1].dur;
   // re-measure the geometry once web fonts settle and on resize: the IIFE-time
   // rects can be stale (fallback-font layout sits lower), which broke the hop
   // clamp and let letters hop above the viewport
@@ -1993,6 +1996,7 @@ if (!CSS.supports('animation-timeline: view()')) {
   let entContact = {};   // per-pair last x-penetration: fresh contact = impact
   let lastT = 0;
   const t0 = performance.now();
+  window.__luxoEntranceEndAt = t0 + window.__luxoEntranceDuration;
 
   function tick(now) {
     if (canceled) return;
@@ -2753,8 +2757,23 @@ if (!CSS.supports('animation-timeline: view()')) {
     if (hit) playMove(hit);
   });
 
-  // first-load intro: every letter plays its move, staggered left to right
-  paths.forEach((p, i) => setTimeout(() => playMove(p), 350 + i * 90));
+  function moveDuration(move) {
+    return move.type === 'snakeCrawl' ? 1500 : move.dur;
+  }
+
+  // First-load letter moves are back-timed from the keycap entrance's real
+  // finish, so the whole name and OVERFLOW settle on one shared beat. Clicks
+  // below still use each move's original duration and start immediately.
+  const introEndAt = window.__luxoEntranceEndAt;
+  paths.forEach((p, i) => {
+    const move = MOVES[[...p.classList].find(c => c.startsWith('wm-'))];
+    const duration = move ? moveDuration(move) : 0;
+    const fallbackStart = 350 + i * 90;
+    const startAt = Number.isFinite(introEndAt)
+      ? introEndAt - duration
+      : performance.now() + fallbackStart;
+    setTimeout(() => playMove(p), Math.max(0, startAt - performance.now()));
+  });
 })();
 </script>
 
