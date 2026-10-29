@@ -1875,6 +1875,7 @@ if (!CSS.supports('animation-timeline: view()')) {
     window.__luxoEntranceActive = false;
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
+    entContact = {};
     caps.forEach(c => { c.style.transform = ''; c.style.opacity = ''; c.style.transition = ''; });
     anims.forEach(a => { try { a.cancel(); } catch (e) {} });
   }
@@ -1983,6 +1984,7 @@ if (!CSS.supports('animation-timeline: view()')) {
   // their travel (x) through the same under-damped springs the scroll join
   // uses — the raw pass only produces the spring TARGET, so motion is smooth
   let spring = cfgs.map(() => ({ off: 0, vel: 0 }));
+  let entContact = {};   // per-pair last x-penetration: fresh contact = impact
   let lastT = 0;
   const t0 = performance.now();
 
@@ -2003,23 +2005,34 @@ if (!CSS.supports('animation-timeline: view()')) {
       return P;
     });
 
-    // raw resolution along each pair's travel (x): overlapping mid-flight
-    // boxes separate; landed/settling letters are anchored
+    // REAL collisions along each pair's travel (x): sustained overlap gets
+    // separated, and a FRESH contact (new touch after separation) fires an
+    // IMPACT — a velocity kick into both boxes (the struck one hardest), so
+    // letters knock each other back instead of ghosting through.
     const baseP = poses.map(P => ({ x: P.x, rot: P.rot }));
-    for (let iter = 0; iter < 6; iter++) {
-      for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) {
-        const A = poses[a], B = poses[b];
-        if (A.f >= cfgs[a].wEnd && B.f >= cfgs[b].wEnd) continue;
-        const ox = (cfgs[a].w + cfgs[b].w) / 2 - Math.abs(A.x - B.x);
-        const oy = (cfgs[a].h + cfgs[b].h) / 2 - Math.abs(A.y - B.y);
-        if (ox <= 2 || oy <= 0) continue;                  // dead zone
-        const amp = 1.2 * Math.min(A.fade, B.fade);
-        const sgn = A.x <= B.x ? -1 : 1;
-        const fa = A.f >= cfgs[a].wEnd ? 0 : (B.f >= cfgs[b].wEnd ? 1 : 0.5);
-        const fb = B.f >= cfgs[b].wEnd ? 0 : (A.f >= cfgs[a].wEnd ? 1 : 0.5);
-        A.x += sgn * ox * amp * fa;
-        B.x -= sgn * ox * amp * fb;
+    for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) {
+      const A = poses[a], B = poses[b];
+      const key = a + '_' + b;
+      const ox = (cfgs[a].w + cfgs[b].w) / 2 - Math.abs(A.x - B.x);
+      const oy = (cfgs[a].h + cfgs[b].h) / 2 - Math.abs(A.y - B.y);
+      if (!(ox > 2 && oy > 0) || A.f === 0 || B.f === 0) {
+        // not touching: re-arm the impact once they're clearly apart
+        if (ox < -14) entContact[key] = 0;
+        else entContact[key] = Math.max(0, (entContact[key] || 0) - 1.5);
+        continue;
       }
+      const amp = 1.2 * Math.min(A.fade, B.fade);
+      const sgn = A.x <= B.x ? -1 : 1;
+      // sustained separation, fade-scaled (landings stay exact)
+      A.x += sgn * ox * amp * 0.5;
+      B.x -= sgn * ox * amp * 0.5;
+      // IMPACT on fresh contact: momentum into both boxes
+      if (!entContact[key]) {
+        const kick = Math.min(420, 140 + ox * 6) * Math.min(A.fade, B.fade);
+        spring[a].vel -= sgn * kick * 0.35;
+        spring[b].vel += sgn * kick * 0.35;
+      }
+      entContact[key] = ox;
     }
 
     // spring chase: the shove is always smooth, overshoot = bouncing off.
@@ -2040,9 +2053,12 @@ if (!CSS.supports('animation-timeline: view()')) {
       }
       S.off = Math.max(-80, Math.min(80, S.off));
       P.x = b.x + S.off;
+      // impact flair scales with spring compression AND impact velocity —
+      // it peaks at the moment of the hit and decays as the box settles
       const mag = Math.min(1, Math.abs(S.off) / 30);
-      P.sqx = Math.max(P.sqx || 0, mag * 0.15);
-      P.rot += Math.sign(S.off) * mag * 7;
+      const iv = Math.min(0.2, Math.abs(S.vel) / 900);
+      P.sqx = Math.max(P.sqx || 0, mag * 0.15, iv);
+      P.rot += Math.sign(S.off || S.vel) * (mag * 7 + Math.min(6, Math.abs(S.vel) / 60));
 
       const el = caps[i];
       if (P.opacity < 1) el.style.opacity = P.opacity.toFixed(2);
