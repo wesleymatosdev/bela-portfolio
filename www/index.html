@@ -2811,7 +2811,9 @@ if (!CSS.supports('animation-timeline: view()')) {
       stop() {
         if (dead) return; dead = true;
         cancelAnimationFrame(raf);
-        for (const part of parts) { if (!part.done) stopPart(part); }
+        // unconditional: parts that finished early were parked at dy=0 with
+        // their layers alive, so every part still owns layer + clipPaths here
+        for (const part of parts) stopPart(part);
         mask.remove();
         p.removeAttribute('mask');
         if (p.__es === api) p.__es = null;
@@ -2823,7 +2825,16 @@ if (!CSS.supports('animation-timeline: view()')) {
       for (const part of parts) {
         if (part.done) continue;
         const lt = (t - part.delay) / WASH;
-        if (lt >= 1) { stopPart(part); continue; }   // crest absorbed: back to design
+        if (lt >= 1) {
+          // crest absorbed. Park the slices at 0 and KEEP them — the shared
+          // mask stays until the whole run ends, so tearing the layer down
+          // here would leave this stroke INVISIBLE until the last stroke
+          // finishes (base ink is masked out). At dy=0 the slices render the
+          // exact design stroke anyway.
+          for (const b of part.bands) b.el.style.transform = 'translateY(0px)';
+          part.done = true;
+          continue;
+        }
         const dy = new Array(part.bands.length).fill(0);
         if (lt > 0) {
           const e = lt * lt * (3 - 2 * lt);
