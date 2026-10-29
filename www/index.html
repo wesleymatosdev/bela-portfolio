@@ -88,7 +88,7 @@ body {
   position: absolute;
   display: flex;
   gap: 5px;
-  z-index: 3;
+  z-index: 100; /* the keycap buttons are the most-forward item on the page */
 }
 /* Round 18 (Luxo hops): groups are static containers — each individual keycap
    walks in from offscreen via the Round 18 rAF pose loop (see the Round 18
@@ -133,7 +133,7 @@ body {
   justify-content: center;
   gap: 5px;
   padding-top: 12px;   /* matches the flight target top — dock lands seamlessly */
-  z-index: 60;
+  z-index: 100;        /* docked keycaps stay the most-forward item too */
   pointer-events: none;   /* decorative strip — never blocks page interaction */
 }
 .overflow-strip .keycap { pointer-events: auto; }
