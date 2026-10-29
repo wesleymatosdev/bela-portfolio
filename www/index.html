@@ -88,11 +88,12 @@ body {
   position: absolute;
   display: flex;
   gap: 5px;
-  z-index: 3;
+  z-index: 100; /* the keycap buttons are the most-forward item on the page */
 }
 /* Round 18 (Luxo hops): groups are static containers — each individual keycap
-   hops in from offscreen via WAAPI (see the Round 18 script below). Keeping the
-   entrance off CSS lets scroll and prefers-reduced-motion cancel it instantly. */
+   walks in from offscreen via the Round 18 rAF pose loop (see the Round 18
+   script below). Keeping the entrance off CSS lets scroll and
+   prefers-reduced-motion cancel it instantly. */
 .keycap-group.over {
   top: 6%; left: 7%;
   transform: rotate(-4deg);
@@ -132,7 +133,7 @@ body {
   justify-content: center;
   gap: 5px;
   padding-top: 12px;   /* matches the flight target top — dock lands seamlessly */
-  z-index: 60;
+  z-index: 100;        /* docked keycaps stay the most-forward item too */
   pointer-events: none;   /* decorative strip — never blocks page interaction */
 }
 .overflow-strip .keycap { pointer-events: auto; }
@@ -1690,8 +1691,12 @@ function filterWork(cat, btn) {
 }
 document.querySelectorAll('.keycap').forEach(k => {
   k.addEventListener('click', () => {
-    k.style.transform = 'translateY(2px) scale(0.95)';
-    setTimeout(() => { k.style.transform = ''; }, 150);
+    // press ON TOP of the current transform — the entrance/join/follow own
+    // k.style.transform, so never overwrite or clear it (overwriting used to
+    // teleport a letter that was mid-join back to its natural slot)
+    const base = k.style.transform || '';
+    k.style.transform = base + ' translateY(2px) scale(0.95)';
+    setTimeout(() => { k.style.transform = base; }, 150);
   });
 });
 
@@ -1829,23 +1834,49 @@ if (!CSS.supports('animation-timeline: view()')) {
 // landing, then a small settle bounce. The LAST keycap lands with extra weight
 // — a beat of overshoot — and its landing squashes the wordmark subtly, like
 // the lamp stepping onto the I. transform/opacity only (compositor-friendly).
-// First scroll cancels everything mid-flight (keycaps snap to their slots and
-// the Round 16 scroll join takes over); prefers-reduced-motion never starts it.
+// The keycaps are SOLID here too: a rAF pose loop drives the walk (same math
+// the scrubbed join uses) and mid-flight letters that overlap shove each
+// other apart through under-damped springs — the first load ends in the same
+// scramble for space as the scroll join. First scroll cancels everything
+// mid-flight (the Round 16 scroll join takes over); reduced-motion never
+// starts it.
 (function () {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const caps = Array.from(document.querySelectorAll('.hero .keycap'));
   if (caps.length !== 8 || typeof caps[0].animate !== 'function') return;
   const wordmark = document.querySelector('.hero .name-wordmark');
 
-  const HOP_MS = 1150;     // one hop: crouch + leap + land + settle
-  const STAGGER = 430;     // gap between hop starts — readable, not frenetic
+  // Replay the full entrance on EVERY load, including reloads. Browsers restore
+  // the previous scroll position on reload; the restored scroll fires a scroll
+  // event, and our cancel-on-scroll below would then kill the choreography
+  // before its first hop — the entrance appeared to "only play once". Own the
+  // restoration instead: a page load starts at the hero, where the entrance lives.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+  window.addEventListener('pageshow', e => { if (e.persisted) window.scrollTo(0, 0); });
+
+  const HOP_MS = 1150;     // base entrance time-constant per letter
+  const STAGGER = 380;     // gap between letter starts — readable, not frenetic
   const START_DELAY = 350; // small beat after load before the first hop
 
-  const anims = [];
-  let canceled = false;
+  const anims = [];        // wordmark squash only — keycaps are pose-driven
+  let canceled = false, rafId = 0;
+  // while the entrance owns the keycaps, the Round 16 join must not write
+  // transforms — the two writers interleaving is what read as flicker
+  window.__luxoEntranceActive = true;
+  // .keycap has `transition: transform .15s ease` (for the hover lift) — with
+  // per-frame pose writes that retargets the transition every frame and the
+  // rendered transform trails the written one: super flickery. Kill it while
+  // the entrance drives; restore afterwards so the hover/press keep their ease.
+  caps.forEach(c => { c.style.transition = 'none'; });
   function cancelHops() {
     if (canceled) return;
     canceled = true;
+    window.__luxoEntranceActive = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+    entContact = {};
+    caps.forEach(c => { c.style.transform = ''; c.style.opacity = ''; c.style.transition = ''; });
     anims.forEach(a => { try { a.cancel(); } catch (e) {} });
   }
   // any scroll hands choreography over to the Round 16 scroll join
@@ -1854,11 +1885,8 @@ if (!CSS.supports('animation-timeline: view()')) {
   window.__cancelLuxoHops = cancelHops;
 
   const vw = window.innerWidth, vh = window.innerHeight;
-  const hopH = Math.max(70, Math.min(150, vh * 0.17));   // apex height
-  const rot = s => (-s * 12).toFixed(1) + 'deg';         // slight tumble in the air
 
-  caps.forEach((cap, i) => {
-    const last = i === caps.length - 1;
+  const cfgs = caps.map((cap, i) => {
     const r = cap.getBoundingClientRect();
     const size = Math.max(r.width, r.height);
     const side = i % 2 === 0 ? -1 : 1;                   // left, right, left, ...
@@ -1866,40 +1894,199 @@ if (!CSS.supports('animation-timeline: view()')) {
     // anticipation crouch is visible before the leap
     const sx = side < 0 ? -(r.left + r.width / 2) : (vw - r.left + r.width / 2);
     const dy = size * 0.08;                              // crouch/land floor offset
-
-    const frames = [
-      { transform: 'translate(' + sx + 'px,' + dy + 'px) rotate(' + rot(side) + ') scale(1,1)', opacity: 0, offset: 0 },
-      { transform: 'translate(' + sx + 'px,' + dy + 'px) rotate(' + rot(side) + ') scale(1,1)', opacity: 1, offset: 0.08 },
-      // anticipation: lean inward + crouch (squash down)
-      { transform: 'translate(' + (sx - side * size * 0.12) + 'px,' + (dy + size * 0.14) + 'px) rotate(' + rot(side) + ') scale(1.14,0.78)', offset: 0.18, easing: 'cubic-bezier(.5,0,.7,.4)' },
-      // launch: stretch tall off the ground
-      { transform: 'translate(' + (sx * 0.72) + 'px,' + (dy * 0.4 - size * 0.35) + 'px) rotate(' + (side * 7) + 'deg) scale(0.84,1.22)', offset: 0.32, easing: 'cubic-bezier(.3,.4,.6,1)' },
-      // apex of the arc
-      { transform: 'translate(' + (sx * 0.45) + 'px,' + (dy * 0.15 - hopH) + 'px) rotate(' + (side * 3) + 'deg) scale(0.92,1.1)', offset: 0.5, easing: 'cubic-bezier(.5,.6,.8,.6)' },
-      { transform: 'translate(' + (sx * 0.12) + 'px,' + (-size * 0.05) + 'px) rotate(' + (side * 1) + 'deg) scale(1.02,0.98)', offset: 0.62, easing: 'cubic-bezier(.6,0,.8,.5)' },
-      // landing squash
-      last
-        ? { transform: 'translate(0,' + (size * 0.1) + 'px) scale(1.34,0.6)', offset: 0.7, easing: 'cubic-bezier(.4,0,.6,1)' }
-        : { transform: 'translate(0,' + (size * 0.1) + 'px) scale(1.2,0.76)', offset: 0.7, easing: 'cubic-bezier(.4,0,.6,1)' },
-      last
-        ? { transform: 'translate(0,' + (size * 0.1) + 'px) scale(1.3,0.64)', offset: 0.78 }   // hold the heavy squash a beat
-        : { transform: 'translate(0,' + (-size * 0.1) + 'px) scale(0.95,1.08)', offset: 0.8 }, // settle bounce
-      last
-        ? { transform: 'translate(0,0) scale(0.96,1.05)', offset: 0.9 }
-        : { transform: 'translate(0,' + (size * 0.03) + 'px) scale(1.05,0.97)', offset: 0.9 },
-      { transform: 'none', opacity: 1, offset: 1 },
-    ];
-
-    anims.push(cap.animate(frames, {
-      duration: HOP_MS,
+    // keep every hop fully on screen: the apex may never push the keycap
+    // above the viewport top (OVER hops from the top-left corner)
+    const hopH = Math.min(
+      Math.max(70, Math.min(150, vh * 0.17)),
+      Math.max(22, r.top - 10),
+    );
+    const maxLift = Math.max(22, r.top - 10);  // apex may never exit the viewport top
+    // multi-step entry: each letter takes several small hops from the edge to
+    // its slot — some letters fewer/bigger hops, some more/smaller ones —
+    // decelerating as they arrive, W landing heaviest
+    const prof = [
+      { hops: 3, amp: 1.00 }, { hops: 2, amp: 1.20 }, { hops: 4, amp: 0.72 }, { hops: 3, amp: 0.95 },
+      { hops: 3, amp: 1.05 }, { hops: 2, amp: 1.22 }, { hops: 4, amp: 0.70 }, { hops: 3, amp: 1.05 },
+    ][i];
+    const K = prof.hops;
+    const dur = HOP_MS * (0.7 + 0.45 * K);               // more hops = a bit longer
+    return {
+      el: cap, sx, dy, hopH, maxLift, prof, K, dur, side, size, last: i === caps.length - 1,
+      wEnd: 0.85,                                        // hops end, settle begins
+      w: r.width, h: r.height,                           // collision box
+      natX: r.left, natY: r.top,
       delay: START_DELAY + i * STAGGER,
-      fill: 'backwards',   // hidden at its offscreen start until the hop begins
-      easing: 'linear',
-    }));
+    };
   });
+  // re-measure the geometry once web fonts settle and on resize: the IIFE-time
+  // rects can be stale (fallback-font layout sits lower), which broke the hop
+  // clamp and let letters hop above the viewport
+  function measureCfgs() {
+    const vw2 = window.innerWidth, vh2 = window.innerHeight;
+    // read UNTRANSFORMED rects: a mid-walk transform would poison the geometry
+    const prevTf = cfgs.map(cfg => { const t = cfg.el.style.transform; cfg.el.style.transform = 'none'; return t; });
+    const rects = cfgs.map(cfg => cfg.el.getBoundingClientRect());
+    cfgs.forEach((cfg, i) => {
+      const r = rects[i];
+      const size = Math.max(r.width, r.height);
+      const side = i % 2 === 0 ? -1 : 1;
+      cfg.sx = side < 0 ? -(r.left + r.width / 2) : (vw2 - r.left + r.width / 2);
+      cfg.dy = size * 0.08;
+      cfg.hopH = Math.min(Math.max(70, Math.min(150, vh2 * 0.17)), Math.max(22, r.top - 10));
+      cfg.maxLift = Math.max(22, r.top - 10);
+      cfg.size = size;
+      cfg.w = r.width; cfg.h = r.height;
+      cfg.natX = r.left; cfg.natY = r.top;
+      cfg.el.style.transform = prevTf[i];
+    });
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureCfgs);
+  window.addEventListener('resize', measureCfgs);
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const ss = u => u * u * (3 - 2 * u);
+  window.__cfgDump = cfgs.map(c => ({ maxLift: Math.round(c.maxLift), hopH: Math.round(c.hopH), sx: Math.round(c.sx), natY: Math.round(c.natY), w: c.w }));
+
+  // pose at entrance-progress f (0..1): offset from the natural slot
+  function pose(cfg, f) {
+    if (f >= cfg.wEnd) {
+      // landed: heavy squash (W) or settle bounce, then rest
+      const s = (f - cfg.wEnd) / (1 - cfg.wEnd), b = Math.sin(Math.PI * s);
+      if (cfg.last) {
+        const sq = s < 0.45 ? 1 - b * 0.38 : 1 + b * 0.05;
+        return { x: 0, y: cfg.size * 0.08 * (1 - s), rot: 0, sx: sq + 0.3 * b * (s < 0.45 ? 1 : 0), sy: sq - 0.06 * b * (s >= 0.45 ? 1 : 0), opacity: 1 };
+      }
+      return { x: 0, y: -cfg.size * 0.09 * b, rot: 0, sx: 1 + 0.08 * b, sy: 1 - 0.10 * b * (s < 0.5 ? 1 : 0.3), opacity: 1 };
+    }
+    const g = f / cfg.wEnd;
+    const k = Math.min(cfg.K - 1, Math.floor(g * cfg.K));
+    const u = g * cfg.K - k;
+    const h = Math.sin(Math.PI * u);
+    const f0 = k / cfg.K, f1 = (k + 1) / cfg.K, ue = ss(u);
+    // approach offset from the natural slot: starts at sx/dy, glides to 0
+    let x = lerp(cfg.sx * (1 - f0), cfg.sx * (1 - f1), ue);
+    let y = lerp(cfg.dy * (1 - f0), cfg.dy * (1 - f1), ue);
+    // hop arc: entry hop the biggest, later hops smaller (losing momentum);
+    // clamped so the apex never pushes the keycap above the viewport top
+    const lift = Math.min(
+      cfg.hopH * cfg.prof.amp * (k === 0 ? 1 : Math.max(0.2, 0.55 - 0.1 * k)),
+      cfg.maxLift,
+    ) * h;
+    y -= lift;
+    // personality: entry tumble decaying + alternating micro-twist per step
+    const rot = (cfg.side * 9 + (k % 2 ? -5 : 5)) * h * (1 - f * 0.6);
+    // landing squash on every step; opacity fades in during the first hop
+    const sq = u > 0.78 ? Math.sin(Math.PI * (u - 0.78) / 0.22) * 0.09 : 0;
+    const opacity = Math.min(1, f * 14 + u * 0.4);
+    return { x, y, rot, sq, opacity };
+  }
+
+  // solid keycaps: mid-flight letters that overlap shove each other along
+  // their travel (x) through the same under-damped springs the scroll join
+  // uses — the raw pass only produces the spring TARGET, so motion is smooth
+  let spring = cfgs.map(() => ({ off: 0, vel: 0 }));
+  let entContact = {};   // per-pair last x-penetration: fresh contact = impact
+  let lastT = 0;
+  const t0 = performance.now();
+
+  function tick(now) {
+    if (canceled) return;
+    const t = now - t0;
+    let allDone = true;
+    const poses = cfgs.map((cfg, i) => {
+      const f = Math.min(1, Math.max(0, (t - cfg.delay) / cfg.dur));
+      if (f < 1) allDone = false;
+      const P = pose(cfg, f);
+      // collision authority fades out over the settle so landings stay exact
+      P.fade = f < cfg.wEnd ? 1 : Math.max(0, 1 - (f - cfg.wEnd) / (1 - cfg.wEnd));
+      P.f = f;
+      return P;
+    });
+
+    // REAL collisions along each pair's travel (x): sustained overlap gets
+    // separated, and a FRESH contact (new touch after separation) fires an
+    // IMPACT — a velocity kick into both boxes (the struck one hardest), so
+    // letters knock each other back instead of ghosting through.
+    const baseP = poses.map(P => ({ x: P.x, rot: P.rot }));
+    for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) {
+      const A = poses[a], B = poses[b];
+      const key = a + '_' + b;
+      const ox = (cfgs[a].w + cfgs[b].w) / 2 - Math.abs(A.x - B.x);
+      const oy = (cfgs[a].h + cfgs[b].h) / 2 - Math.abs(A.y - B.y);
+      if (!(ox > 2 && oy > 0) || A.f === 0 || B.f === 0) {
+        // HYSTERESIS: the impact re-arms ONLY on a clear 14px separation.
+        // A hop lifting a box off its neighbor is NOT separation — without
+        // this, contact fired every hop bottom (micro-kicks = flicker).
+        if (ox < -14) entContact[key] = 0;
+        continue;
+      }
+      const amp = 1.2;
+      const sgn = A.x <= B.x ? -1 : 1;
+      // LANDED LETTERS STAY SOLID: they yield (their spring returns them to
+      // the slot) instead of fading into ghosts. A landing walker's own share
+      // fades out so its touchdown is never deflected.
+      const shareA = A.f >= cfgs[a].wEnd ? 0.45 : 0.5 * A.fade;
+      const shareB = B.f >= cfgs[b].wEnd ? 0.45 : 0.5 * B.fade;
+      A.x += sgn * ox * amp * shareA;
+      B.x -= sgn * ox * amp * shareB;
+      // IMPACT on fresh contact: momentum into both boxes
+      if (!entContact[key]) {
+        const kick = Math.min(420, 140 + ox * 6) * Math.max(0.5, Math.min(A.fade, B.fade));
+        spring[a].vel -= sgn * kick * 0.35;
+        spring[b].vel += sgn * kick * 0.35;
+      }
+      entContact[key] = ox;
+    }
+
+    // spring chase: the shove is always smooth, overshoot = bouncing off.
+    // Explicit Euler explodes on frame hitches (dt 100ms ⇒ 100px jumps —
+    // flicker), so integrate in fixed ≤8ms substeps.
+    const dtt = lastT ? Math.min(100, now - lastT) : 16;
+    lastT = now;
+    const dt = dtt / 1000;
+    const subH = dt / Math.max(1, Math.ceil(dt / 0.008));
+    poses.forEach((P, i) => {
+      const S = spring[i], b = baseP[i];
+      const target = P.x - b.x;
+      const steps = Math.max(1, Math.ceil(dt / 0.008));
+      for (let s = 0; s < steps; s++) {
+        S.vel += (target - S.off) * 150 * subH;
+        S.vel *= Math.exp(-16 * subH);
+        S.off += S.vel * subH;
+      }
+      S.off = Math.max(-80, Math.min(80, S.off));
+      P.x = b.x + S.off;
+      // impact flair scales with spring compression AND impact velocity —
+      // it peaks at the moment of the hit and decays as the box settles
+      const mag = Math.min(1, Math.abs(S.off) / 30);
+      const iv = Math.min(0.2, Math.abs(S.vel) / 900);
+      P.sqx = Math.max(P.sqx || 0, mag * 0.15, iv);
+      P.rot += Math.sign(S.off || S.vel) * (mag * 7 + Math.min(6, Math.abs(S.vel) / 60));
+
+      const el = caps[i];
+      if (P.opacity < 1) el.style.opacity = P.opacity.toFixed(2);
+      else el.style.opacity = '';
+      el.style.transform =
+        'translate(' + P.x.toFixed(1) + 'px,' + P.y.toFixed(1) + 'px)' +
+        ' rotate(' + P.rot.toFixed(2) + 'deg)' +
+        ' scale(' + ((P.sx ?? 1 + P.sq * 0.7 + P.sqx)).toFixed(3) + ',' + (P.sy ?? 1 - Math.min(0.45, P.sq)).toFixed(3) + ')';
+    });
+
+    if (allDone) {
+      // pristine hand-back: inline styles off = exact natural layout, and the
+      // CSS transition comes back for hover/press
+      window.__luxoEntranceActive = false;
+      caps.forEach(c => { c.style.transform = ''; c.style.opacity = ''; c.style.transition = ''; });
+      rafId = 0;
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
 
   // the last keycap's landing squashes the wordmark — the lamp-on-the-I beat
   if (wordmark) {
+    const durW = HOP_MS * (0.7 + 0.45 * 3);
+    const landW = START_DELAY + (caps.length - 1) * STAGGER + durW * (0.85 + 0.03);
     wordmark.style.transformOrigin = '50% 100%';
     anims.push(wordmark.animate([
       { transform: 'scale(1,1)', offset: 0 },
@@ -1909,7 +2096,7 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'scale(1,1)', offset: 1 },
     ], {
       duration: 850,
-      delay: START_DELAY + (caps.length - 1) * STAGGER + HOP_MS * 0.68,
+      delay: landW,
       easing: 'linear',
     }));
   }
@@ -1917,17 +2104,18 @@ if (!CSS.supports('animation-timeline: view()')) {
 </script>
 
 <script>
-// Round 16: sticky OVERFLOW join. Scroll progress (0..1 over the first ~90vh)
-// flies the OVER and FLOW keycaps toward a fixed top-centered target; at
-// progress 1 they dock into .overflow-strip as one row reading "OVERFLOW",
-// which then follows the viewport for the rest of the page. Scroll back up =
-// undock + fly back to their hero corners along the same path.
+// Round 16: sticky OVERFLOW join — scroll-driven walking, smoothed.
 // Round 16b: the flight itself hops, matching the Round 18 entrance — each
 // keycap travels an arc with an anticipation crouch, stretch in the air, a
 // tumble, and a squash on landing, staggered letter by letter (O first, W
-// last). Everything is a pure function of scroll progress, so scrubbing is
-// fully reversible and the landing pose is exactly the docked layout.
-// prefers-reduced-motion: groups stay in their base hero positions.
+// last), docking into .overflow-strip which then follows the page.
+// Round 16e: the choreography scrubs a SMOOTHED progress value, not the raw
+// scroll: pSmooth chases the real scroll progress with an exponential glide
+// (~140ms), so jerky input — fast flicks, scrollbar drags, sidebar jumps —
+// still plays the entire walk (just faster), and gentle scrolling is
+// unchanged. Nothing is ever skipped or plays hidden: the rendered state is
+// always a pure function of pSmooth, which always lands on the scroll
+// position. prefers-reduced-motion: groups stay in their hero positions.
 (function () {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const over = document.querySelector('.keycap-group.over');
@@ -1936,6 +2124,8 @@ if (!CSS.supports('animation-timeline: view()')) {
   if (!over || !flow || !strip || reduce) return;
 
   let docked = false;
+  let pSmooth = 0, pTarget = 0, lastT = 0;  // smoothed scrub progress
+  let lastY = window.scrollY;
   let baseO = null, baseF = null;   // untransformed hero rects (viewport, at measure time)
 
   // the 8 keycaps in reading order — flight transforms live on them now
@@ -1966,6 +2156,7 @@ if (!CSS.supports('animation-timeline: view()')) {
       c.relY = r.top - g.top;
       c.docX = r.left;            // document coords = natural viewport + scrollY
       c.docY = r.top + sy;
+      c.w = r.width; c.h = r.height;  // collision box (FLOW letters are solid)
     });
     over.style.transform = tO; flow.style.transform = tF;
   }
@@ -1991,32 +2182,147 @@ if (!CSS.supports('animation-timeline: view()')) {
     };
   }
 
+  // ---- Round 16c: strip character while following (motion-on only) ----
+  // The docked strip rides position:fixed, so its transform is free for
+  // character: a one-shot overshoot-and-settle when it docks center, a squash
+  // beat on scroll direction flips, and a small velocity lean/squash while
+  // moving (weight shifts). Springs settle back to identity when scrolling
+  // stops; everything is canceled the moment the strip undocks.
+  let charAnims = [];
+  let charRaf = 0;
+  let charState = null; // { lean, vl, leanT, squash, vsq, lastV, lastFlip, idleAt }
+  function cancelChar() {
+    charAnims.forEach(a => { try { a.cancel(); } catch (e) {} });
+    charAnims = [];
+    if (charRaf) { cancelAnimationFrame(charRaf); charRaf = 0; }
+    charState = null;
+    over.style.transform = ''; flow.style.transform = '';
+    over.style.transformOrigin = ''; flow.style.transformOrigin = '';
+  }
+  function charTick(now) {
+    const s = charState;
+    if (!s) return;
+    // lean springs toward the scroll-velocity lean target; squash is a damped
+    // spring kicked by scroll energy and direction flips, pulled back to rest
+    s.vl += (s.leanT - s.lean) * 0.22; s.vl *= 0.6; s.lean += s.vl;
+    s.vsq = (s.vsq - s.squash * 0.06) * 0.8; s.squash += s.vsq;
+    if (now > s.idleAt) s.leanT = 0; // scrolling stopped: weight settles back
+    over.style.transform = flow.style.transform =
+      'rotate(' + s.lean.toFixed(2) + 'deg) scale(' + (1 + s.squash * 0.7).toFixed(3) + ',' + (1 - s.squash).toFixed(3) + ')';
+    if (now > s.idleAt + 900 && Math.abs(s.lean) < 0.15 && Math.abs(s.squash) < 0.004) {
+      // imperceptible residue: snap to identity and stop the loop
+      over.style.transform = ''; flow.style.transform = '';
+      over.style.transformOrigin = ''; flow.style.transformOrigin = '';
+      charRaf = 0; charState = null;
+      return;
+    }
+    charRaf = requestAnimationFrame(charTick);
+  }
+  function charScroll(v, now) {
+    if (!docked) return;
+    if (!charState) {
+      charState = { lean: 0, vl: 0, leanT: 0, squash: 0, vsq: 0, lastV: 0, lastFlip: 0, idleAt: 0 };
+      over.style.transformOrigin = '50% 100%';
+      flow.style.transformOrigin = '50% 100%';
+    }
+    const s = charState;
+    if (v * s.lastV < 0 && Math.abs(v) > 3 && now - s.lastFlip > 250) {
+      s.vsq = 0.014;         // direction flip: the wordmark takes the hit
+      s.lastFlip = now;
+    }
+    s.vsq = Math.min(0.008, s.vsq + Math.abs(v) * 0.00002); // moving = weight
+    s.leanT = Math.max(-2.5, Math.min(2.5, v * 0.03));
+    s.lastV = v;
+    s.idleAt = now + 160;
+    if (!charRaf) charRaf = requestAnimationFrame(charTick);
+  }
+  function dockSettle() {
+    // the word lands on the strip: squash, overshoot, settle (one-shot)
+    [over, flow].forEach(el => {
+      el.style.transformOrigin = '50% 100%';
+      charAnims.push(el.animate([
+        { transform: 'scale(1,1)' },
+        { transform: 'scale(1.045,0.905)', offset: 0.3, easing: 'cubic-bezier(.3,.7,.4,1)' },
+        { transform: 'scale(0.988,1.025)', offset: 0.68 },
+        { transform: 'scale(1,1)' },
+      ], { duration: 520 }));
+    });
+    Promise.allSettled(charAnims.map(a => a.finished)).then(() => {
+      if (!charState) { over.style.transformOrigin = ''; flow.style.transformOrigin = ''; }
+    }).catch(() => {});
+  }
+
   function dock() {
-    if (docked) return;
+    const wasDocked = docked;
     docked = true;
+    resetCollSm();
     over.style.transform = '';
     flow.style.transform = '';
     caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
     strip.appendChild(over);
     strip.appendChild(flow);
+    if (!wasDocked) dockSettle();
   }
 
   function undock() {
     if (!docked) return;
     docked = false;
+    resetCollSm();
+    cancelChar();
     overNext.parentNode.insertBefore(over, overNext);
     flowParent.appendChild(flow);
     over.style.transform = '';
     flow.style.transform = '';
   }
 
-  function apply() {
-    const range = Math.max(1, window.innerHeight * 0.9);
-    const p = Math.min(1, Math.max(0, window.scrollY / range));
+  // ---- OVER letters are solid: the walking queue shoves itself ----
+  // The four boxes walk the same line at different paces (rear letters catch
+  // up), so they bunch up mid-walk; collideOVER resolves the overlaps — front
+  // boxes shoved toward the strip, pushers knocking back with a squash and a
+  // tip. The RAW pass is stateless over the scrub, but its output is spiky
+  // (penetration depth pulses with every hop sine and the min-axis flips
+  // frame to frame), so the collision DELTA is low-pass filtered per letter:
+  // the scrub stays exact, only the shove eases. Reset on dock/undock/resize.
+  const IDX4 = [0, 1, 2, 3];
+  let collSpring = null;  // per-OVER-letter spring state { off, vel } — the
+  // raw resolution can step frame to frame, but the letters' collision offset
+  // chases it through an under-damped spring: motion is always smooth, and
+  // the overshoot reads as bouncing off each other
+  let collLastT = 0;
+  function resetCollSm() { collSpring = null; }
+  function collideOVER(poses) {
+    const IDX = [0, 1, 2, 3];
+    for (let iter = 0; iter < 8; iter++) {
+      for (let a = 0; a < IDX.length; a++) for (let b = a + 1; b < IDX.length; b++) {
+        const i = IDX[a], j = IDX[b], A = poses[i], B = poses[j];
+        if (!A || !B || (A.landed && B.landed)) continue;
+        const ca = caps[i], cb = caps[j];
+        const ox = (ca.w + cb.w) / 2 - Math.abs(A.x - B.x);   // x penetration (same walking line)
+        const oy = (ca.h + cb.h) / 2 - Math.abs(A.y - B.y);   // y overlap (hop arcs)
+        // resolve ALONG THE LINE only: picking the min axis let pairs flip
+        // between horizontal shoves and vertical slams frame to frame — the
+        // flicker Wesley saw. A 1-D queue always pushes along the line; hop
+        // arcs lift letters over each other naturally.
+        if (ox <= 2 || oy <= 0) continue;                     // dead zone: ignore marginal contacts
+        const amp = 1.2 * Math.min(A.fade, B.fade);           // bounce off a bit harder than the overlap
+        const sgnX = A.x <= B.x ? -1 : 1;
+        const shoveX = (P, s) => { P.x += s; };
+        if (!A.landed) shoveX(A, sgnX * ox * amp * (B.landed ? 1 : 0.5));
+        if (!B.landed) shoveX(B, -sgnX * ox * amp * (A.landed ? 1 : 0.5));
+      }
+    }
+  }
 
-    if (p >= 1) { dock(); return; }
+  function apply(p) {
+    // the entrance owns the keycaps until it finishes or is canceled
+    if (window.__luxoEntranceActive) return;
+    // dock as soon as the walk is visually complete (all windows end by 0.86):
+    // waiting for pSmooth to crawl to ~1.0 delayed the dock settle by >1s,
+    // disconnected from the scroll — the "quirk" near the scroll arrow
+    if (p >= 0.87) { dock(); return; }
     undock();
     if (p <= 0 || !baseO) {
+      resetCollSm();
       over.style.transform = ''; flow.style.transform = '';
       caps.forEach(c => { c.el.style.transform = ''; c.el.style.transition = ''; });
       return;
@@ -2033,77 +2339,210 @@ if (!CSS.supports('animation-timeline: view()')) {
 
     const t = targets();
     const vh = window.innerHeight;
-    const hopOver = Math.max(45, Math.min(80, vh * 0.08));   // short hops along the top edge
-    const hopFlow = Math.max(85, Math.min(150, vh * 0.17));  // big leaps up from below
+    // OVER walks a visible horizontal line below its corner; FLOW climbs with
+    // lateral sway. All anchors stay inside the viewport at every progress.
+    const lineY = Math.max(96, Math.min(150, vh * 0.14));
+    const hopWalk = Math.max(45, Math.min(80, vh * 0.09));
+    const climbSway = Math.max(18, Math.min(34, vh * 0.03));
 
-    // Each keycap flies within its own [start, end] window of scroll progress:
-    // OVER hops along the top into center first (its corner scrolls off-screen
-    // almost immediately, so it must lead), then FLOW leaps up letter by
-    // letter. Every window closes at or before p = 1, so the docked pose is
-    // always the exact strip layout. Pure function of p — scrub reverses it.
+    // Travel windows (scroll progress). OVER must dismount from its corner
+    // before the page scrolls it off-screen (p≈0.15), so its dismount is the
+    // first, shortest segment; then it WALKS the line in steps; then mounts
+    // into the strip. FLOW climbs in three hops, W landing last at p=0.86 —
+    // before its own hero slot would scroll out of view.
     const WIN = [
-      [0.00, 0.34], [0.06, 0.40], [0.12, 0.46], [0.18, 0.52],   // O V E R
-      [0.42, 0.76], [0.50, 0.84], [0.58, 0.92], [0.66, 1.00],   // F L O W
+      [0.00, 0.40], [0.02, 0.42], [0.04, 0.44], [0.06, 0.46],   // O V E R
+      [0.30, 0.62], [0.38, 0.70], [0.46, 0.78], [0.54, 0.86],   // F L O W
     ];
+    const DIS = [0.25, 0.22, 0.19, 0.16];  // dismount = first fraction of the window
 
     caps.forEach((c, i) => {
-      const [ws, we] = WIN[i];
-      const q = Math.min(1, Math.max(0, (p - ws) / (we - ws)));
-      const e = q * q * (3 - 2 * q);         // smoothstep along the path
-
-      // squash & stretch beats (Round 18 language, scrubbed by scroll):
-      // crouch just after leaving, stretch mid-air, squash on landing.
-      // The landing window is a sine that closes exactly at q = 1 so the
-      // docked pose is untouched by residual scale.
-      const crouch = Math.exp(-Math.pow((q - 0.10) / 0.08, 2));
-      const stretch = Math.exp(-Math.pow((q - 0.40) / 0.12, 2));
-      const land = q > 0.78 ? Math.sin(Math.PI * (q - 0.78) / 0.22) : 0;
-      const sx = 1 + 0.12 * crouch - 0.10 * stretch + 0.20 * land;
-      const sy = 1 - 0.18 * crouch + 0.14 * stretch - 0.26 * land;
-
-      // hop arc: leaves the ground after the crouch, back down exactly at q=1
-      const aq = Math.min(1, Math.max(0, (q - 0.06) / 0.94));
-      const arc = Math.sin(Math.PI * aq);
-      const hopH = c.grp === 'o' ? hopOver : hopFlow;
-      const tumble = (i % 2 ? -9 : 9) * arc; // slight in-air tumble, settles to 0
-
-      // target: this keycap's exact docked slot in the strip
+      const natX = c.docX;                       // x is scroll-invariant
+      const natY = c.docY - window.scrollY;      // natural viewport position
       const g = c.grp === 'o' ? t.o : t.f;
-      const tx = g.left + c.relX;
-      const ty = g.top + c.relY;
-      const natX = c.docX;                   // x is scroll-invariant
-      const natY = c.docY - window.scrollY;
+      const tx = g.left + c.relX, ty = g.top + c.relY;
+      const win = WIN[i];
+      const isOver = c.grp === 'o';
+      const dx = tx - natX;
+      const e = f => f * f * (3 - 2 * f);        // smoothstep
+      const pp = Math.min(win[1], Math.max(win[0], p));
+      // OVER queue pace: monotonic per-letter time warp — the rear letters
+      // (E, R) walk faster and catch up with the slow front pair, bunching
+      // the queue so collideOVER has something to fight about. [0,1] → [0,1]
+      // keeps every segment boundary continuous and the landings exact.
+      const pp2 = isOver
+        ? win[0] + (win[1] - win[0]) * Math.pow((pp - win[0]) / (win[1] - win[0]), [1.25, 1.12, 0.92, 0.8][i])
+        : pp;
 
-      const dx = (tx - natX) * e;
-      const dy = (ty - natY) * e - arc * hopH + 3 * crouch;
+      // multi-hop waypoint segments — every waypoint stays on screen
+      let segs;
+      if (isOver) {
+        const dEnd = win[0] + (win[1] - win[0]) * DIS[i];
+        const third = (win[1] - dEnd) / 3;
+        const ex = f => natX + dx * f;
+        segs = [
+          // dismount: hop down from the corner slot to the walking line
+          { p0: win[0], p1: dEnd, ax: natX, ay: natY, bx: ex(0.16), by: lineY, lift: 0, sway: 14 },
+          // two walk steps along the line
+          { p0: dEnd, p1: dEnd + third, ax: ex(0.16), ay: lineY, bx: ex(0.5), by: lineY, lift: hopWalk, sway: 0 },
+          { p0: dEnd + third, p1: dEnd + 2 * third, ax: ex(0.5), ay: lineY, bx: ex(0.84), by: lineY, lift: hopWalk, sway: 0 },
+          // mount: hop up into the exact strip slot
+          { p0: dEnd + 2 * third, p1: win[1], ax: ex(0.84), ay: lineY, bx: tx, by: ty, lift: 22, sway: 0 },
+        ];
+      } else {
+        // FLOW: repeats an "E-letter" energy cycle until it reaches the dock —
+        // wind up on its own box (rock back + twist, cw/ccw alternating —
+        // gravity flipping sides), then discharge one small hop forward.
+        segs = [];
+        const CYC = 5;
+        const startX = natX + dx * 0.03, startY = natY - 4;
+        for (let k = 0; k < CYC; k++) {
+          segs.push({
+            p0: win[0] + (win[1] - win[0]) * k / CYC,
+            p1: win[0] + (win[1] - win[0]) * (k + 1) / CYC,
+            ax: startX + (tx - startX) * k / CYC, ay: startY + (ty - startY) * k / CYC,
+            bx: startX + (tx - startX) * (k + 1) / CYC, by: startY + (ty - startY) * (k + 1) / CYC,
+            lift: 24,
+            rock: true,
+            rotAmp: (k % 2 ? -12 : 12),   // twist cw, then ccw, alternating
+          });
+        }
+      }
+
+      let j = segs.length - 1;
+      for (let k = 0; k < segs.length; k++) if (pp2 < segs[k].p1) { j = k; break; }
+      const sg = segs[j];
+      const u = Math.min(1, Math.max(0, (pp2 - sg.p0) / (sg.p1 - sg.p0)));
+      const ue = u * u * (3 - 2 * u);
+      const hop = Math.sin(Math.PI * u);
+
+      let x = sg.ax + (sg.bx - sg.ax) * ue + (sg.sway || 0) * hop;
+      let y = sg.ay + (sg.by - sg.ay) * ue - (sg.lift || 0) * hop;
+      if (sg.bounce && u > 0.7) {
+        // climb overshoots just past each hop's landing, then settles onto it
+        y -= sg.bounce * Math.max(0, Math.sin(Math.PI * (u - 0.7) / 0.3));
+      }
+      // E-letter energy cycle: rock back on the box (crouch + twist) for the
+      // first 45% — gathering impulse against gravity — then discharge it in
+      // one small forward hop, rotation unwinding through straight
+      let sq, rot;
+      if (sg.rock) {
+        if (u < 0.45) {
+          const wu = u / 0.45, s1 = Math.sin(Math.PI * wu);
+          const back = (sg.rotAmp > 0 ? 1 : -1) * 6;
+          x = sg.ax - back * s1;
+          y = sg.ay + 4 * s1;
+          sq = 0.12 * s1;
+          rot = sg.rotAmp * (s1 + 0.3 * Math.sin(2 * Math.PI * wu));
+        } else {
+          const h = (u - 0.45) / 0.55, he = h * h * (3 - 2 * h), dh = Math.sin(Math.PI * h);
+          x = sg.ax + (sg.bx - sg.ax) * he + (sg.sway || 0) * dh;
+          y = sg.ay + (sg.by - sg.ay) * he - (sg.lift || 0) * dh;
+          sq = h > 0.72 ? Math.sin(Math.PI * (h - 0.72) / 0.28) * (j === segs.length - 1 ? 0.24 : 0.07) : 0;
+          rot = sg.rotAmp * (1 - he) * (1 - h * 0.3);
+        }
+      } else {
+        // squash personality: a small beat on EVERY hop landing, the heavy one
+        // on the final landing — the sine closes exactly at u=1 so the docked
+        // pose is untouched by residual scale
+        sq = u > 0.8 ? Math.sin(Math.PI * (u - 0.8) / 0.2) * 0.05 : 0;
+        if (j === segs.length - 1 && u > 0.7) sq = Math.sin(Math.PI * (u - 0.7) / 0.3) * 0.24;
+        rot = (j % 2 ? -1 : 1) * 6 * hop;
+      }
+
+      c.el.__pose = { x, y, rot, sq, fade: Math.min(1, (win[1] - pp) / 0.03), landed: pp >= win[1] - 1e-9 };
+    });
+
+    // FLOW letters walk their own lanes; the OVER queue is solid —
+    // the raw resolution result becomes the TARGET of a per-letter spring,
+    // so the shove is always smooth (its overshoot reads as bouncing off)
+    const overPoses = [0, 1, 2, 3].map(i => caps[i].el.__pose);
+    if (!window.__luxoNoCollide) {
+      const baseP = overPoses.map(P => ({ x: P.x, rot: P.rot }));
+      collideOVER(overPoses);
+      const tN = performance.now(), dtt = collLastT ? Math.min(100, tN - collLastT) : 16;
+      collLastT = tN;
+      const dt = dtt / 1000, snap = dtt >= 100;
+      if (!collSpring || snap) collSpring = IDX4.map(() => ({ off: 0, vel: 0 }));
+      // same ≤8ms substepping as the entrance spring — no hitch explosions
+      const subH = dt / Math.max(1, Math.ceil(dt / 0.008));
+      overPoses.forEach((P, i) => {
+        const S = collSpring[i], b = baseP[i];
+        const target = P.x - b.x;
+        const steps = Math.max(1, Math.ceil(dt / 0.008));
+        for (let s = 0; s < steps; s++) {
+          S.vel += (target - S.off) * 150 * subH;
+          S.vel *= Math.exp(-16 * subH);
+          S.off += S.vel * subH;
+        }
+        S.off = Math.max(-80, Math.min(80, S.off));
+        P.x = b.x + S.off;
+        // impact flair scales continuously with the spring compression
+        const mag = Math.min(1, Math.abs(S.off) / 30);
+        P.sqx = Math.max(P.sqx || 0, mag * 0.15);
+        P.rot += Math.sign(S.off) * mag * 7;
+      });
+    } else {
+      collSpring = null;
+    }
+
+    caps.forEach((c, i) => {
+      const P = c.el.__pose;
+      if (!P) return;
+      const natX = c.docX, natY = c.docY - window.scrollY;
+      const sqx = P.sq * 0.7 + (P.sqx || 0), sqy = P.sq + (P.sqy || 0);
       c.el.style.transform =
-        'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)' +
-        ' rotate(' + tumble.toFixed(2) + 'deg)' +
-        ' scale(' + sx.toFixed(3) + ',' + sy.toFixed(3) + ')';
+        'translate(' + (P.x - natX).toFixed(1) + 'px,' + (P.y - natY).toFixed(1) + 'px)' +
+        ' rotate(' + P.rot.toFixed(2) + 'deg)' +
+        ' scale(' + (1 + sqx).toFixed(3) + ',' + (1 - Math.min(0.45, sqy)).toFixed(3) + ')';
     });
   }
 
-  function onScroll() {
-    clearEntrance();
-    // scroll events are already coalesced to once per frame by the browser —
-    // apply synchronously (identical behavior, no rAF dependency)
-    apply();
+  // ---- driver: pSmooth chases the real scroll progress ----
+  // Dual drive (rAF + 50ms interval): real browsers get 60fps glides; the
+  // interval keeps the scrub moving in starved environments and catches
+  // jumps whose scroll-event dispatch lags. Advances use real elapsed time,
+  // so the glide speed is identical either way.
+  function advance(now) {
+    const y = window.scrollY;
+    const changed = y !== lastY;
+    if (changed) clearEntrance(); // cancel entrance hops + cache slots on first scroll
+    pTarget = Math.min(1, Math.max(0, y / Math.max(1, window.innerHeight * 0.9)));
+    const dt = lastT ? Math.min(100, now - lastT) : 16;
+    lastT = now;
+    // glide time-constant + rate cap: small deltas ease exponentially (gentle
+    // scrolling lags imperceptibly); big deltas are rate-capped to ~0.9
+    // progress/second, so a harsh jump sweeps the whole walk linearly over
+    // ~1.1s and every hop stays readable — nothing skips or finishes early
+    const tau = 220;
+    const k = 1 - Math.exp(-dt / tau);
+    const maxStep = 0.0009 * dt;
+    let step = (pTarget - pSmooth) * k;
+    if (Math.abs(step) > maxStep) step = Math.sign(step) * maxStep;
+    if (Math.abs(step) < 0.0004 && pSmooth !== pTarget) step = pTarget - pSmooth;
+    pSmooth += step;
+    if (step !== 0) apply(pSmooth);
+    if (changed && docked) charScroll(y - lastY, now);
+    if (changed) lastY = y;
   }
-
-  // No fixed fallback timer: there is no CSS entrance animation left to clear,
-  // and measuring is only needed before the first scroll — clearing early
-  // (while the Round 18 hops are still playing) would cancel them needlessly.
-  window.addEventListener('scroll', onScroll, { passive: true });
+  function drive(now) { advance(now); }
+  window.__luxoApply = apply;   // debug/test: drive the scrub directly
+  requestAnimationFrame(drive);
+  setInterval(() => drive(performance.now()), 50);
   window.addEventListener('resize', () => {
-    if (window.__cancelLuxoHops) window.__cancelLuxoHops();
+    // NOTE: no __cancelLuxoHops here — emulators/headless can fire a spurious
+    // resize right after load, which killed the entrance during its delay
+    // phase. Hop offsets are cached at load; the entrance plays through.
+    resetCollSm();
+    cancelChar();
     const d = docked;
     undock();
     measure();
     docked = d;
     if (d) dock();
-    apply();
+    apply(pSmooth);
   });
-  apply();
+  apply(pSmooth);
 })();
 
 /* ============================================================
