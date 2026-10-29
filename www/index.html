@@ -2100,7 +2100,10 @@ if (!CSS.supports('animation-timeline: view()')) {
   }
 
   function apply(p) {
-    if (p >= 0.985) { dock(); return; }
+    // dock as soon as the walk is visually complete (all windows end by 0.86):
+    // waiting for pSmooth to crawl to ~1.0 delayed the dock settle by >1s,
+    // disconnected from the scroll — the "quirk" near the scroll arrow
+    if (p >= 0.87) { dock(); return; }
     undock();
     if (p <= 0 || !baseO) {
       over.style.transform = ''; flow.style.transform = '';
