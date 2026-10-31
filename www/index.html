@@ -152,10 +152,22 @@ body {
   z-index: 90; /* below the OVERFLOW strip, above page content */
 }
 .lang-toggle .keycap {
-  width: 48px; height: 40px;
+  width: auto; min-width: 66px; height: 36px;
   font-size: 0.68rem;
   border-radius: 10px;
+  padding: 0 11px;
+  gap: 7px;
 }
+/* flag plate: the flags sit on a small white chip so they stay crisp on the
+   orange/blue keycap gradients (client-approved flag + EN/PT label look) */
+.lang-toggle .keycap .lang-flag {
+  display: inline-flex;
+  background: #fff;
+  border-radius: 3px;
+  padding: 2px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+}
+.lang-flag svg { width: 18px; height: 12px; display: block; border-radius: 1px; }
 /* the active language reads as pressed-in, like a key being held down */
 .lang-toggle .keycap[aria-pressed="true"] {
   transform: translateY(2px) scale(0.97);
@@ -1053,10 +1065,16 @@ html[data-lang="pt"] p.lang-pt { display: block; }
 <!-- Round 16: docked OVERFLOW strip — OVER + FLOW keycaps land here on scroll -->
 <div class="overflow-strip" id="overflowStrip"></div>
 
-<!-- Audit round 17: EN/PT keycap toggle (fixed top-right, under the strip) -->
+<!-- Audit round 17: EN/PT keycap toggle (fixed top-right, under the strip) —
+     client-approved flag + label style; flags are inline SVG (crisp, no emoji
+     font variance) on white plates -->
 <div class="lang-toggle" role="group" aria-label="Language / Idioma">
-  <button type="button" class="keycap lang-key" data-lang-choice="en" aria-pressed="true">EN</button>
-  <button type="button" class="keycap blue lang-key" data-lang-choice="pt" aria-pressed="false">PT</button>
+  <button type="button" class="keycap lang-key" data-lang-choice="en" aria-pressed="true" title="English">
+    <span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 24 16"><rect width="24" height="16" fill="#fff"/><g fill="#B22234"><rect y="0" width="24" height="1.23"/><rect y="2.46" width="24" height="1.23"/><rect y="4.92" width="24" height="1.23"/><rect y="7.38" width="24" height="1.23"/><rect y="9.85" width="24" height="1.23"/><rect y="12.31" width="24" height="1.23"/><rect y="14.77" width="24" height="1.23"/></g><rect width="9.6" height="8.62" fill="#3C3B6E"/><g fill="#fff"><circle cx="2.4" cy="2.2" r=".55"/><circle cx="4.8" cy="2.2" r=".55"/><circle cx="7.2" cy="2.2" r=".55"/><circle cx="3.6" cy="4.3" r=".55"/><circle cx="6" cy="4.3" r=".55"/><circle cx="2.4" cy="6.4" r=".55"/><circle cx="4.8" cy="6.4" r=".55"/><circle cx="7.2" cy="6.4" r=".55"/></g></svg></span>EN
+  </button>
+  <button type="button" class="keycap blue lang-key" data-lang-choice="pt" aria-pressed="false" title="Português (Brasil)">
+    <span class="lang-flag" aria-hidden="true"><svg viewBox="0 0 24 16"><rect width="24" height="16" fill="#009C3B"/><path d="M12 1.8 L21.6 8 L12 14.2 L2.4 8 Z" fill="#FFDF00"/><circle cx="12" cy="8" r="3.3" fill="#002776"/><path d="M9.1 7.3 Q12 5.9 14.9 7.7" stroke="#fff" stroke-width=".8" fill="none"/></svg></span>PT
+  </button>
 </div>
 
 <section class="work-section reveal" id="work">
