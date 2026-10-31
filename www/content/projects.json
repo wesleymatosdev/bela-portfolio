@@ -3,9 +3,7 @@
     {
       "id": "lush-brand-campaign",
       "title": "LUSH — Brand Campaign",
-      "title_pt": "LUSH — Campanha de Marca",
       "blurb": "Brand campaign material for LUSH cosmetics.",
-      "blurb_pt": "Materiais de campanha para a LUSH cosmetics.",
       "year": 2026,
       "cat": "brand",
       "color": "c4",
@@ -20,9 +18,7 @@
     {
       "id": "birds-spa-brand-identity",
       "title": "Birds Spa — Brand Identity",
-      "title_pt": "Birds Spa — Identidade Visual",
       "blurb": "Spa & cosmetics brand identity — Birds Spa / Birds' Apartment.",
-      "blurb_pt": "Identidade visual de spa e cosméticos — Birds Spa / Birds' Apartment.",
       "year": 2026,
       "cat": "brand",
       "color": "c3",
@@ -42,9 +38,7 @@
     {
       "id": "a-imagem-de-um-poema-editorial",
       "title": "A Imagem de um Poema — Editorial",
-      "title_pt": "A Imagem de um Poema — Editorial",
       "blurb": "Book and poster campaign — \"Depois do Medo vem o Mundo\".",
-      "blurb_pt": "Campanha de livro e cartazes — \"Depois do Medo vem o Mundo\".",
       "year": 2026,
       "cat": "print",
       "color": "c2",
@@ -59,9 +53,7 @@
     {
       "id": "arte-autoral-original-works",
       "title": "WandaVision Art — Original Works",
-      "title_pt": "Arte WandaVision — Obras Originais",
       "blurb": "Signed original artworks and editorial covers by Isabela Rossi.",
-      "blurb_pt": "Obras originais assinadas e capas editoriais de Isabela Rossi.",
       "year": 2026,
       "cat": "print",
       "color": "c4",
@@ -74,9 +66,7 @@
     {
       "id": "jogo-de-cartas-card-game",
       "title": "Jogo de Cartas — Card Game",
-      "title_pt": "Jogo de Cartas — Card Game",
       "blurb": "Card game art — verdade, mentira, coringa and verso, plus box.",
-      "blurb_pt": "Artes para jogo de cartas — verdade, mentira, coringa e verso, mais a caixa.",
       "year": 2026,
       "cat": "print",
       "color": "c1",
@@ -89,9 +79,7 @@
     {
       "id": "cafe-brand-identity",
       "title": "Café — Brand Identity",
-      "title_pt": "Café — Identidade Visual",
       "blurb": "Coffee brand identity — ad creative and packaging mockup.",
-      "blurb_pt": "Identidade visual de cafeteria — peça de anúncio e mockup de embalagem.",
       "year": 2026,
       "cat": "brand",
       "color": "c1",
@@ -104,9 +92,7 @@
     {
       "id": "forra-do-pixel-book-cover",
       "title": "Forra do Pixel — Book Cover",
-      "title_pt": "Forra do Pixel — Capa de Livro",
       "blurb": "Book cover design for \"Forra do Pixel\".",
-      "blurb_pt": "Design de capa de livro para \"Forra do Pixel\".",
       "year": 2026,
       "cat": "print",
       "color": "c4",
@@ -118,9 +104,7 @@
     {
       "id": "tailcall-timeline-2023",
       "title": "Tailcall — Timeline 2023",
-      "title_pt": "Tailcall — Linha do Tempo 2023",
       "blurb": "Timeline graphic for Tailcall.",
-      "blurb_pt": "Linha do tempo ilustrada para a Tailcall.",
       "year": 2023,
       "cat": "ui",
       "color": "c4",
@@ -132,9 +116,7 @@
     {
       "id": "brasil-rupestre-magazine-cover",
       "title": "Brasil Rupestre — Magazine Cover",
-      "title_pt": "Brasil Rupestre — Capa de Revista",
       "blurb": "Magazine cover art — Brasil Rupestre.",
-      "blurb_pt": "Arte de capa de revista — Brasil Rupestre.",
       "year": 2026,
       "cat": "print",
       "color": "c5",
