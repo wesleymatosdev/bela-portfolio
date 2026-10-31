@@ -25,6 +25,13 @@ MEDIA = ROOT / "www" / "assets" / "media"
 START = "<!-- @projects:start -->"
 END = "<!-- @projects:end -->"
 
+# Grid thumbs: the detail gallery keeps the originals; the grid loads a small
+# WebP derivative of images[0] so a ~1600px/500KB source never renders at
+# card size. Generated from the source file (mtime-stamped) with Pillow.
+THUMB_WIDTH = 800
+THUMB_QUALITY_STEPS = (82, 70, 60, 50, 40, 30)  # stepped down until the file fits the budget
+THUMB_MAX_BYTES = 60 * 1024
+
 CATS = {"brand": "Branding", "social": "Social", "print": "Print", "ui": "UI/UX"}
 THEME_COLORS = {  # css class -> hex
     "c1": (241, 103, 14),   # orange
@@ -158,19 +165,52 @@ def validate_and_heal(projects):
     return changed
 
 
+def thumb_file(src_name: str) -> str:
+    """Small WebP derivative of a media image for the grid; returns the file
+    name under assets/media. The longest side is capped at THUMB_WIDTH (the
+    grid thumb is a ~380x160 box; portraits must shrink too, not upscale).
+    Regenerated when the source is newer (mtime-stamped)."""
+    from PIL import Image
+    src = MEDIA / src_name
+    dst = MEDIA / (Path(src_name).stem + "-thumb.webp")
+    if not (dst.is_file() and dst.stat().st_mtime >= src.stat().st_mtime):
+        img = Image.open(src).convert("RGB")
+        if max(img.size) > THUMB_WIDTH:
+            scale = THUMB_WIDTH / max(img.size)
+            img = img.resize(
+                (max(1, round(img.width * scale)), max(1, round(img.height * scale))),
+                Image.LANCZOS,
+            )
+        for q in THUMB_QUALITY_STEPS:
+            img.save(dst, "WEBP", quality=q, method=6)
+            if dst.stat().st_size <= THUMB_MAX_BYTES:
+                break
+        else:
+            raise SystemExit(f"thumb for '{src_name}' stayed over {THUMB_MAX_BYTES} bytes")
+    return dst.name
+
+
 def card_html(p, thumb_hex: str):
     images = p.get("images") or []
     data_images = esc(json.dumps(images, separators=(",", ":")))
+    # keyboard access (audit item 3): cards are buttons, not click-only divs
+    a11y = ' role="button" tabindex="0"'
+    # bilingual fields (audit item 4): both languages ride the card; the
+    # toggle swaps them client-side without a reload
+    for en_key, pt_key, attr in (("title", "title_pt", "title"), ("blurb", "blurb_pt", "blurb")):
+        a11y += f' data-{attr}="{esc(p[en_key])}"'
+        if p.get(pt_key):
+            a11y += f' data-{attr}-pt="{esc(p[pt_key])}"'
     # main image draws the eye; the initials tile is only a no-image fallback
     if images:
-        cover = (f'<img class="scatter-thumb-img" src="assets/media/{esc(images[0])}"'
+        cover = (f'<img class="scatter-thumb-img" src="assets/media/{esc(thumb_file(images[0]))}"'
                  f' alt="" loading="lazy">')
         thumb_cls = "scatter-thumb has-img"
     else:
         cover = f'<span class="scatter-thumb-inner">{esc(p["initials"])}</span>'
         thumb_cls = "scatter-thumb"
     return (
-        f'<div class="scatter-card reveal" data-cat="{esc(p["cat"])}" data-images="{data_images}">'
+        f'<div class="scatter-card reveal" data-cat="{esc(p["cat"])}" data-images="{data_images}"{a11y}>'
         f'<div class="{thumb_cls}" style="--thumb-color:{esc(thumb_hex)}">{cover}</div>'
         f'<div class="scatter-body"><h3>{esc(p["title"])}</h3>'
         f"<p>{esc(p['blurb'])}</p>"
