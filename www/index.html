@@ -576,7 +576,7 @@ html[data-lang="pt"] p.lang-pt { display: block; }
   .name-wordmark .wm-idle-on.wm-A1 { animation: wm-idle-pend 5.2s ease-in-out -0.6s infinite; transform-origin: 50% 4%; }
   .name-wordmark .wm-idle-on.wm-A2 { animation: wm-idle-pend2 5.6s ease-in-out -3.1s infinite; transform-origin: 50% 4%; }
   .name-wordmark .wm-idle-on.wm-B  { animation: wm-idle-squash 4.0s ease-in-out -1.4s infinite; }
-  .name-wordmark .wm-idle-on.wm-E  { animation: wm-idle-wash 4.6s ease-in-out -2.8s infinite; transform-origin: 50% 100%; }
+  .name-wordmark .wm-idle-on.wm-E  { animation: wm-idle-hop 5.6s ease-in-out -2.8s infinite; transform-origin: 50% 100%; }
   .name-wordmark .wm-idle-on.wm-L  { animation: wm-idle-tilt 5.0s ease-in-out -1.1s infinite; transform-origin: 0% 100%; }
   .name-wordmark .wm-idle-on.wm-R  { animation: wm-idle-hop 4.4s ease-in-out -3.6s infinite; transform-origin: 50% 100%; }
   .name-wordmark .wm-idle-on.wm-O  { animation: wm-idle-spin 22s linear infinite; }
@@ -586,7 +586,6 @@ html[data-lang="pt"] p.lang-pt { display: block; }
 @keyframes wm-idle-pend   { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(7deg); } 70% { transform: rotate(-5deg); } }
 @keyframes wm-idle-pend2  { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(-7deg); } 70% { transform: rotate(5deg); } }
 @keyframes wm-idle-squash { 0%, 100% { transform: scale(1, 1); } 40% { transform: scale(1.06, 0.93); } 72% { transform: scale(0.97, 1.045); } }
-@keyframes wm-idle-wash   { 0%, 100% { transform: translateY(0) scaleX(1); } 45% { transform: translateY(-1.1px) scaleX(1.02); } }
 @keyframes wm-idle-tilt   { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(6deg); } 70% { transform: rotate(-3deg); } }
 @keyframes wm-idle-hop    { 0%, 100% { transform: translateY(0) scale(1, 1); } 38% { transform: translateY(-1.7px) scale(0.97, 1.05); } 62% { transform: translateY(-1.2px) scale(1.01, 0.99); } 82% { transform: translateY(0) scale(1.05, 0.94); } }
 @keyframes wm-idle-spin   { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -2564,13 +2563,22 @@ if (!CSS.supports('animation-timeline: view()')) {
       const isOver = c.grp === 'o';
       const dx = tx - natX;
       const e = f => f * f * (3 - 2 * f);        // smoothstep
+      // OVER queue pace, reshaped (join end-easing fix): the raw power warp is
+      // ease-IN near the window end (derivative up to 1.25x at w=1) and the
+      // mount into the strip is the last quarter of the window — so the join
+      // visibly accelerated right into the dock. warpPace keeps the catch-up
+      // bunching during the walk but fades the extra pace out across the last
+      // 30% of the window: warp(1)=1 exactly, warp'(1)=1, warp''(1)=0, so
+      // every landing stays exact and the final approach never accelerates.
+      const ss01 = f => { f = Math.max(0, Math.min(1, f)); return f * f * (3 - 2 * f); };
+      const warpPace = (w, exp) => w + (Math.pow(w, exp) - w) * (1 - ss01((w - 0.7) / 0.3));
       const pp = Math.min(win[1], Math.max(win[0], p));
       // OVER queue pace: monotonic per-letter time warp — the rear letters
       // (E, R) walk faster and catch up with the slow front pair, bunching
       // the queue so collideOVER has something to fight about. [0,1] → [0,1]
       // keeps every segment boundary continuous and the landings exact.
       const pp2 = isOver
-        ? win[0] + (win[1] - win[0]) * Math.pow((pp - win[0]) / (win[1] - win[0]), [1.25, 1.12, 0.92, 0.8][i])
+        ? win[0] + (win[1] - win[0]) * warpPace((pp - win[0]) / (win[1] - win[0]), [1.25, 1.12, 0.92, 0.8][i])
         : pp;
 
       // multi-hop waypoint segments — every waypoint stays on screen
@@ -2612,7 +2620,13 @@ if (!CSS.supports('animation-timeline: view()')) {
       for (let k = 0; k < segs.length; k++) if (pp2 < segs[k].p1) { j = k; break; }
       const sg = segs[j];
       const u = Math.min(1, Math.max(0, (pp2 - sg.p0) / (sg.p1 - sg.p0)));
-      const ue = u * u * (3 - 2 * u);
+      // final approach = pure ease-out (join end-easing fix): the mount hop /
+      // last discharge now peaks at takeoff and decelerates monotonically
+      // into the docked slot. The old smoothstep peaked mid-segment, so the
+      // join read as speeding up and slamming into place. Mid-join segments
+      // keep smoothstep; u=1 still lands exactly on the waypoint.
+      const isLastSeg = j === segs.length - 1;
+      const ue = isLastSeg ? 1 - Math.pow(1 - u, 3) : u * u * (3 - 2 * u);
       const hop = Math.sin(Math.PI * u);
 
       let x = sg.ax + (sg.bx - sg.ax) * ue + (sg.sway || 0) * hop;
@@ -2634,7 +2648,7 @@ if (!CSS.supports('animation-timeline: view()')) {
           sq = 0.12 * s1;
           rot = sg.rotAmp * (s1 + 0.3 * Math.sin(2 * Math.PI * wu));
         } else {
-          const h = (u - 0.45) / 0.55, he = h * h * (3 - 2 * h), dh = Math.sin(Math.PI * h);
+          const h = (u - 0.45) / 0.55, he = isLastSeg ? 1 - Math.pow(1 - h, 3) : h * h * (3 - 2 * h), dh = Math.sin(Math.PI * h);
           x = sg.ax + (sg.bx - sg.ax) * he + (sg.sway || 0) * dh;
           y = sg.ay + (sg.by - sg.ay) * he - (sg.lift || 0) * dh;
           sq = h > 0.72 ? Math.sin(Math.PI * (h - 0.72) / 0.28) * (j === segs.length - 1 ? 0.24 : 0.07) : 0;
@@ -2955,12 +2969,56 @@ if (!CSS.supports('animation-timeline: view()')) {
     return f;
   };
 
+  // A moves — FINAL (owner decision, no pick pending): one move per letter,
+  // both permanent.
+  //   A1 (first A, ISABELA) = smash-and-recover — squash flat toward the
+  //     letter's feet, hold a comic beat, springy re-inflation with one
+  //     overshoot, settle. 1400ms.
+  //   A2 (the A in ROSSI) = vertical-axis card flip — 2D-safe rotateY
+  //     approximation (scaleX follows the cosine, skewY the sine; true 3D
+  //     transforms are unreliable on SVG children across browsers), mirrored
+  //     back face at halfway, cosine-decelerated return. 1750ms.
+  // Each plays on the chained post-arrival handoff AND on click. Both are
+  // transform-only, land pixel-exact on the rest state, and never reverse
+  // at the end.
+  const A1_MOVE = {
+    dur: 1400, origin: '50% 100%',
+    frames: [
+      { transform: 'scale(1, 1)', offset: 0, easing: 'cubic-bezier(.5,0,.7,.4)' },
+      { transform: 'scale(0.98, 1.06)', offset: .08, easing: 'cubic-bezier(.6,0,.9,.5)' },
+      { transform: 'scale(1.25, 0.15)', offset: .25, easing: 'linear' },
+      { transform: 'scale(1.27, 0.13)', offset: .38, easing: 'cubic-bezier(.3,.6,.4,1)' },
+      { transform: 'scale(0.94, 1.12)', offset: .55, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'scale(1.05, 0.96)', offset: .68, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'scale(0.985, 1.02)', offset: .82, easing: 'ease-out' },
+      { transform: 'scale(1, 1)', offset: 1 }
+    ],
+  };
+  const A2_MOVE = {
+    dur: 1750, origin: '50% 50%',
+    frames: [
+      { transform: 'skewY(0deg) scaleX(1)', offset: 0, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(6deg) scaleX(0.42)', offset: .16 },
+      { transform: 'skewY(6deg) scaleX(-0.42)', offset: .3 },
+      { transform: 'skewY(0deg) scaleX(-1)', offset: .48, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(-6deg) scaleX(-0.42)', offset: .66 },
+      { transform: 'skewY(-6deg) scaleX(0.42)', offset: .8 },
+      { transform: 'skewY(-2deg) scaleX(0.9)', offset: .9, easing: 'ease-out' },
+      { transform: 'skewY(0deg) scaleX(1)', offset: 1 }
+    ],
+  };
+
   const MOVES = {
+    // O: one clean 360deg turn while the letter lifts, then a squash landing
+    // and settle — the old double 720deg spin at 1200ms was too fast to read.
+    // The slow 22s idle spin keeps the O's rolling personality between moves.
     'wm-O': { frames: [
-      { transform: 'translateY(0px) rotate(0deg) scale(1,1)' },
-      { transform: 'translateY(-4.6px) rotate(360deg) scale(1,1)', offset: .45 },
-      { transform: 'translateY(0.4px) rotate(720deg) scale(1.18,.78)', offset: .8 },
-      { transform: 'translateY(0px) rotate(720deg) scale(1,1)' }], dur: 1200, easing: 'cubic-bezier(.3,.6,.4,1)' },
+      { transform: 'translateY(0px) rotate(0deg) scale(1,1)', offset: 0, easing: 'cubic-bezier(.45,.05,.55,.95)' },
+      { transform: 'translateY(-3.2px) rotate(360deg) scale(1,1)', offset: .58, easing: 'cubic-bezier(.3,.6,.4,1)' },
+      { transform: 'translateY(0.3px) rotate(360deg) scale(1.14,.82)', offset: .78, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'translateY(0px) rotate(360deg) scale(.97,1.04)', offset: .9, easing: 'ease-out' },
+      { transform: 'translateY(0px) rotate(360deg) scale(1,1)', offset: 1 }
+    ], dur: 1700 },
     'wm-I1': {frames: [{"transform":"none","offset":0},{"transform":"none","offset":1}], dur: 1100, easing: 'linear', type: 'snakeCrawl', snakeDir: 'up'},
     'wm-I2': {frames: [{"transform":"none","offset":0},{"transform":"none","offset":1}], dur: 1100, easing: 'linear', type: 'snakeCrawl', snakeDir: 'down'},
     'wm-S1': { frames: [
@@ -2993,34 +3051,23 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'scale(.99, 1.01)', offset: .85, easing: 'ease-out' },
       { transform: 'scale(1, 1)', offset: 1 }
     ], dur: 1050, origin: '50% 50%' },
-    'wm-A1': { frames: [
-      { transform: 'rotate(0deg)', offset: 0, easing: 'cubic-bezier(.5,.05,.65,.9)' },
-      { transform: 'rotate(360deg)', offset: .34, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(385deg)', offset: .43, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(341deg)', offset: .52, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(374deg)', offset: .6, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(350deg)', offset: .68, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(367deg)', offset: .75, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(356deg)', offset: .81, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(362deg)', offset: .87, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(359deg)', offset: .94, easing: 'ease-out' },
-      { transform: 'rotate(360deg)', offset: 1 }
-    ], dur: 2300, origin: '50% 4%' },
-    'wm-A2': { frames: [
-      { transform: 'rotate(0deg)', offset: 0, easing: 'cubic-bezier(.5,.05,.65,.9)' },
-      { transform: 'rotate(-360deg)', offset: .34, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-385deg)', offset: .43, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-341deg)', offset: .52, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-374deg)', offset: .6, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-350deg)', offset: .68, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-367deg)', offset: .75, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-356deg)', offset: .81, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-362deg)', offset: .87, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-359deg)', offset: .94, easing: 'ease-out' },
-      { transform: 'rotate(-360deg)', offset: 1 }
-    ], dur: 2300, origin: '50% 4%' },
+    'wm-A1': A1_MOVE,
+    'wm-A2': A2_MOVE,
     'wm-B': {frames: [{"transform":"scale(1, 1)","offset":0},{"transform":"scale(1.32, 0.70)","offset":0.1},{"transform":"scale(0.78, 1.30)","offset":0.24},{"transform":"scale(1.22, 0.80)","offset":0.38},{"transform":"scale(0.86, 1.16)","offset":0.52},{"transform":"scale(1.12, 0.90)","offset":0.66},{"transform":"scale(0.95, 1.06)","offset":0.8},{"transform":"scale(1.02, 0.98)","offset":0.9},{"transform":"scale(1, 1)","offset":1}], dur: 950, easing: 'ease-in-out'},
-    'wm-E': { type: 'eWash', dur: 1650 },
+    // E: one clean hop (issue #21 — "only hop (or only flip)"): a crouch, a
+    // single arc up, a float at the apex, a landing squash and a settle back
+    // to rest. Nothing reverses at the end — after the landing the letter
+    // only recovers its proportions, it never lifts again. Slower than the
+    // old moves so the arc reads at a glance.
+    'wm-E': { frames: [
+      { transform: 'translateY(0px) scale(1, 1)', offset: 0, easing: 'cubic-bezier(.5,0,.7,.4)' },
+      { transform: 'translateY(0.4px) scale(1.1, .86)', offset: .16, easing: 'cubic-bezier(.2,.7,.4,1)' },
+      { transform: 'translateY(-5.6px) scale(.95, 1.08)', offset: .4, easing: 'cubic-bezier(.4,0,.6,1)' },
+      { transform: 'translateY(-5.9px) scale(1, 1)', offset: .54, easing: 'cubic-bezier(.5,0,.8,.5)' },
+      { transform: 'translateY(0.5px) scale(1.2, .76)', offset: .72, easing: 'cubic-bezier(.3,.6,.4,1)' },
+      { transform: 'translateY(0px) scale(.97, 1.04)', offset: .86, easing: 'ease-out' },
+      { transform: 'translateY(0px) scale(1, 1)', offset: 1 }
+    ], dur: 1600, origin: '50% 100%' },
     'wm-L': {frames: [{"transform":"none","offset":0},{"transform":"rotate(5deg)","filter":"blur(0.3px) brightness(0.97)","offset":0.22},{"transform":"rotate(8deg) translateY(0.3px)","filter":"blur(0.6px) brightness(0.94)","offset":0.42},{"transform":"rotate(10deg) translateY(0.4px)","filter":"blur(0.9px) brightness(0.92)","offset":0.55},{"transform":"rotate(-3deg) translateY(0px)","filter":"blur(0px) brightness(1.15)","offset":0.62},{"transform":"rotate(4deg)","filter":"brightness(1.05)","offset":0.7},{"transform":"rotate(-2deg)","filter":"brightness(1)","offset":0.78},{"transform":"rotate(1deg)","offset":0.87},{"transform":"none","offset":1}], dur: 1400, easing: 'cubic-bezier(0.45, 0, 0.55, 1)'},
     'wm-R': { frames: [
       { transform: 'translate(0px, 0px) scale(1, 1)', offset: 0, easing: 'cubic-bezier(.55,0,.7,.4)' },
@@ -3092,149 +3139,6 @@ if (!CSS.supports('animation-timeline: view()')) {
     anim.finished.then(cleanup).catch(cleanup);
   }
 
-  // E: "wash" — Wesley's pick (Lavish round 2): ONE gentle crest washes
-  // through each of the three strokes (top bar, middle stroke, bottom bar),
-  // staggered ~130ms so it cascades down the E and is absorbed at the right
-  // end. Same machinery as the slice approach: thin vertical slices of the
-  // real design path shift vertically along the crest — the glyph never
-  // translates or fattens, the hand-drawn character survives every frame,
-  // and the spine + period dot sit in the taper where displacement ~0.
-  // Displacement is 0 before each stroke's crest arrives and after it
-  // leaves, so the move lands pixel-exact back on the design rest state.
-  function eWashWave(p) {
-    const NS = 'http://www.w3.org/2000/svg';
-    const svg = p.ownerSVGElement;
-    // re-click mid-flight: kill the previous run dead, then start over
-    if (p.__es) { p.__es.stop(); p.__es = null; }
-    const bb = p.getBBox();
-    // x span for every stroke: from the spine edge to the right edge —
-    // the spine column itself never washes. y windows per stroke
-    // (glyph units, raster-measured; bars are y 0.72..2.30 and 7.86..9.44,
-    // middle stroke band y 3.3..6.6 with <=0.45u travel).
-    const WX0 = bb.x + 1.66, WX1 = bb.x + 8.66;
-    const STROKES = [
-      { y0: bb.y - 0.25, y1: bb.y + 1.75, delay: 0.10 },  // top bar
-      { y0: bb.y + 1.88, y1: bb.y + 6.82, delay: 0.23 },  // middle stroke + dot
-      { y0: bb.y + 6.95, y1: bb.y + 8.95, delay: 0.36 },  // bottom bar
-    ];
-    const WASH = 1.2;                  // one crest crossing, per stroke
-    const SIG = 1.0;                   // crest half-width
-    const AMP = 0.42;                  // peak displacement, <=~0.45u
-    const DUR = 1650;                  // last stroke's crest lands inside this
-    const TAPER = 0.9;                 // ends ease to 0 so strokes stay attached
-    const ss = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
-    const env = x => ss((x - WX0) / TAPER) * ss((WX1 - x) / TAPER);
-    const SPAN = WX1 - WX0;
-
-    let defs = svg.querySelector('defs');
-    if (!defs) { defs = document.createElementNS(NS, 'defs'); svg.insertBefore(defs, svg.firstChild); }
-    const uid = 'wm-ew-' + Math.random().toString(36).slice(2, 8);
-    const fill = getComputedStyle(p).fill;
-    const d = p.getAttribute('d');
-
-    // One mask with ALL THREE hole rects — p carries a single mask attribute,
-    // so per-window masks would silently overwrite each other (only the last
-    // window's base ink hidden => doubled strokes). The clip lives on a
-    // STATIC g per band — a clip-path on the moving element itself would
-    // travel with it. Only the path child inside gets the per-frame translateY.
-    const mask = document.createElementNS(NS, 'mask');
-    mask.id = uid;
-    const mw = document.createElementNS(NS, 'rect');
-    mw.setAttribute('x', bb.x - 1); mw.setAttribute('y', bb.y - 1);
-    mw.setAttribute('width', bb.width + 2); mw.setAttribute('height', bb.height + 2);
-    mw.setAttribute('fill', '#fff');
-    mask.appendChild(mw);
-    for (const st of STROKES) {
-      const mh = document.createElementNS(NS, 'rect');
-      mh.setAttribute('x', WX0); mh.setAttribute('y', st.y0);
-      mh.setAttribute('width', SPAN); mh.setAttribute('height', st.y1 - st.y0);
-      mh.setAttribute('fill', '#000');
-      mask.appendChild(mh);
-    }
-    defs.appendChild(mask);
-    p.setAttribute('mask', 'url(#' + uid + ')');
-
-    const parts = STROKES.map(st => {
-      const layer = document.createElementNS(NS, 'g');
-      const bands = [];
-      const cpEls = [];
-      const BAND = 0.09, OV = 0.02;
-      const n = Math.ceil((SPAN + OV) / BAND);
-      for (let i = 0; i < n; i++) {
-        const bx = WX0 + i * BAND - (i ? OV / 2 : 0);
-        const cp = document.createElementNS(NS, 'clipPath');
-        cp.id = uid + '-' + st.delay + '-' + i;
-        const r = document.createElementNS(NS, 'rect');
-        r.setAttribute('x', bx.toFixed(3)); r.setAttribute('y', st.y0);
-        r.setAttribute('width', (BAND + OV).toFixed(3));
-        r.setAttribute('height', (st.y1 - st.y0).toFixed(3));
-        cp.appendChild(r); defs.appendChild(cp); cpEls.push(cp);
-        const g = document.createElementNS(NS, 'g');
-        g.setAttribute('clip-path', 'url(#' + cp.id + ')');
-        const c = document.createElementNS(NS, 'path');
-        c.setAttribute('d', d); c.setAttribute('fill', fill);
-        g.appendChild(c); layer.appendChild(g);
-        bands.push({ x: bx + BAND / 2, el: c });
-      }
-      svg.appendChild(layer);
-      return { layer, bands, cpEls, delay: st.delay, done: false };
-    });
-
-    const t0 = performance.now();
-    let raf = 0, dead = false;
-    const stopPart = part => {
-      part.layer.remove();
-      for (const cp of part.cpEls) cp.remove();
-      part.done = true;
-    };
-    const api = {
-      stop() {
-        if (dead) return; dead = true;
-        cancelAnimationFrame(raf);
-        // unconditional: parts that finished early were parked at dy=0 with
-        // their layers alive, so every part still owns layer + clipPaths here
-        for (const part of parts) stopPart(part);
-        mask.remove();
-        p.removeAttribute('mask');
-        if (p.__es === api) p.__es = null;
-      }
-    };
-    const frame = now => {
-      if (dead) return;
-      const t = (now - t0) / 1000;
-      for (const part of parts) {
-        if (part.done) continue;
-        const lt = (t - part.delay) / WASH;
-        if (lt >= 1) {
-          // crest absorbed. Park the slices at 0 and KEEP them — the shared
-          // mask stays until the whole run ends, so tearing the layer down
-          // here would leave this stroke INVISIBLE until the last stroke
-          // finishes (base ink is masked out). At dy=0 the slices render the
-          // exact design stroke anyway.
-          for (const b of part.bands) b.el.style.transform = 'translateY(0px)';
-          part.done = true;
-          continue;
-        }
-        const dy = new Array(part.bands.length).fill(0);
-        if (lt > 0) {
-          const e = lt * lt * (3 - 2 * lt);
-          const sPos = WX0 - SIG + (SPAN + 2 * SIG) * e;
-          part.bands.forEach((b, i) => {
-            const dpos = b.x - sPos;
-            if (Math.abs(dpos) < SIG) {
-              const crest = Math.pow(Math.cos(Math.PI * dpos / (2 * SIG)), 2);
-              dy[i] = (-AMP * crest * env(b.x)).toFixed(3);
-            }
-          });
-        }
-        part.bands.forEach((b, i) => { b.el.style.transform = 'translateY(' + dy[i] + 'px)'; });
-      }
-      if (parts.every(part => part.done)) api.stop();
-      else raf = requestAnimationFrame(frame);
-    };
-    p.__es = api;
-    raf = requestAnimationFrame(frame);
-  }
   const paths = [...svg.querySelectorAll('path[class^="wm-"]')];
 
   function playMove(p) {
@@ -3250,7 +3154,6 @@ if (!CSS.supports('animation-timeline: view()')) {
     // settles (schedule below), from its identity keyframe, so no snap
     if (window.__wmIdle) window.__wmIdle.stop(p);
     if (move.type === 'snakeCrawl') { snakeScroll(p, move.snakeDir); }
-    else if (move.type === 'eWash') { eWashWave(p); }
     else {
       // re-trigger mid-flight: restart the move from the top instead of stacking
       p.getAnimations().forEach(a => a.cancel());
