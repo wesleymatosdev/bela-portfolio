@@ -2969,17 +2969,18 @@ if (!CSS.supports('animation-timeline: view()')) {
     return f;
   };
 
-  // A moves — TWO candidates await Bela's pick (Wesley: "client picks one").
-  //   ?amove=smash (default) — squash flat toward the letter's feet, hold a
-  //     comic beat, springy re-inflation with one overshoot, settle.
-  //   ?amove=flip — vertical-axis card flip (2D-safe rotateY approximation:
+  // A moves — TWO candidates await Bela's pick (decision artifact:
+  // a-move-proposals.html). The site itself ships ONE (no URL switch —
+  // the pick is not a website feature). Both implementations stay here so
+  // the artifact stays honest and the loser is a one-commit removal:
+  //   'smash' — squash flat toward the letter's feet, hold a comic beat,
+  //     springy re-inflation with one overshoot, settle.
+  //   'flip' — vertical-axis card flip (2D-safe rotateY approximation:
   //     scaleX cosine, skewY sine), mirrored back face at halfway.
-  // The rejected horizontal spin-flip stays rejected. Both are
-  // transform-only, end pixel-exact on the rest state with no end
+  // Both are transform-only, end pixel-exact on the rest state with no end
   // reversal, and play identically chained after arrival and on click.
-  // Removal after the pick is a single-point delete of one variant object.
-  const AMOVE_FLIP = new URLSearchParams(location.search).get('amove') === 'flip';
-  const A_MOVE = AMOVE_FLIP ? {
+  const AMOVE_PICK = 'smash'; // awaiting Bela's pick: 'smash' | 'flip'
+  const A_MOVE = AMOVE_PICK === 'flip' ? {
     dur: 1750, origin: '50% 50%',
     frames: [
       { transform: 'skewY(0deg) scaleX(1)', offset: 0, easing: 'cubic-bezier(.45,0,.55,1)' },
