@@ -2969,30 +2969,19 @@ if (!CSS.supports('animation-timeline: view()')) {
     return f;
   };
 
-  // A moves — TWO candidates await Bela's pick (decision artifact:
-  // a-move-proposals.html). The site itself ships ONE (no URL switch —
-  // the pick is not a website feature). Both implementations stay here so
-  // the artifact stays honest and the loser is a one-commit removal:
-  //   'smash' — squash flat toward the letter's feet, hold a comic beat,
-  //     springy re-inflation with one overshoot, settle.
-  //   'flip' — vertical-axis card flip (2D-safe rotateY approximation:
-  //     scaleX cosine, skewY sine), mirrored back face at halfway.
-  // Both are transform-only, end pixel-exact on the rest state with no end
-  // reversal, and play identically chained after arrival and on click.
-  const AMOVE_PICK = 'smash'; // awaiting Bela's pick: 'smash' | 'flip'
-  const A_MOVE = AMOVE_PICK === 'flip' ? {
-    dur: 1750, origin: '50% 50%',
-    frames: [
-      { transform: 'skewY(0deg) scaleX(1)', offset: 0, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'skewY(6deg) scaleX(0.42)', offset: .16 },
-      { transform: 'skewY(6deg) scaleX(-0.42)', offset: .3 },
-      { transform: 'skewY(0deg) scaleX(-1)', offset: .48, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'skewY(-6deg) scaleX(-0.42)', offset: .66 },
-      { transform: 'skewY(-6deg) scaleX(0.42)', offset: .8 },
-      { transform: 'skewY(-2deg) scaleX(0.9)', offset: .9, easing: 'ease-out' },
-      { transform: 'skewY(0deg) scaleX(1)', offset: 1 }
-    ],
-  } : {
+  // A moves — FINAL (owner decision, no pick pending): one move per letter,
+  // both permanent.
+  //   A1 (first A, ISABELA) = smash-and-recover — squash flat toward the
+  //     letter's feet, hold a comic beat, springy re-inflation with one
+  //     overshoot, settle. 1400ms.
+  //   A2 (the A in ROSSI) = vertical-axis card flip — 2D-safe rotateY
+  //     approximation (scaleX follows the cosine, skewY the sine; true 3D
+  //     transforms are unreliable on SVG children across browsers), mirrored
+  //     back face at halfway, cosine-decelerated return. 1750ms.
+  // Each plays on the chained post-arrival handoff AND on click. Both are
+  // transform-only, land pixel-exact on the rest state, and never reverse
+  // at the end.
+  const A1_MOVE = {
     dur: 1400, origin: '50% 100%',
     frames: [
       { transform: 'scale(1, 1)', offset: 0, easing: 'cubic-bezier(.5,0,.7,.4)' },
@@ -3003,6 +2992,19 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'scale(1.05, 0.96)', offset: .68, easing: 'cubic-bezier(.45,0,.55,1)' },
       { transform: 'scale(0.985, 1.02)', offset: .82, easing: 'ease-out' },
       { transform: 'scale(1, 1)', offset: 1 }
+    ],
+  };
+  const A2_MOVE = {
+    dur: 1750, origin: '50% 50%',
+    frames: [
+      { transform: 'skewY(0deg) scaleX(1)', offset: 0, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(6deg) scaleX(0.42)', offset: .16 },
+      { transform: 'skewY(6deg) scaleX(-0.42)', offset: .3 },
+      { transform: 'skewY(0deg) scaleX(-1)', offset: .48, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(-6deg) scaleX(-0.42)', offset: .66 },
+      { transform: 'skewY(-6deg) scaleX(0.42)', offset: .8 },
+      { transform: 'skewY(-2deg) scaleX(0.9)', offset: .9, easing: 'ease-out' },
+      { transform: 'skewY(0deg) scaleX(1)', offset: 1 }
     ],
   };
 
@@ -3049,8 +3051,8 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'scale(.99, 1.01)', offset: .85, easing: 'ease-out' },
       { transform: 'scale(1, 1)', offset: 1 }
     ], dur: 1050, origin: '50% 50%' },
-    'wm-A1': { frames: A_MOVE.frames, dur: A_MOVE.dur, origin: A_MOVE.origin },
-    'wm-A2': { frames: A_MOVE.frames, dur: A_MOVE.dur, origin: A_MOVE.origin },
+    'wm-A1': A1_MOVE,
+    'wm-A2': A2_MOVE,
     'wm-B': {frames: [{"transform":"scale(1, 1)","offset":0},{"transform":"scale(1.32, 0.70)","offset":0.1},{"transform":"scale(0.78, 1.30)","offset":0.24},{"transform":"scale(1.22, 0.80)","offset":0.38},{"transform":"scale(0.86, 1.16)","offset":0.52},{"transform":"scale(1.12, 0.90)","offset":0.66},{"transform":"scale(0.95, 1.06)","offset":0.8},{"transform":"scale(1.02, 0.98)","offset":0.9},{"transform":"scale(1, 1)","offset":1}], dur: 950, easing: 'ease-in-out'},
     // E: one clean hop (issue #21 — "only hop (or only flip)"): a crouch, a
     // single arc up, a float at the apex, a landing squash and a settle back
