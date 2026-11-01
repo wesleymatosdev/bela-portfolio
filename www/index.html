@@ -2844,6 +2844,11 @@ if (!CSS.supports('animation-timeline: view()')) {
       if (g >= 1) {
         cfg.done = true; // pristine hand-back: natural slot, no inline styles
         cfg.el.style.transform = ''; cfg.el.style.opacity = '';
+        // no dead stop: the instant the letter lands, chain into its own
+        // easter-egg move (the exact vocabulary the hero used before this
+        // PR). playMove restarts safely on re-click, settles back to rest,
+        // and is never registered under reduced motion (we don't run there).
+        if (typeof window.__wmPlayMove === 'function') window.__wmPlayMove(cfg.el);
         continue;
       }
       allDone = false;
@@ -3175,6 +3180,9 @@ if (!CSS.supports('animation-timeline: view()')) {
     p.animate(move.frames, { duration: move.dur, easing: move.easing || 'ease-in-out' })
       .finished.catch(() => {});
   }
+  // Round 19 chains this onto each letter's arrival landing, so the name
+  // hands off straight into the old move vocabulary instead of going still
+  window.__wmPlayMove = playMove;
 
   // transparent hit boxes over each glyph — the whole letter box is clickable,
   // not just the thin strokes of the character
