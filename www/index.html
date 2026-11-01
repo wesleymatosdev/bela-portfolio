@@ -246,7 +246,6 @@ html[data-lang="pt"] p.lang-pt { display: block; }
 .doodle-cursor     { --doodle-depth: 0.75; top: 86%; left: 20%; width: 38px; height: 38px; animation-delay: 2.2s; }
 .doodle-controller { --doodle-depth: 0.85; top: 92%; right: 3%; width: 62px; height: 42px; animation-delay: 1.4s; }
 .doodle-arrow      { --doodle-depth: 0.65; top: 95%; left: 28%; width: 50px; height: 50px; animation-delay: 0.6s; }
-.doodle-zigzag     { --doodle-depth: 0.4;  top: 17%; left: 40%; width: 60px; height: 24px; animation-delay: 1.6s; }
 /* round 17: second wave — "a bunch more icons", same palette, scattered
    through the gaps the first 14 left (page-height % positions) */
 .doodle-paperplane { --doodle-depth: 0.7;  top: 7%;  left: 8%;  width: 56px; height: 44px; animation-delay: 0.9s; }
@@ -557,6 +556,40 @@ html[data-lang="pt"] p.lang-pt { display: block; }
 /* easter egg: hero letters are clickable — pointer is the only hint */
 .name-wordmark { overflow: visible; }
 .name-wordmark path[class^="wm-"] { cursor: pointer; }
+
+/* Round 19b: continuous idle life for the hero wordmark. After a letter's
+   arrival + handoff move settles, it falls into this gentle seamless loop of
+   its own personality move — transform only, phases staggered (negative
+   delays) so the name always breathes. Keyframes start and end at identity,
+   so loop points and mid-move re-entry never snap. The whole block is gated
+   on no-preference (reduce = fully static) and the svg carries
+   wm-idle-offscreen whenever the hero leaves the viewport (IntersectionObserver
+   in the wordmark script) — paused CSS animations cost exactly nothing. */
+@media (prefers-reduced-motion: no-preference) {
+  .name-wordmark.wm-idle-offscreen path[class^="wm-"] { animation-play-state: paused !important; }
+  .name-wordmark path[class^="wm-"] { transform-box: fill-box; transform-origin: 50% 50%; }
+  .name-wordmark .wm-idle-on.wm-I1 { animation: wm-idle-snake 4.4s ease-in-out -0.2s infinite; }
+  .name-wordmark .wm-idle-on.wm-I2 { animation: wm-idle-snake 4.8s ease-in-out -2.6s infinite; }
+  .name-wordmark .wm-idle-on.wm-S1 { animation: wm-idle-jelly 3.6s ease-in-out -0.9s infinite; }
+  .name-wordmark .wm-idle-on.wm-S2 { animation: wm-idle-jelly 3.9s ease-in-out -2.2s infinite; }
+  .name-wordmark .wm-idle-on.wm-S3 { animation: wm-idle-jelly 3.7s ease-in-out -3.3s infinite; }
+  .name-wordmark .wm-idle-on.wm-A1 { animation: wm-idle-pend 5.2s ease-in-out -0.6s infinite; transform-origin: 50% 4%; }
+  .name-wordmark .wm-idle-on.wm-A2 { animation: wm-idle-pend2 5.6s ease-in-out -3.1s infinite; transform-origin: 50% 4%; }
+  .name-wordmark .wm-idle-on.wm-B  { animation: wm-idle-squash 4.0s ease-in-out -1.4s infinite; }
+  .name-wordmark .wm-idle-on.wm-E  { animation: wm-idle-wash 4.6s ease-in-out -2.8s infinite; transform-origin: 50% 100%; }
+  .name-wordmark .wm-idle-on.wm-L  { animation: wm-idle-tilt 5.0s ease-in-out -1.1s infinite; transform-origin: 0% 100%; }
+  .name-wordmark .wm-idle-on.wm-R  { animation: wm-idle-hop 4.4s ease-in-out -3.6s infinite; transform-origin: 50% 100%; }
+  .name-wordmark .wm-idle-on.wm-O  { animation: wm-idle-spin 22s linear infinite; }
+}
+@keyframes wm-idle-snake  { 0%, 100% { transform: translateY(0) skewX(0deg); } 50% { transform: translateY(-0.8px) skewX(4deg); } }
+@keyframes wm-idle-jelly  { 0%, 100% { transform: scale(1, 1); } 35% { transform: scale(0.96, 1.07); } 68% { transform: scale(1.045, 0.95); } }
+@keyframes wm-idle-pend   { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(7deg); } 70% { transform: rotate(-5deg); } }
+@keyframes wm-idle-pend2  { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(-7deg); } 70% { transform: rotate(5deg); } }
+@keyframes wm-idle-squash { 0%, 100% { transform: scale(1, 1); } 40% { transform: scale(1.06, 0.93); } 72% { transform: scale(0.97, 1.045); } }
+@keyframes wm-idle-wash   { 0%, 100% { transform: translateY(0) scaleX(1); } 45% { transform: translateY(-1.1px) scaleX(1.02); } }
+@keyframes wm-idle-tilt   { 0%, 100% { transform: rotate(0deg); } 30% { transform: rotate(6deg); } 70% { transform: rotate(-3deg); } }
+@keyframes wm-idle-hop    { 0%, 100% { transform: translateY(0) scale(1, 1); } 38% { transform: translateY(-1.7px) scale(0.97, 1.05); } 62% { transform: translateY(-1.2px) scale(1.01, 0.99); } 82% { transform: translateY(0) scale(1.05, 0.94); } }
+@keyframes wm-idle-spin   { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 @keyframes name-arrive { 0% { transform: scale(0.5) rotate(-5deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 @keyframes float { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-15px) rotate(5deg); } }
@@ -955,7 +988,6 @@ html[data-lang="pt"] p.lang-pt { display: block; }
   <svg class="doodle doodle-cursor" viewBox="0 0 38 38" fill="none" aria-hidden="true"><path d="M6 4L32 18L20 20L16 32Z" fill="#6771DB" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
   <svg class="doodle doodle-controller" viewBox="0 0 62 42" fill="none" aria-hidden="true"><rect x="4" y="8" width="54" height="28" rx="14" fill="#5DB06C" stroke="#080705" stroke-width="2.5"/><circle cx="20" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><circle cx="42" cy="22" r="5" fill="#EEECDE" stroke="#080705" stroke-width="2"/><rect x="18" y="20" width="4" height="4" fill="#080705"/><rect x="40" y="20" width="4" height="4" fill="#080705"/></svg>
   <svg class="doodle doodle-arrow" viewBox="0 0 50 50" fill="none" aria-hidden="true"><path d="M25 4L25 40M12 28L25 42L38 28" stroke="#F1670E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-  <svg class="doodle doodle-zigzag" viewBox="0 0 60 24" fill="none" aria-hidden="true"><path d="M2 12L10 4L18 12L26 4L34 12L42 4L50 12L58 4" stroke="#A985B2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
   <svg class="doodle doodle-paperplane" viewBox="0 0 56 44" fill="none" aria-hidden="true"><path d="M4 20L52 4L34 40L24 28L4 20Z" fill="#6771DB" stroke="#080705" stroke-width="2" stroke-linejoin="round"/><path d="M52 4L24 28L26 38" stroke="#080705" stroke-width="2" stroke-linejoin="round" fill="none"/></svg>
   <svg class="doodle doodle-bolt" viewBox="0 0 36 52" fill="none" aria-hidden="true"><path d="M22 2L6 28H16L12 50L30 20H18L26 2Z" fill="#F7CE2F" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
   <svg class="doodle doodle-heart" viewBox="0 0 44 40" fill="none" aria-hidden="true"><path d="M22 36C10 26 4 18 4 12C4 6 9 3 13 3C17 3 20 5 22 9C24 5 27 3 31 3C35 3 40 6 40 12C40 18 34 26 22 36Z" fill="#EA7980" stroke="#080705" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -999,7 +1031,7 @@ html[data-lang="pt"] p.lang-pt { display: block; }
       <path class="wm-S1" class="cls-1" d="M4.91,7.54h1.68c0,.85,1.21,1.45,2.94,1.45s2.94-.6,2.94-1.45c0-2.7-7.32.36-7.32-4.19,0-1.69,1.81-2.88,4.38-2.88,2.42,0,4.14,1.19,4.14,2.88h-1.68c0-.77-1.02-1.32-2.46-1.32-1.58,0-2.7.55-2.7,1.32,0,2.65,7.32-.31,7.32,4.19,0,1.76-1.91,3.01-4.62,3.01s-4.62-1.25-4.62-3.01Z"/>
       <path class="wm-A1" class="cls-1" d="M15.73,7.98c.37-.64.84-1.19,1.38-1.67.11-.08.2-.16.3-.24.01-.24.05-.5.08-.78.14-.85.4-1.68.76-2.46.36-.79.83-1.45,1.38-2.11h1.91l4.32,9.59h-1.86l-3.66-8.05c-.26.38-.49.78-.68,1.2-.26.6-.47,1.22-.59,1.86.37-.07.73-.06,1.08.01.7.14,1.33.66,1.63,1.34.26.58.26,1.21-.02,1.73-.24.43-.65.76-1.15.91-.46.14-.96.13-1.39-.04-.64-.23-1.18-.74-1.49-1.42-.24.28-.46.58-.65.89-.29.49-.48,1.02-.59,1.56h-1.62c.14-.71.49-1.7.86-2.34ZM19.05,7c.12.4.38.72.68.83.24.08.55,0,.65-.17.07-.12.02-.25-.01-.35-.11-.23-.34-.42-.55-.47-.14-.02-.41-.05-.79.08.01.02.01.05.02.07Z"/>
       <path class="wm-B" class="cls-1" d="M27.18.72h5.64c1.91,0,3.25,1.09,3.25,2.64,0,1.04-.74,1.86-1.82,2.03,1.21.18,2.05,1.03,2.05,2.12,0,1.64-1.49,2.81-3.6,2.81h-5.52V.72ZM32.59,4.61c1.04,0,1.79-.52,1.79-1.25,0-.61-.7-1.04-1.67-1.04h-3.85v2.29h3.73ZM32.7,8.72c1.12,0,1.91-.5,1.91-1.21,0-.77-.74-1.31-1.79-1.31h-3.96v2.52h3.84Z"/>
-      <path class="wm-E" class="cls-1" d="M38.34.72h8.4v1.58h-6.72v1.51c.31.07.6.23.85.47.23.23.74,1.08.84,1.18.05.04.06.04.07.04.02,0,.04,0,.07-.04.1-.1.62-.95.85-1.18.32-.32.72-.49,1.16-.49.84,0,1.27.56,1.7,1.22.1.17.36.48.37.48v1.56c-.44,0-.83-.17-1.16-.49-.23-.23-.74-1.08-.84-1.18-.05-.05-.06-.05-.07-.05-.02,0-.04,0-.07.05-.1.1-.62.95-.85,1.18-.32.32-.72.49-1.16.49s-.83-.17-1.16-.49c-.14-.14-.41-.54-.6-.83v3h6.72v1.58h-8.4V.72Z"/>
+      <path class="wm-E cls-1" d="M38.34.72h8.4v1.58h-6.72v1.51c.31.07.6.23.85.47.23.23.74,1.08.84,1.18.05.04.06.04.07.04.02,0,.04,0,.07-.04.1-.1.62-.95.85-1.18.32-.32.72-.49,1.16-.49.84,0,1.27.56,1.7,1.22.1.17.36.48.37.48v1.56c-.44,0-.83-.17-1.16-.49-.23-.23-.74-1.08-.84-1.18-.05-.05-.06-.05-.07-.05-.02,0-.04,0-.07.05-.1.1-.62.95-.85,1.18-.32.32-.72.49-1.16.49s-.83-.17-1.16-.49c-.14-.14-.41-.54-.6-.83v3h6.72v1.58h-8.4V.72Z"/>
       <path class="wm-L" class="cls-1" d="M48.78.72h1.68v8.01h6.4v1.58h-8.08V.72Z"/>
       <path class="wm-A2" class="cls-1" d="M57.97,7.98c.37-.64.84-1.19,1.38-1.67.11-.08.2-.16.3-.24.01-.24.05-.5.08-.78.14-.85.4-1.68.76-2.46.36-.79.83-1.45,1.38-2.11h1.91l4.32,9.59h-1.86l-3.66-8.05c-.26.38-.49.78-.68,1.2-.26.6-.47,1.22-.59,1.86.37-.07.73-.06,1.08.01.7.14,1.33.66,1.63,1.34.26.58.26,1.21-.02,1.73-.24.43-.65.76-1.15.91-.46.14-.96.13-1.39-.04-.64-.23-1.18-.74-1.49-1.42-.24.28-.46.58-.65.89-.29.49-.48,1.02-.59,1.56h-1.62c.14-.71.49-1.7.86-2.34ZM61.29,7c.12.4.38.72.68.83.24.08.55,0,.65-.17.07-.12.02-.25-.01-.35-.11-.23-.34-.42-.55-.47-.14-.02-.41-.05-.79.08.01.02.01.05.02.07Z"/>
       <path class="wm-R" class="cls-1" d="M73.68,1.24l.68-.14s.05-.01.07-.02c.48-.11,1.59-.37,2.82-.46.72-.04,1.37-.01,1.93.08.73.13,1.36.38,1.82.76.36.29.64.64.83,1.06s.29.91.29,1.45c0,.58-.23,1.16-.68,1.74-.18.24-.41.47-.66.7.67,1.24.86,2.57,1.02,3.92h-1.62c-.08-.68-.17-1.26-.35-1.91-.11-.4-.24-.76-.41-1.09-.41.23-.85.42-1.28.56-.67.23-1.33.36-1.9.36-.32,0-.62-.04-.89-.11v2.18h-1.68V1.24ZM76.2,3.65c.14,0,.28.01.42.02.46.05.94.16,1.39.34.7.25,1.32.64,1.79,1.07.14-.13.26-.25.37-.38.22-.28.34-.53.34-.73,0-.36-.06-.88-.5-1.24-.5-.38-1.42-.56-2.64-.48-.76.05-1.49.18-2,.29v1.22c.26-.07.54-.11.84-.11ZM75.54,6.44c.13.11.38.17.71.17.61,0,1.39-.22,2.13-.59-.26-.19-.59-.36-.94-.49-.65-.24-1.31-.31-1.73-.19-.19.07-.32.16-.36.41v.31c.04.26.13.35.18.38Z"/>
@@ -1145,7 +1177,7 @@ html[data-lang="pt"] p.lang-pt { display: block; }
       <path class="wm-S1" class="cls-1" d="M4.91,7.54h1.68c0,.85,1.21,1.45,2.94,1.45s2.94-.6,2.94-1.45c0-2.7-7.32.36-7.32-4.19,0-1.69,1.81-2.88,4.38-2.88,2.42,0,4.14,1.19,4.14,2.88h-1.68c0-.77-1.02-1.32-2.46-1.32-1.58,0-2.7.55-2.7,1.32,0,2.65,7.32-.31,7.32,4.19,0,1.76-1.91,3.01-4.62,3.01s-4.62-1.25-4.62-3.01Z"/>
       <path class="wm-A1" class="cls-1" d="M15.73,7.98c.37-.64.84-1.19,1.38-1.67.11-.08.2-.16.3-.24.01-.24.05-.5.08-.78.14-.85.4-1.68.76-2.46.36-.79.83-1.45,1.38-2.11h1.91l4.32,9.59h-1.86l-3.66-8.05c-.26.38-.49.78-.68,1.2-.26.6-.47,1.22-.59,1.86.37-.07.73-.06,1.08.01.7.14,1.33.66,1.63,1.34.26.58.26,1.21-.02,1.73-.24.43-.65.76-1.15.91-.46.14-.96.13-1.39-.04-.64-.23-1.18-.74-1.49-1.42-.24.28-.46.58-.65.89-.29.49-.48,1.02-.59,1.56h-1.62c.14-.71.49-1.7.86-2.34ZM19.05,7c.12.4.38.72.68.83.24.08.55,0,.65-.17.07-.12.02-.25-.01-.35-.11-.23-.34-.42-.55-.47-.14-.02-.41-.05-.79.08.01.02.01.05.02.07Z"/>
       <path class="wm-B" class="cls-1" d="M27.18.72h5.64c1.91,0,3.25,1.09,3.25,2.64,0,1.04-.74,1.86-1.82,2.03,1.21.18,2.05,1.03,2.05,2.12,0,1.64-1.49,2.81-3.6,2.81h-5.52V.72ZM32.59,4.61c1.04,0,1.79-.52,1.79-1.25,0-.61-.7-1.04-1.67-1.04h-3.85v2.29h3.73ZM32.7,8.72c1.12,0,1.91-.5,1.91-1.21,0-.77-.74-1.31-1.79-1.31h-3.96v2.52h3.84Z"/>
-      <path class="wm-E" class="cls-1" d="M38.34.72h8.4v1.58h-6.72v1.51c.31.07.6.23.85.47.23.23.74,1.08.84,1.18.05.04.06.04.07.04.02,0,.04,0,.07-.04.1-.1.62-.95.85-1.18.32-.32.72-.49,1.16-.49.84,0,1.27.56,1.7,1.22.1.17.36.48.37.48v1.56c-.44,0-.83-.17-1.16-.49-.23-.23-.74-1.08-.84-1.18-.05-.05-.06-.05-.07-.05-.02,0-.04,0-.07.05-.1.1-.62.95-.85,1.18-.32.32-.72.49-1.16.49s-.83-.17-1.16-.49c-.14-.14-.41-.54-.6-.83v3h6.72v1.58h-8.4V.72Z"/>
+      <path class="wm-E cls-1" d="M38.34.72h8.4v1.58h-6.72v1.51c.31.07.6.23.85.47.23.23.74,1.08.84,1.18.05.04.06.04.07.04.02,0,.04,0,.07-.04.1-.1.62-.95.85-1.18.32-.32.72-.49,1.16-.49.84,0,1.27.56,1.7,1.22.1.17.36.48.37.48v1.56c-.44,0-.83-.17-1.16-.49-.23-.23-.74-1.08-.84-1.18-.05-.05-.06-.05-.07-.05-.02,0-.04,0-.07.05-.1.1-.62.95-.85,1.18-.32.32-.72.49-1.16.49s-.83-.17-1.16-.49c-.14-.14-.41-.54-.6-.83v3h6.72v1.58h-8.4V.72Z"/>
       <path class="wm-L" class="cls-1" d="M48.78.72h1.68v8.01h6.4v1.58h-8.08V.72Z"/>
       <path class="wm-A2" class="cls-1" d="M57.97,7.98c.37-.64.84-1.19,1.38-1.67.11-.08.2-.16.3-.24.01-.24.05-.5.08-.78.14-.85.4-1.68.76-2.46.36-.79.83-1.45,1.38-2.11h1.91l4.32,9.59h-1.86l-3.66-8.05c-.26.38-.49.78-.68,1.2-.26.6-.47,1.22-.59,1.86.37-.07.73-.06,1.08.01.7.14,1.33.66,1.63,1.34.26.58.26,1.21-.02,1.73-.24.43-.65.76-1.15.91-.46.14-.96.13-1.39-.04-.64-.23-1.18-.74-1.49-1.42-.24.28-.46.58-.65.89-.29.49-.48,1.02-.59,1.56h-1.62c.14-.71.49-1.7.86-2.34ZM61.29,7c.12.4.38.72.68.83.24.08.55,0,.65-.17.07-.12.02-.25-.01-.35-.11-.23-.34-.42-.55-.47-.14-.02-.41-.05-.79.08.01.02.01.05.02.07Z"/>
       <path class="wm-R" class="cls-1" d="M73.68,1.24l.68-.14s.05-.01.07-.02c.48-.11,1.59-.37,2.82-.46.72-.04,1.37-.01,1.93.08.73.13,1.36.38,1.82.76.36.29.64.64.83,1.06s.29.91.29,1.45c0,.58-.23,1.16-.68,1.74-.18.24-.41.47-.66.7.67,1.24.86,2.57,1.02,3.92h-1.62c-.08-.68-.17-1.26-.35-1.91-.11-.4-.24-.76-.41-1.09-.41.23-.85.42-1.28.56-.67.23-1.33.36-1.9.36-.32,0-.62-.04-.89-.11v2.18h-1.68V1.24ZM76.2,3.65c.14,0,.28.01.42.02.46.05.94.16,1.39.34.7.25,1.32.64,1.79,1.07.14-.13.26-.25.37-.38.22-.28.34-.53.34-.73,0-.36-.06-.88-.5-1.24-.5-.38-1.42-.56-2.64-.48-.76.05-1.49.18-2,.29v1.22c.26-.07.54-.11.84-.11ZM75.54,6.44c.13.11.38.17.71.17.61,0,1.39-.22,2.13-.59-.26-.19-.59-.36-.94-.49-.65-.24-1.31-.31-1.73-.19-.19.07-.32.16-.36.41v.31c.04.26.13.35.18.38Z"/>
@@ -2726,7 +2758,154 @@ if (!CSS.supports('animation-timeline: view()')) {
   });
   apply(pSmooth);
 })();
+</script>
 
+<script>
+// Round 19: wordmark arrival. The hero name letters TRAVEL into their slots
+// while the Round 18 keycaps hop in — before this, the whole name popped in
+// as one block (the CSS name-arrive scale) and every letter then sat still:
+// the old first-load moves in the easter egg only jittered in place. Each
+// letter takes two decelerating hops up from below the name line, alternating
+// sides, staggered left-to-right — tumble decaying through the air, a squash
+// on every landing, the final I landing heaviest: the same vocabulary as the
+// keycap entrance. Offsets are RELATIVE to each letter's slot, so no
+// re-measure is needed when web fonts settle or on resize; the hand-back is
+// pristine (inline styles cleared) so the easter-egg click moves always play
+// from the exact rest state. A first scroll snaps letters to their slots (the
+// Round 16 join takes over); reduced-motion never starts it — the global
+// reduce block keeps the plain static name, and transform/opacity only keeps
+// every frame compositor-friendly.
+(function () {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg = document.querySelector('h1.name svg.name-wordmark');
+  if (!svg) return;
+  const paths = Array.prototype.slice.call(svg.querySelectorAll('path[class^="wm-"]'));
+  if (paths.length !== 12) return;
+
+  // the whole-block CSS pop would fight the per-letter arrival: retire it and
+  // own the reveal here. Same synchronous block hides every letter, so nothing
+  // flashes fully-formed before its hop.
+  const container = svg.closest('.name-container');
+  if (container) container.style.animation = 'none';
+  paths.forEach(p => { p.style.opacity = '0'; });
+
+  const STAGGER = 180;     // left-to-right gap between letter starts
+  const START_DELAY = 420; // let the first keycap beat land first
+  const DUR = 1150;        // per-letter travel time (matches the keycap hop feel)
+  const HOPS = 2;
+
+  // CSS transforms on SVG children run in user units — convert screen px
+  const bbW = svg.getBoundingClientRect().width;
+  const upx = bbW > 0 ? 120.56 / bbW : 1;
+  const drop = Math.min(120, Math.max(48, window.innerHeight * 0.13)); // px below the line
+
+  const cfgs = paths.map((p, i) => {
+    const side = i % 2 === 0 ? -1 : 1;
+    return {
+      el: p,
+      sx: side * (16 + (i % 2) * 20) * upx,             // start: alternately left/right
+      sy: (drop + (i % 3) * 14) * upx,                  // ...below the name line
+      rot0: side * 11,                                  // entry tumble, decays
+      squash: i === paths.length - 1 ? 0.16 : 0.10,     // the last I lands heaviest
+      delay: START_DELAY + i * STAGGER,
+      done: false,
+    };
+  });
+  cfgs.forEach(c => { c.el.style.transformBox = 'fill-box'; c.el.style.transformOrigin = '50% 50%'; });
+
+  let canceled = false, rafId = 0;
+  const t0 = performance.now();
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const ss = u => u * u * (3 - 2 * u);
+
+  function release() {
+    // transformBox/transformOrigin stay: they're inert without a transform,
+    // and clearing them could glitch an easter-egg move running mid-flight
+    cfgs.forEach(c => {
+      c.el.style.transform = ''; c.el.style.opacity = '';
+    });
+  }
+  function cancel() {
+    if (canceled) return;
+    canceled = true;
+    window.__wmArrivalActive = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = 0;
+    release();
+  }
+  window.addEventListener('scroll', cancel, { passive: true });
+  // Round 16's clearEntrance calls __cancelLuxoHops before measuring slots —
+  // chain ours in so a scroll during either entrance clears both, first
+  const prevCancel = window.__cancelLuxoHops;
+  window.__cancelLuxoHops = function () {
+    if (prevCancel) prevCancel();
+    cancel();
+  };
+  // a click on a letter still mid-arrival snaps it to its slot so the
+  // easter-egg move plays from the rest state instead of stacking poses
+  window.__wmArrivalSettle = function (p) {
+    const cfg = cfgs.find(c => c.el === p);
+    if (!cfg || canceled || cfg.done) return;
+    cfg.done = true;
+    cfg.el.style.transform = ''; cfg.el.style.opacity = '';
+  };
+  window.__wmArrivalActive = true;
+
+  // pose at progress g (0..1): two decelerating hops up from the offset start.
+  // Every arc stays BELOW the slot line (lift is a fraction of the remaining
+  // depth), so the name assembles from underneath and all waypoints — floor,
+  // apexes, landings — stay inside the viewport.
+  function pose(cfg, g) {
+    const k = Math.min(HOPS - 1, Math.floor(g * HOPS));
+    const u = g * HOPS - k;
+    const h = Math.sin(Math.PI * u);
+    const f0 = k / HOPS, f1 = (k + 1) / HOPS, ue = ss(u);
+    const x = lerp(cfg.sx * (1 - f0), cfg.sx * (1 - f1), ue);
+    const depth = lerp(cfg.sy * (1 - f0), cfg.sy * (1 - f1), ue);
+    const lift = h * depth * (k === 0 ? 0.85 : 0.5);
+    const rot = cfg.rot0 * (1 - g) * h;
+    const sq = u > 0.78 ? Math.sin(Math.PI * (u - 0.78) / 0.22) * cfg.squash : 0;
+    return { x, y: depth - lift, rot, sq, opacity: Math.min(1, g * 8) };
+  }
+
+  function tick(now) {
+    if (canceled) return;
+    const t = now - t0;
+    let allDone = true;
+    for (const cfg of cfgs) {
+      if (cfg.done) continue;
+      const g = Math.min(1, Math.max(0, (t - cfg.delay) / DUR));
+      if (g >= 1) {
+        cfg.done = true; // pristine hand-back: natural slot, no inline styles
+        cfg.el.style.transform = ''; cfg.el.style.opacity = '';
+        // no dead stop: the instant the letter lands, chain into its own
+        // easter-egg move (the exact vocabulary the hero used before this
+        // PR). playMove restarts safely on re-click, settles back to rest,
+        // and is never registered under reduced motion (we don't run there).
+        if (typeof window.__wmPlayMove === 'function') window.__wmPlayMove(cfg.el);
+        continue;
+      }
+      allDone = false;
+      const P = pose(cfg, g);
+      cfg.el.style.opacity = P.opacity.toFixed(2);
+      cfg.el.style.transform =
+        'translate(' + P.x.toFixed(2) + 'px,' + P.y.toFixed(2) + 'px)' +
+        ' rotate(' + P.rot.toFixed(2) + 'deg)' +
+        ' scale(' + (1 + P.sq).toFixed(3) + ',' + (1 - P.sq * 0.8).toFixed(3) + ')';
+    }
+    if (allDone) {
+      window.__wmArrivalActive = false;
+      release();
+      rafId = 0;
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+  rafId = requestAnimationFrame(tick);
+})();
+</script>
+
+<script>
 /* ============================================================
    Wordmark easter egg — hover any letter of the hero name and
    it performs its own little move. Footer copy stays static.
@@ -2738,6 +2917,35 @@ if (!CSS.supports('animation-timeline: view()')) {
 
   const ORIGIN = {"wm-I1":"50% 50%","wm-I2":"50% 50%","wm-S1":"50% 50%","wm-S2":"50% 50%","wm-S3":"50% 50%","wm-A1":"50% 4%","wm-A2":"50% 4%","wm-B":"50% 50%","wm-E":"50% 100%","wm-L":"0% 100%","wm-R":"50% 100%"};;
   const SPRING = 'cubic-bezier(.34,1.56,.64,1)';
+
+  // Round 19b idle loop manager: one gentle CSS animation per letter (the
+  // .wm-idle-on rules above), scheduled to start when a handoff or click move
+  // settles. The svg carries wm-idle-offscreen whenever the hero is not
+  // intersecting the viewport (observer below) — paused CSS animations cost
+  // exactly nothing off-screen, and resuming continues the same keyframe
+  // phase, so there is no snap on return.
+  const idle = {
+    timers: new Map(),
+    schedule(p, delay) {
+      this.stop(p);
+      this.timers.set(p, setTimeout(() => { this.timers.delete(p); p.classList.add('wm-idle-on'); }, delay));
+    },
+    stop(p) {
+      const t = this.timers.get(p);
+      if (t) { clearTimeout(t); this.timers.delete(p); }
+      p.classList.remove('wm-idle-on');
+    },
+  };
+  window.__wmIdle = idle;
+  // NOTE: this is the page's first visibility gate — the round 17 idle gate
+  // is a scroll-glide poll interval and the .reveal IO is a one-shot reveal
+  // fallback, neither pauses off-screen animation. One observer, one target.
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {
+      const visible = entries.some(e => e.isIntersecting);
+      svg.classList.toggle('wm-idle-offscreen', !visible);
+    }, { threshold: 0 }).observe(svg);
+  }
 
   // helper: alternate frames from a list of transform states
   const alt = (states, first, last) => {
@@ -2983,7 +3191,9 @@ if (!CSS.supports('animation-timeline: view()')) {
       stop() {
         if (dead) return; dead = true;
         cancelAnimationFrame(raf);
-        for (const part of parts) { if (!part.done) stopPart(part); }
+        // unconditional: parts that finished early were parked at dy=0 with
+        // their layers alive, so every part still owns layer + clipPaths here
+        for (const part of parts) stopPart(part);
         mask.remove();
         p.removeAttribute('mask');
         if (p.__es === api) p.__es = null;
@@ -2995,7 +3205,16 @@ if (!CSS.supports('animation-timeline: view()')) {
       for (const part of parts) {
         if (part.done) continue;
         const lt = (t - part.delay) / WASH;
-        if (lt >= 1) { stopPart(part); continue; }   // crest absorbed: back to design
+        if (lt >= 1) {
+          // crest absorbed. Park the slices at 0 and KEEP them — the shared
+          // mask stays until the whole run ends, so tearing the layer down
+          // here would leave this stroke INVISIBLE until the last stroke
+          // finishes (base ink is masked out). At dy=0 the slices render the
+          // exact design stroke anyway.
+          for (const b of part.bands) b.el.style.transform = 'translateY(0px)';
+          part.done = true;
+          continue;
+        }
         const dy = new Array(part.bands.length).fill(0);
         if (lt > 0) {
           const e = lt * lt * (3 - 2 * lt);
@@ -3019,18 +3238,35 @@ if (!CSS.supports('animation-timeline: view()')) {
   const paths = [...svg.querySelectorAll('path[class^="wm-"]')];
 
   function playMove(p) {
+    // letter clicked while the Round 19 arrival is still flying: snap it to
+    // its slot first, so the move plays from the rest state instead of
+    // stacking on a mid-flight pose
+    if (window.__wmArrivalSettle) window.__wmArrivalSettle(p);
     const cls = [...p.classList].find(c => c.startsWith('wm-'));
     const move = MOVES[cls];
     if (!move) return;
-    if (move.type === 'snakeCrawl') { snakeScroll(p, move.snakeDir); return; }
-    if (move.type === 'eWash') { eWashWave(p); return; }
-    // re-trigger mid-flight: restart the move from the top instead of stacking
-    p.getAnimations().forEach(a => a.cancel());
-    p.style.transformBox = 'fill-box';
-    p.style.transformOrigin = move.origin || ORIGIN[cls] || '50% 50%';
-    p.animate(move.frames, { duration: move.dur, easing: move.easing || 'ease-in-out' })
-      .finished.catch(() => {});
+    // the idle loop is a CSS animation on the path itself — canceling the
+    // animations below also clears it; the idle restarts after this move
+    // settles (schedule below), from its identity keyframe, so no snap
+    if (window.__wmIdle) window.__wmIdle.stop(p);
+    if (move.type === 'snakeCrawl') { snakeScroll(p, move.snakeDir); }
+    else if (move.type === 'eWash') { eWashWave(p); }
+    else {
+      // re-trigger mid-flight: restart the move from the top instead of stacking
+      p.getAnimations().forEach(a => a.cancel());
+      p.style.transformBox = 'fill-box';
+      p.style.transformOrigin = move.origin || ORIGIN[cls] || '50% 50%';
+      p.animate(move.frames, { duration: move.dur, easing: move.easing || 'ease-in-out' })
+        .finished.catch(() => {});
+    }
+    // after the move settles, the letter's continuous idle loop takes over —
+    // the name keeps its subtle life instead of going still
+    if (window.__wmIdle) window.__wmIdle.schedule(p, moveDuration(move) + 80);
   }
+  function moveDuration(move) { return move.type === 'snakeCrawl' ? 1500 : move.dur; }
+  // Round 19 chains this onto each letter's arrival landing, so the name
+  // hands off straight into the old move vocabulary instead of going still
+  window.__wmPlayMove = playMove;
 
   // transparent hit boxes over each glyph — the whole letter box is clickable,
   // not just the thin strokes of the character
@@ -3053,23 +3289,9 @@ if (!CSS.supports('animation-timeline: view()')) {
     if (hit) playMove(hit);
   });
 
-  function moveDuration(move) {
-    return move.type === 'snakeCrawl' ? 1500 : move.dur;
-  }
-
-  // First-load letter moves are back-timed from the keycap entrance's real
-  // finish, so the whole name and OVERFLOW settle on one shared beat. Clicks
-  // below still use each move's original duration and start immediately.
-  const introEndAt = window.__luxoEntranceEndAt;
-  paths.forEach((p, i) => {
-    const move = MOVES[[...p.classList].find(c => c.startsWith('wm-'))];
-    const duration = move ? moveDuration(move) : 0;
-    const fallbackStart = 350 + i * 90;
-    const startAt = Number.isFinite(introEndAt)
-      ? introEndAt - duration
-      : performance.now() + fallbackStart;
-    setTimeout(() => playMove(p), Math.max(0, startAt - performance.now()));
-  });
+  // First-load arrival is the Round 19 travel intro (its own script block):
+  // letters hop into their slots while the Round 18 keycaps enter. This IIFE
+  // owns only the click-triggered moves now.
 })();
 </script>
 
