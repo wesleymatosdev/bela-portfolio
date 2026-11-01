@@ -2997,29 +2997,35 @@ if (!CSS.supports('animation-timeline: view()')) {
       { transform: 'scale(.99, 1.01)', offset: .85, easing: 'ease-out' },
       { transform: 'scale(1, 1)', offset: 1 }
     ], dur: 1050, origin: '50% 50%' },
-    // A: apex sway — the letter pivots on its apex point like a metronome:
-    // one deep swing right, one smaller through the vertical, then a decaying
-    // settle. No full spin (the 360deg spin-flip read as chaotic and the
-    // overshoot wobble read as vibrating backwards), transform-only, and the
-    // same sway vocabulary the A's idle pendulum loop already uses. A2 mirrors.
+    // A: vertical-axis card flip (owner direction: flip like a card turning
+    // over, NOT a horizontal-plane spin). SVG children don't reliably support
+    // true 3D rotateY across browsers (Safari especially), so the flip is
+    // approximated in 2D: scaleX follows the cosine while skewY follows the
+    // sine — the same projection a perspective rotateY produces (edges shear
+    // toward the vanishing point). The letter collapses edge-on, shows its
+    // mirrored back face at the halfway point, then returns; A2 mirrors the
+    // direction. Full 360deg so it always lands back on the design rest
+    // state, cosine-decelerated at the end — no overshoot, no reversal.
     'wm-A1': { frames: [
-      { transform: 'rotate(0deg) scale(1, 1)', offset: 0, easing: 'cubic-bezier(.55,0,.6,.8)' },
-      { transform: 'rotate(0deg) scale(1.06, .92)', offset: .13, easing: 'cubic-bezier(.3,.6,.4,1)' },
-      { transform: 'rotate(13deg) scale(.97, 1.05)', offset: .4, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-9deg) scale(.99, 1.02)', offset: .63, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(4.5deg) scale(1, 1)', offset: .79, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-2deg) scale(1, 1)', offset: .9, easing: 'ease-out' },
-      { transform: 'rotate(0deg) scale(1, 1)', offset: 1 }
-    ], dur: 1900, origin: '50% 4%' },
+      { transform: 'skewY(0deg) scaleX(1)', offset: 0, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(6deg) scaleX(0.42)', offset: .16 },
+      { transform: 'skewY(6deg) scaleX(-0.42)', offset: .3 },
+      { transform: 'skewY(0deg) scaleX(-1)', offset: .48, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(-6deg) scaleX(-0.42)', offset: .66 },
+      { transform: 'skewY(-6deg) scaleX(0.42)', offset: .8 },
+      { transform: 'skewY(-2deg) scaleX(0.9)', offset: .9, easing: 'ease-out' },
+      { transform: 'skewY(0deg) scaleX(1)', offset: 1 }
+    ], dur: 1750, origin: '50% 50%' },
     'wm-A2': { frames: [
-      { transform: 'rotate(0deg) scale(1, 1)', offset: 0, easing: 'cubic-bezier(.55,0,.6,.8)' },
-      { transform: 'rotate(0deg) scale(1.06, .92)', offset: .13, easing: 'cubic-bezier(.3,.6,.4,1)' },
-      { transform: 'rotate(-13deg) scale(.97, 1.05)', offset: .4, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(9deg) scale(.99, 1.02)', offset: .63, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(-4.5deg) scale(1, 1)', offset: .79, easing: 'cubic-bezier(.45,0,.55,1)' },
-      { transform: 'rotate(2deg) scale(1, 1)', offset: .9, easing: 'ease-out' },
-      { transform: 'rotate(0deg) scale(1, 1)', offset: 1 }
-    ], dur: 1900, origin: '50% 4%' },
+      { transform: 'skewY(0deg) scaleX(1)', offset: 0, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(-6deg) scaleX(0.42)', offset: .16 },
+      { transform: 'skewY(-6deg) scaleX(-0.42)', offset: .3 },
+      { transform: 'skewY(0deg) scaleX(-1)', offset: .48, easing: 'cubic-bezier(.45,0,.55,1)' },
+      { transform: 'skewY(6deg) scaleX(-0.42)', offset: .66 },
+      { transform: 'skewY(6deg) scaleX(0.42)', offset: .8 },
+      { transform: 'skewY(2deg) scaleX(0.9)', offset: .9, easing: 'ease-out' },
+      { transform: 'skewY(0deg) scaleX(1)', offset: 1 }
+    ], dur: 1750, origin: '50% 50%' },
     'wm-B': {frames: [{"transform":"scale(1, 1)","offset":0},{"transform":"scale(1.32, 0.70)","offset":0.1},{"transform":"scale(0.78, 1.30)","offset":0.24},{"transform":"scale(1.22, 0.80)","offset":0.38},{"transform":"scale(0.86, 1.16)","offset":0.52},{"transform":"scale(1.12, 0.90)","offset":0.66},{"transform":"scale(0.95, 1.06)","offset":0.8},{"transform":"scale(1.02, 0.98)","offset":0.9},{"transform":"scale(1, 1)","offset":1}], dur: 950, easing: 'ease-in-out'},
     // E: one clean hop (issue #21 — "only hop (or only flip)"): a crouch, a
     // single arc up, a float at the apex, a landing squash and a settle back
